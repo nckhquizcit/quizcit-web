@@ -1,0 +1,38 @@
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+html,
+body {
+  font-family: "Inter", sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+ul,
+ol,
+figure {
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --text-base: 1rem;
+  --text-h4: calc(var(--text-base) * 1.618);
+  --text-h3: calc(var(--text-h4) * 1.618);
+  --text-h2: calc(var(--text-h3) * 1.618);
+  --text-h1: calc(var(--text-h2) * 1.618);
+}
+
+*,
+::after,
+::before {
+  box-sizing: border-box;
+}

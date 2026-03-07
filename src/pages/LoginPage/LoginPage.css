@@ -1,0 +1,16 @@
+.login-page-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  gap: 2rem;
+  min-height: 100vh;
+  background: #ffffff;
+  background: linear-gradient(
+    131deg,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(245, 255, 252, 1) 49%,
+    rgba(255, 255, 255, 1) 100%
+  );
+}
