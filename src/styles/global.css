@@ -8,7 +8,17 @@ body {
   margin: 0;
   padding: 0;
 }
-
+body {
+  min-height: 100vh;
+  width: 100%;
+  background: #ffffff;
+  background: linear-gradient(
+    131deg,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(245, 255, 252, 1) 49%,
+    rgba(255, 255, 255, 1) 100%
+  );
+}
 h1,
 h2,
 h3,
@@ -35,4 +45,20 @@ figure {
 ::after,
 ::before {
   box-sizing: border-box;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px #e9fff6 inset;
+
+  /* Giúp hiệu ứng chuyển mượt mà hơn nếu cần */
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+button {
+  transition: all 0.3s ease;
+}
+button:hover {
+  scale: 1.025;
 }
