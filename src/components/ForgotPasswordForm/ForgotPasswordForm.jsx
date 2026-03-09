@@ -2,7 +2,9 @@ import { useState } from "react";
 import "./ForgotPasswordForm.css";
 import { Link } from "react-router-dom";
 import { Mail, Info, ArrowLeft } from "lucide-react";
+import { useForgotPassword } from "../../stores/contexts/ForgotPasswordContext";
 export default function ForgotPasswordForm() {
+  const { setCurrentState } = useForgotPassword();
   const [formData, setFormData] = useState({
     email: "",
   });
@@ -17,6 +19,7 @@ export default function ForgotPasswordForm() {
     e.preventDefault();
     // Logic gọi API đăng ký ở đây
     console.log("Dữ liệu quên mật khẩu:", formData);
+    setCurrentState(2);
   };
   return (
     <form className="forgot-password-form-container" onSubmit={handleSend}>
