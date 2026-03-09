@@ -50,3 +50,11 @@
   color: #00673e;
   text-decoration: none;
 }
+
+.forgot-password-section a {
+  color: #00673e;
+  text-decoration: none;
+}
+.forgot-password-section p {
+  text-align: right;
+}

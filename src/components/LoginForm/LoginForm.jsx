@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom"; // Import Link để điều hướng SPA
+import { Link } from "react-router-dom";
 import "./LoginForm.css";
 
 export default function LoginForm() {
@@ -64,6 +64,11 @@ export default function LoginForm() {
           />
           <span>Ghi nhớ tôi</span>
         </label>
+      </div>
+      <div className="forgot-password-section">
+        <p>
+          <Link to="/forgot-password">Quên mật khẩu?</Link>
+        </p>
       </div>
 
       <button type="submit" className="login-button">
