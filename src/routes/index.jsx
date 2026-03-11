@@ -1,8 +1,8 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
-import LoginPage from "../pages/LoginPage/LoginPage.jsx";
-import RegisterPage from "../pages/RegisterPage/RegisterPage";
-import VerifyPage from "../pages/VerifyPage/VerifyPage.jsx";
-import ForgotPasswordPage from "../pages/ForgotPasswordPage/ForgotPasswordPage.jsx";
+import LoginPage from "../features/auth/pages/LoginPage/LoginPage.jsx";
+import RegisterPage from "../features/auth/pages/RegisterPage/RegisterPage";
+import VerifyPage from "../features/auth/pages/VerifyPage/VerifyPage.jsx";
+import ForgotPasswordPage from "../features/auth/pages/ForgotPasswordPage/ForgotPasswordPage.jsx";
 import { ForgotPasswordProvider } from "../stores/contexts/ForgotPasswordContext.jsx";
 export const router = createBrowserRouter([
   {

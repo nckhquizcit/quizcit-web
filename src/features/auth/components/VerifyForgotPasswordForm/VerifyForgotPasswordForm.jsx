@@ -2,7 +2,7 @@ import "./VerifyForgotPasswordForm.css";
 import { useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Mail, Info, ArrowLeft } from "lucide-react";
-import { useForgotPassword } from "../../stores/contexts/ForgotPasswordContext";
+import { useForgotPassword } from "../../../../stores/contexts/ForgotPasswordContext.jsx";
 
 export default function VerifyForgotPasswordForm({
   email = "nhhun@example.com",

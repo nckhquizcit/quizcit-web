@@ -4,7 +4,7 @@ import ForgotPasswordCard from "../../components/ForgotPasswordCard/ForgotPasswo
 import ForgotPasswordForm from "../../components/ForgotPasswordForm/ForgotPasswordForm";
 import VerifyForgotPasswordForm from "../../components/VerifyForgotPasswordForm/VerifyForgotPasswordForm";
 import "./ForgotPasswordPage.css";
-import { useForgotPassword } from "../../stores/contexts/ForgotPasswordContext";
+import { useForgotPassword } from "../../../../stores/contexts/ForgotPasswordContext.jsx";
 
 export default function ForgotPasswordPage() {
   const { currentState, setCurrentState } = useForgotPassword();

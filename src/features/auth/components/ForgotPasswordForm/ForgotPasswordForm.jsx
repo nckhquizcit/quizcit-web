@@ -2,7 +2,7 @@ import { useState } from "react";
 import "./ForgotPasswordForm.css";
 import { Link } from "react-router-dom";
 import { Mail, Info, ArrowLeft } from "lucide-react";
-import { useForgotPassword } from "../../stores/contexts/ForgotPasswordContext";
+import { useForgotPassword } from "../../../../stores/contexts/ForgotPasswordContext.jsx";
 export default function ForgotPasswordForm() {
   const { setCurrentState } = useForgotPassword();
   const [formData, setFormData] = useState({
