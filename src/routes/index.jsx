@@ -4,10 +4,11 @@ import RegisterPage from "../features/auth/pages/RegisterPage/RegisterPage";
 import VerifyPage from "../features/auth/pages/VerifyPage/VerifyPage.jsx";
 import ForgotPasswordPage from "../features/auth/pages/ForgotPasswordPage/ForgotPasswordPage.jsx";
 import { ForgotPasswordProvider } from "../stores/contexts/ForgotPasswordContext.jsx";
+import MainLayout from "../layouts/MainLayout.jsx";
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: <Navigate to="/login" replace></Navigate>,
+    element: <MainLayout></MainLayout>,
   },
   {
     path: "/login",

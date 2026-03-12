@@ -1,3 +1,4 @@
+import { useContext } from "react";
 import VerifyCard from "../../components/VerifyCard/VerifyCard";
 import VerifyForm from "../../components/VerifyForm/VerifyForm";
 import "./VerifyPage.css";

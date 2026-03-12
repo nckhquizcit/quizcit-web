@@ -7,7 +7,7 @@ import "./ForgotPasswordPage.css";
 import { useForgotPassword } from "../../../../stores/contexts/ForgotPasswordContext.jsx";
 
 export default function ForgotPasswordPage() {
-  const { currentState, setCurrentState } = useForgotPassword();
+  const { currentState } = useForgotPassword();
   return (
     <div className="forgot-password-page-container">
       <ForgotPasswordCard></ForgotPasswordCard>
