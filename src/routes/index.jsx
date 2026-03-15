@@ -5,10 +5,16 @@ import VerifyPage from "../features/auth/pages/VerifyPage/VerifyPage.jsx";
 import ForgotPasswordPage from "../features/auth/pages/ForgotPasswordPage/ForgotPasswordPage.jsx";
 import { ForgotPasswordProvider } from "../stores/contexts/ForgotPasswordContext.jsx";
 import MainLayout from "../layouts/MainLayout.jsx";
+import AdminDashboard from "../features/admin/pages/AdminDashboard";
+
 export const router = createBrowserRouter([
   {
     path: "/",
     element: <MainLayout></MainLayout>,
+  },
+  {
+    path: "/admin",
+    element: <AdminDashboard />,
   },
   {
     path: "/login",
