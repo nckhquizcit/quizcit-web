@@ -4,7 +4,7 @@ import "./MainLayout.css";
 export default function MainLayout() {
   return (
     <div className="app-container">
-      <Sidebar></Sidebar>
+      <Sidebar type="ADMIN"></Sidebar>
       <div className="main-content"></div>
     </div>
   );

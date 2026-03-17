@@ -1,4 +1,4 @@
-import "../admin.css";
+import "../Admin.css";
 
 export default function AdminNavbar({ toggleSidebar }) {
   return (
