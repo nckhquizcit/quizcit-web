@@ -1,13 +1,9 @@
 import "../Admin.css";
 
-export default function AdminNavbar({ toggleSidebar }) {
+export default function AdminNavbar() {
   return (
     <div className="admin-navbar">
       <div className="navbar-left">
-        <button className="sidebar-toggle" onClick={toggleSidebar}>
-          ☰
-        </button>
-
         <h3 className="navbar-title">Quản trị hệ thống</h3>
       </div>
 

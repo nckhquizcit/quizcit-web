@@ -1,7 +1,6 @@
 .admin-layout {
   display: flex;
   height: 100vh;
-  font-family: system-ui;
 }
 
 .admin-sidebar {

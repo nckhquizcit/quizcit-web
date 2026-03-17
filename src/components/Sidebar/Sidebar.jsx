@@ -3,32 +3,36 @@ import "./Sidebar.css";
 import { NavLink } from "react-router-dom";
 import { useState } from "react";
 import { USER_SIDEBAR, ADMIN_SIDEBAR } from "../../constants/menuConfig";
+
 export default function Sidebar({ type = "USER" }) {
   const sidebarItems = type === "ADMIN" ? ADMIN_SIDEBAR : USER_SIDEBAR;
-  const [closeSidebar, setCloseSidebar] = useState(false);
-  const handleOnClose = () => {
-    setCloseSidebar(true);
-  };
-  const handleOnOpen = () => {
-    setCloseSidebar(false);
-  };
+  const [isMinimized, setIsMinimized] = useState(false);
+
   return (
-    <>
-      <div className={`sidebar-container ${closeSidebar && "minimized"}`}>
+    <aside className={`sidebar-wrapper ${isMinimized ? "minimized" : ""}`}>
+      {/* Icon mở: Chỉ hiển thị khi sidebar đóng */}
+      {isMinimized && (
+        <div className="open-sidebar-container">
+          <PanelLeftOpen
+            size="32"
+            className="open-sidebar-icon"
+            onClick={() => setIsMinimized(false)}
+          />
+        </div>
+      )}
+
+      {/* Nội dung Sidebar chính */}
+      <div className={`sidebar-content ${isMinimized ? "hidden" : ""}`}>
         <div className="sidebar-title">
-          <div>
-            <h2>{type === "USER" ? "QuizCIT" : "QuizCIT Admin"}</h2>
-            <p>
-              {type === "USER"
-                ? "Hệ thống ôn tập trắc nghiệm trực tuyến thông minh"
-                : "Trang quản lý cho quản trị viên"}
-            </p>
+          <div className="title-text">
+            <h2>QuizCIT</h2>
+            <p>{type === "USER" ? "Ôn tập trực tuyến" : "Quản trị viên"}</p>
           </div>
           <X
             size="32"
             className="sidebar-close-icon"
-            onClick={handleOnClose}
-          ></X>
+            onClick={() => setIsMinimized(true)}
+          />
         </div>
 
         <nav className="sidebar-menu">
@@ -46,12 +50,6 @@ export default function Sidebar({ type = "USER" }) {
           ))}
         </nav>
       </div>
-
-      <PanelLeftOpen
-        size="32"
-        className={`open-sidebar-icon ${!closeSidebar && "disabled"}`}
-        onClick={handleOnOpen}
-      ></PanelLeftOpen>
-    </>
+    </aside>
   );
 }
