@@ -4,7 +4,7 @@ import { Pencil, Trash2, Plus } from "lucide-react";
 
 export default function AdminSubject() {
   return (
-    <AdminLayout>
+    <>
       {/* Header */}
       <div className="page-header">
         <div>
@@ -88,6 +88,6 @@ export default function AdminSubject() {
           </tbody>
         </table>
       </div>
-    </AdminLayout>
+    </>
   );
 }

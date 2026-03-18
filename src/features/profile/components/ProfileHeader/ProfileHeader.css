@@ -1,0 +1,143 @@
+.profile-header-card {
+  background: white;
+  border: 2px solid #10b981; /* Viền xanh theo ảnh */
+  border-radius: 24px;
+  padding: 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.profile-info-section {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+
+.profile-avatar {
+  width: 120px;
+  height: 120px;
+  background: #10b981;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-placeholder {
+  font-size: 3rem;
+  color: white;
+  font-weight: bold;
+}
+
+.user-fullname {
+  font-size: 1.8rem;
+  margin: 0;
+  color: #1e293b;
+}
+
+.user-handle {
+  color: #64748b;
+  margin-bottom: 16px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-outline {
+  padding: 6px 16px;
+  border: 1px solid #cbd5e1;
+  background: white;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  color: #475569;
+}
+
+.btn-warning {
+  border-color: #f59e0b;
+  color: #d97706;
+}
+
+.profile-stats-section {
+  display: flex;
+  gap: 60px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: #94a3b8;
+}
+
+.stat-value {
+  font-size: 1.8rem;
+  font-weight: 800;
+}
+
+.text-green {
+  color: #10b981;
+}
+.text-yellow {
+  color: #f59e0b;
+}
+.stat-label-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.icon-xp {
+  color: #10b981;
+  fill: rgba(16, 185, 129, 0.1);
+}
+
+.icon-completed {
+  color: #10b981;
+}
+
+.icon-achievement {
+  color: #f59e0b;
+  fill: rgba(245, 158, 11, 0.1);
+}
+
+.stat-value {
+  font-size: 2.2rem; /* Tăng kích thước số cho nổi bật */
+  font-weight: 800;
+  line-height: 1;
+}
+
+.action-buttons span {
+  font-weight: 500;
+}
+
+/* Hiệu ứng hover cho nút chuẩn Enterprise */
+.btn-outline:hover {
+  background-color: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.btn-warning:hover {
+  background-color: #fffbeb;
+  border-color: #f59e0b;
+}

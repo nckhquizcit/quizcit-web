@@ -1,0 +1,27 @@
+.history-page-wrapper {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.history-page-header {
+  margin-bottom: 32px;
+}
+
+.history-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.history-subtitle {
+  color: #64748b;
+  font-size: 1rem;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}

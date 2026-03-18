@@ -1,0 +1,59 @@
+import { Edit2, Mail, Lock, Zap, CheckCircle, Trophy } from "lucide-react";
+import "./ProfileHeader.css";
+
+export default function ProfileHeader({ user }) {
+  return (
+    <div className="profile-header-card">
+      <div className="profile-info-section">
+        <div className="profile-avatar">
+          <div className="avatar-placeholder">{user.name.charAt(0)}</div>
+        </div>
+
+        <div className="profile-details">
+          <h2 className="user-fullname">{user.name}</h2>
+          <p className="user-handle">@{user.username}</p>
+
+          <div className="action-buttons">
+            <button className="btn-outline">
+              <Edit2 size={14} /> <span>Đổi tên</span>
+            </button>
+            <button className="btn-outline">
+              <Mail size={14} /> <span>Đổi email</span>
+            </button>
+            <button className="btn-outline btn-warning">
+              <Lock size={14} /> <span>Đổi mật khẩu</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="profile-stats-section">
+        <div className="stat-item">
+          <div className="stat-label-group">
+            <Zap size={16} className="icon-xp" />
+            <span className="stat-label">Điểm XP</span>
+          </div>
+          <span className="stat-value text-green">{user.xp}</span>
+        </div>
+
+        <div className="stat-item">
+          <div className="stat-label-group">
+            <CheckCircle size={16} className="icon-completed" />
+            <span className="stat-label">Bài đã làm</span>
+          </div>
+          <span className="stat-value text-green">{user.completedQuizzes}</span>
+        </div>
+
+        <div className="stat-item">
+          <div className="stat-label-group">
+            <Trophy size={16} className="icon-achievement" />
+            <span className="stat-label">Thành tích</span>
+          </div>
+          <span className="stat-value text-yellow">
+            {user.achievementsCount}/8
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
