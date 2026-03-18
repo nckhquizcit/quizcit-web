@@ -47,6 +47,9 @@ const ForgotPasswordPage = lazy(
 const ProfilePage = lazy(
   () => import("../features/profile/pages/ProfilePage/ProfilePage.jsx"),
 );
+const HistoryPage = lazy(
+  () => import("../features/history/pages/HistoryPage/HistoryPage.jsx"),
+);
 
 // Loading Component
 const PageLoader = () => (
@@ -75,6 +78,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageLoader></PageLoader>}>
             <ProfilePage></ProfilePage>
+          </Suspense>
+        ),
+      },
+      {
+        path: "history",
+        element: (
+          <Suspense fallback={<PageLoader></PageLoader>}>
+            <HistoryPage></HistoryPage>
           </Suspense>
         ),
       },
