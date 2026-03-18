@@ -1,4 +1,6 @@
 import "../Admin.css";
+import { Link } from "react-router-dom";
+import { User, LogOut } from "lucide-react";
 
 export default function AdminNavbar() {
   return (
@@ -8,11 +10,20 @@ export default function AdminNavbar() {
       </div>
 
       <div className="admin-user">
-        <span className="admin-label">Quản trị viên</span>
+        <div className="admin-info">
+          <span className="admin-label">Quản trị viên</span>
+          <span className="role">ADMINISTRATOR</span>
+        </div>
 
-        <span className="role">ADMINISTRATOR</span>
+        <Link to="/admin/profile" className="profile-btn">
+          <User size={16} strokeWidth={2} />
+          <span>Hồ sơ</span>
+        </Link>
 
-        <button className="logout">Đăng xuất</button>
+        <button className="logout">
+          <LogOut size={16} />
+          <span>Đăng xuất</span>
+        </button>
       </div>
     </div>
   );

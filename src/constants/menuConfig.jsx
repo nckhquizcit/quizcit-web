@@ -40,7 +40,7 @@ export const ADMIN_SIDEBAR = [
   {
     id: "admin_dashboard",
     label: "Tổng quan",
-    path: "/admin",
+    path: "/admin/dashboard",
     icon: <ChartColumn size={20} />,
   },
   {

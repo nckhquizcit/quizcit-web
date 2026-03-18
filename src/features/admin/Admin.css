@@ -179,3 +179,143 @@
 .sidebar-collapsed .logo {
   font-size: 0;
 }
+.profile-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 6px 14px;
+
+  border-radius: 999px;
+
+  border: 1.5px solid #40b688;
+
+  color: #40b688;
+  background: transparent;
+
+  font-weight: 500;
+  font-size: 14px;
+
+  cursor: pointer;
+
+  text-decoration: none;
+
+  transition: all 0.2s ease;
+}
+
+/* hover = đảo màu nhẹ, nhìn "pro" hơn */
+.profile-btn:hover {
+  background: #40b688;
+  color: white;
+}
+
+/* active (click) cho có cảm giác nhấn */
+.profile-btn:active {
+  transform: scale(0.96);
+}
+/* ===== HEADER ===== */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+/* ===== ADD BUTTON ===== */
+.add-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  background: #009e60;
+  color: white;
+
+  padding: 10px 16px;
+  border-radius: 10px;
+
+  border: none;
+  cursor: pointer;
+
+  font-weight: 500;
+  transition: 0.2s;
+}
+
+.add-btn:hover {
+  background: #008050;
+}
+
+/* ===== TABLE CARD ===== */
+.table-card {
+  background: white;
+  padding: 20px;
+  border-radius: 14px;
+
+  border: 1px solid #e5e7eb;
+
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+/* ===== TABLE ===== */
+.subject-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+
+.subject-table th {
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.subject-table td {
+  padding: 12px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+/* ===== ACTION BUTTONS ===== */
+.edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+
+  margin-right: 10px;
+
+  padding: 6px 10px;
+  border-radius: 8px;
+
+  border: 1px solid #2266fc;
+  color: #2266fc;
+  background: white;
+
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.edit-btn:hover {
+  background: #2266fc;
+  color: white;
+}
+
+.delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+
+  padding: 6px 10px;
+  border-radius: 8px;
+
+  border: 1px solid #e7040f;
+  color: #e7040f;
+  background: white;
+
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.delete-btn:hover {
+  background: #e7040f;
+  color: white;
+}
