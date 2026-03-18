@@ -1,5 +1,15 @@
 .app-container {
   display: grid;
-  height: 100vh;
   grid-template-columns: auto 1fr;
+  min-height: 100vh;
+}
+
+.main-content {
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.main-content__inner {
+  max-width: 1440px;
+  margin: 0 auto;
 }

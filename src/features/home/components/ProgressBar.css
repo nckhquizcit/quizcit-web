@@ -1,0 +1,13 @@
+.progress-bar-track {
+  width: 100%;
+  height: 10px;
+  background: #e6f6ef;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #00d17f 0%, #009e60 100%);
+}
