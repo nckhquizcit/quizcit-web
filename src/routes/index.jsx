@@ -44,6 +44,9 @@ const ForgotPasswordPage = lazy(
   () =>
     import("../features/auth/pages/ForgotPasswordPage/ForgotPasswordPage.jsx"),
 );
+const ProfilePage = lazy(
+  () => import("../features/profile/pages/ProfilePage/ProfilePage.jsx"),
+);
 
 // Loading Component
 const PageLoader = () => (
@@ -65,6 +68,14 @@ export const router = createBrowserRouter([
         index: true,
         element: (
           <div style={{ padding: "20px" }}>Chào mừng bạn đến với hệ thống!</div>
+        ),
+      },
+      {
+        path: "profile",
+        element: (
+          <Suspense fallback={<PageLoader></PageLoader>}>
+            <ProfilePage></ProfilePage>
+          </Suspense>
         ),
       },
     ],
