@@ -22,6 +22,9 @@
   flex-direction: column;
   transition: opacity 0.2s;
 }
+.sidebar-close-icon {
+  cursor: pointer;
+}
 
 .sidebar-content.hidden {
   display: none; /* Ẩn hẳn nội dung cũ để không chiếm không gian */
@@ -76,6 +79,7 @@
   text-decoration: none;
   color: #333;
   white-space: nowrap;
+  transition: all 0.3s ease;
 }
 
 .sidebar-item.active,

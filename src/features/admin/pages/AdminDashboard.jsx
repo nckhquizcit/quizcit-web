@@ -2,7 +2,7 @@ import AdminLayout from "../AdminLayout";
 import "../Admin.css";
 export default function AdminDashboard() {
   return (
-    <AdminLayout>
+    <>
       <h1 className="dashboard-title">Tổng quan</h1>
       <p className="dashboard-sub">Thống kê tổng quan hệ thống QuizCIT</p>
 
@@ -55,6 +55,6 @@ export default function AdminDashboard() {
           <span>1 giờ trước</span>
         </div>
       </div>
-    </AdminLayout>
+    </>
   );
 }
