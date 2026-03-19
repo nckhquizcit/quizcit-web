@@ -10,6 +10,20 @@ import AuthLayout from "../layouts/AuthLayout.jsx";
 import ProtectedRoute from "../features/admin/components/guard/ProtectedRoute.jsx";
 import { ForgotPasswordProvider } from "../stores/contexts/ForgotPasswordContext.jsx";
 
+
+const HomePage = lazy(
+  () => import("../features/home/pages/HomePage/HomePage.jsx"),
+);
+const SubjectsPage = lazy(
+  () => import("../features/subjects/pages/SubjectsPage/SubjectsPage.jsx"),
+);
+// const HistoryPage = lazy(
+//   () => import("../features/history/pages/HistoryPage/HistoryPage.jsx"),
+// );
+// const ProfilePage = lazy(
+//   () => import("../features/profile/pages/ProfilePage/ProfilePage.jsx"),
+// );
+
 // Lazy Loading các Page (Tăng performance)
 const AdminDashboard = lazy(
   () => import("../features/admin/pages/AdminDashboard"),
@@ -44,6 +58,12 @@ const ForgotPasswordPage = lazy(
   () =>
     import("../features/auth/pages/ForgotPasswordPage/ForgotPasswordPage.jsx"),
 );
+const ProfilePage = lazy(
+  () => import("../features/profile/pages/ProfilePage/ProfilePage.jsx"),
+);
+const HistoryPage = lazy(
+  () => import("../features/history/pages/HistoryPage/HistoryPage.jsx"),
+);
 
 // Loading Component
 const PageLoader = () => (
@@ -55,6 +75,11 @@ const PageLoader = () => (
   </div>
 );
 
+const withSuspense = (element) => (
+  <Suspense fallback={<PageLoader />}>{element}</Suspense>
+);
+
+
 export const router = createBrowserRouter([
   // 1. Public Routes (Dành cho khách)
   {
@@ -63,8 +88,26 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
+        element: withSuspense(<HomePage />),
+      },
+      {
+        path: "subjects",
+        element: withSuspense(<SubjectsPage />),
+      },
+      {
+        path: "profile",
         element: (
-          <div style={{ padding: "20px" }}>Chào mừng bạn đến với hệ thống!</div>
+          <Suspense fallback={<PageLoader></PageLoader>}>
+            <ProfilePage></ProfilePage>
+          </Suspense>
+        ),
+      },
+      {
+        path: "history",
+        element: (
+          <Suspense fallback={<PageLoader></PageLoader>}>
+            <HistoryPage></HistoryPage>
+          </Suspense>
         ),
       },
     ],
@@ -156,21 +199,11 @@ export const router = createBrowserRouter([
 
   // 4. Error Routes
   {
-    path: "/unauthorized",
+    path: "/forgot-password",
     element: (
-      <div style={{ textAlign: "center", marginTop: "50px" }}>
-        <h1>403</h1>
-        <p>Bạn không có quyền truy cập!</p>
-      </div>
-    ),
-  },
-  {
-    path: "*",
-    element: (
-      <div style={{ textAlign: "center", marginTop: "50px" }}>
-        <h1>404</h1>
-        <p>Trang không tồn tại!</p>
-      </div>
+      <ForgotPasswordProvider>
+        <ForgotPasswordPage></ForgotPasswordPage>
+      </ForgotPasswordProvider>
     ),
   },
 ]);
