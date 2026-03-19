@@ -111,71 +111,45 @@ export const router = createBrowserRouter([
     ],
   },
 
-  // 3. Admin Routes (Bảo mật nghiêm ngặt)
   {
     path: "/admin",
-    element: (
-      //<ProtectedRoute roles={["ADMIN"]}>
-      <AdminLayout />
-      //</ProtectedRoute>
-    ),
+    element: <AdminLayout />,
     children: [
       { index: true, element: <Navigate to="dashboard" replace /> },
+
       {
         path: "dashboard",
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <AdminDashboard />
-          </Suspense>
-        ),
+        element: <AdminDashboard />,
       },
+
       {
         path: "subjects",
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <AdminSubjects />
-          </Suspense>
-        ),
+        element: <AdminSubjects />,
       },
+
       {
-        path: "chapters",
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <AdminChapters />
-          </Suspense>
-        ),
+        path: "subjects/:subjectId/chapters",
+        element: <AdminChapters />,
       },
+
       {
-        path: "questions",
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <AdminQuestions />
-          </Suspense>
-        ),
+        path: "subjects/:subjectId/chapters/:chapterId/questions",
+        element: <AdminQuestions />,
       },
+
       {
         path: "quizzes",
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <AdminQuizzes />
-          </Suspense>
-        ),
+        element: <AdminQuizzes />,
       },
+
       {
         path: "users",
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <AdminUsers />
-          </Suspense>
-        ),
+        element: <AdminUsers />,
       },
+
       {
         path: "profile",
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <AdminProfile />
-          </Suspense>
-        ),
+        element: <AdminProfile />,
       },
     ],
   },

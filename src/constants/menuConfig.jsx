@@ -52,13 +52,13 @@ export const ADMIN_SIDEBAR = [
   {
     id: "admin_chapter",
     label: "Quản lý chương",
-    path: "/admin/chapters",
+    path: "/admin/subjects/:subjectId/chapters",
     icon: <NotebookText size={20} />,
   },
   {
     id: "admin_question",
     label: "Quản lý câu hỏi",
-    path: "/admin/questions",
+    path: "/admin/subjects/:subjectId/chapters/:chapterId/questions",
     icon: <FileQuestionMark size={20} />,
   },
   {
