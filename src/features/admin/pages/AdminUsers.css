@@ -1,0 +1,119 @@
+/* ===== PAGE WRAPPER ===== */
+.admin-users-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ===== TOOLBAR (SEARCH + FILTER) ===== */
+.admin-users-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.filter-select {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* ===== TABLE ===== */
+.admin-users-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.admin-users-table thead {
+  background: #f9fafb;
+}
+
+.admin-users-table th {
+  text-align: left;
+  padding: 14px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.admin-users-table td {
+  padding: 14px 16px;
+  font-size: 14px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.admin-users-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+/* ===== BADGES ===== */
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  color: white;
+}
+
+/* Status */
+.badge-green {
+  background: #10b981;
+}
+
+.badge-yellow {
+  background: #eab308;
+}
+
+.badge-red {
+  background: #ef4444;
+}
+
+/* Role */
+.badge-purple {
+  background: #8b5cf6;
+}
+
+.badge-gray {
+  background: #6b7280;
+}
+
+/* ===== ACTION BUTTONS ===== */
+.action-btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  border: none;
+  cursor: pointer;
+  margin-right: 6px;
+  transition: all 0.2s ease;
+}
+
+/* Khóa */
+.danger-btn {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.danger-btn:hover {
+  background: #fecaca;
+}
+
+/* Phân quyền */
+.primary-btn {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.primary-btn:hover {
+  background: #bae6fd;
+}
