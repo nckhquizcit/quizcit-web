@@ -89,13 +89,20 @@
 
 /* ===== ACTION BUTTONS ===== */
 .action-btn {
-  padding: 6px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 92px;
+  height: 42px;
+  padding: 0 12px;
   border-radius: 8px;
   font-size: 12px;
+  font-weight: 700;
   border: none;
   cursor: pointer;
   margin-right: 6px;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 /* Khóa */

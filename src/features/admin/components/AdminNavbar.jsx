@@ -1,6 +1,6 @@
 import "../Admin.css";
 import { Link } from "react-router-dom";
-import { User, LogOut } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 
 export default function AdminNavbar() {
   return (

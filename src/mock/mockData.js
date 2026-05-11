@@ -165,3 +165,62 @@ export const questions = [
     ],
   },
 ];
+
+// ================= QUESTION IMPORT HISTORY =================
+export const questionImportHistory = [
+  {
+    id: "import-1",
+    fileName: "toan_cao_cap_500_questions.xlsx",
+    importedAt: "2024-03-15",
+    totalQuestions: 500,
+    status: "SUCCESS",
+  },
+  {
+    id: "import-2",
+    fileName: "ly_thuyet_co_ban.csv",
+    importedAt: "2024-03-10",
+    totalQuestions: 250,
+    status: "PARTIAL",
+  },
+  {
+    id: "import-3",
+    fileName: "questions_backup.json",
+    importedAt: "2024-03-05",
+    totalQuestions: 120,
+    status: "FAILED",
+  },
+];
+
+// ================= QUIZ =================
+export const quizzes = [
+  {
+    id: "quiz-1",
+    subjectId: "s1",
+    chapterId: "c2",
+    name: "Kiểm tra Mảng cơ bản",
+    totalQuestions: 10,
+    type: "FIXED",
+    duration: 10,
+    questionIds: ["q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10"],
+  },
+  {
+    id: "quiz-2",
+    subjectId: "s1",
+    chapterId: "c3",
+    name: "Đề luyện tập Danh sách Liên kết",
+    totalQuestions: 15,
+    type: "GENERATED",
+    duration: 15,
+    questionIds: ["q3", "q4", "q1", "q2", "q5", "q6", "q7", "q8", "q9", "q10"],
+  },
+  {
+    id: "quiz-3",
+    subjectId: "s1",
+    chapterId: "c2",
+    name: "Bài tập tổng hợp Chương 2",
+    totalQuestions: 20,
+    type: "FIXED",
+    duration: 20,
+    questionIds: ["q1", "q2", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q3"],
+  },
+];

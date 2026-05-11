@@ -181,6 +181,11 @@ export const router = createBrowserRouter([
       },
 
       {
+        path: "questions",
+        element: <AdminQuestions />,
+      },
+
+      {
         path: "quizzes",
         element: <AdminQuizzes />,
       },

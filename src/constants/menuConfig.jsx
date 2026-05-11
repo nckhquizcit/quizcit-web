@@ -4,8 +4,7 @@ import {
   History,
   User,
   ChartColumn,
-  NotebookText,
-  FileQuestionMark,
+  Database,
   BookOpenCheck,
 } from "lucide-react";
 
@@ -50,27 +49,21 @@ export const ADMIN_SIDEBAR = [
     icon: <BookOpen size={20} />,
   },
   {
-    id: "admin_chapter",
-    label: "Quản lý chương",
-    path: "/admin/subjects/:subjectId/chapters",
-    icon: <NotebookText size={20} />,
-  },
-  {
-    id: "admin_question",
-    label: "Quản lý câu hỏi",
-    path: "/admin/subjects/:subjectId/chapters/:chapterId/questions",
-    icon: <FileQuestionMark size={20} />,
-  },
-  {
-    id: "admin_quiz",
-    label: "Quản lý đề thi",
-    path: "/admin/quizzes",
-    icon: <BookOpenCheck size={20} />,
+    id: "admin_question_bank",
+    label: "Ngân hàng câu hỏi",
+    path: "/admin/questions",
+    icon: <Database size={20} />,
   },
   {
     id: "admin_user",
     label: "Quản lý người dùng",
     path: "/admin/users",
     icon: <User size={20} />,
+  },
+  {
+    id: "admin_quiz",
+    label: "Quản lý đề thi",
+    path: "/admin/quizzes",
+    icon: <BookOpenCheck size={20} />,
   },
 ];

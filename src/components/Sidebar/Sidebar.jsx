@@ -1,8 +1,9 @@
-import { X, PanelLeftOpen } from "lucide-react";
-import "./Sidebar.css";
-import { NavLink } from "react-router-dom";
 import { useState } from "react";
-import { USER_SIDEBAR, ADMIN_SIDEBAR } from "../../constants/menuConfig";
+import { NavLink } from "react-router-dom";
+import { PanelLeftOpen, X } from "lucide-react";
+
+import { ADMIN_SIDEBAR, USER_SIDEBAR } from "../../constants/menuConfig";
+import "./Sidebar.css";
 
 export default function Sidebar({ type = "USER" }) {
   const sidebarItems = type === "ADMIN" ? ADMIN_SIDEBAR : USER_SIDEBAR;
@@ -10,7 +11,6 @@ export default function Sidebar({ type = "USER" }) {
 
   return (
     <aside className={`sidebar-wrapper ${isMinimized ? "minimized" : ""}`}>
-      {/* Icon mở: Chỉ hiển thị khi sidebar đóng */}
       {isMinimized && (
         <div className="open-sidebar-container">
           <PanelLeftOpen
@@ -21,7 +21,6 @@ export default function Sidebar({ type = "USER" }) {
         </div>
       )}
 
-      {/* Nội dung Sidebar chính */}
       <div className={`sidebar-content ${isMinimized ? "hidden" : ""}`}>
         <div className="sidebar-title">
           <div className="title-text">

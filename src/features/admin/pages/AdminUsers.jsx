@@ -1,9 +1,9 @@
 import { useState } from "react";
 import AdminPageHeader from "../components/AdminPageHeader";
 import SearchBar from "../components/SearchBar";
-import { mockUsers } from "../../../mock/mockUser";
 import ConfirmActionModal from "../components/modals/ConfirmActionModal";
 import AuthorizationModal from "../components/modals/AuthorizationModal";
+import { adminUserService } from "../services/userService";
 
 import "../Admin.css";
 import "./AdminUsers.css";
@@ -12,21 +12,16 @@ import "../components/modals/modal.css";
 export default function AdminUsers() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
+  const [users, setUsers] = useState(() => adminUserService.getUsers());
 
   const [selectedUser, setSelectedUser] = useState(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   // ===== FILTER =====
-  const filteredUsers = mockUsers.filter((u) => {
-    const matchSearch =
-      u.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchStatus =
-      filterStatus === "ALL" || u.status === filterStatus;
-
-    return matchSearch && matchStatus;
+  const filteredUsers = adminUserService.filterUsers(users, {
+    searchTerm,
+    status: filterStatus,
   });
 
   // ===== ACTIONS =====
@@ -51,13 +46,15 @@ export default function AdminUsers() {
   };
 
   const handleConfirm = () => {
-    console.log("Locked user:", selectedUser?.user_id);
+    setUsers((currentUsers) =>
+      adminUserService.lockUser(currentUsers, selectedUser?.user_id),
+    );
     closeConfirmModal();
   };
 
   const handleAuthSave = (newRole) => {
-    console.log(
-      `Updated role of ${selectedUser?.user_id} to ${newRole}`
+    setUsers((currentUsers) =>
+      adminUserService.updateUserRole(currentUsers, selectedUser?.user_id, newRole),
     );
     closeAuthModal();
   };
