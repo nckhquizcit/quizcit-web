@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { Suspense, lazy } from "react";
 import { createBrowserRouter, Navigate } from "react-router-dom";
 
@@ -16,6 +17,9 @@ const HomePage = lazy(
 );
 const SubjectsPage = lazy(
   () => import("../features/subjects/pages/SubjectsPage/SubjectsPage.jsx"),
+);
+const SubjectDetailPage = lazy(
+  () => import("../features/subjects/pages/SubjectDetailPage/SubjectDetailPage.jsx"),
 );
 // const HistoryPage = lazy(
 //   () => import("../features/history/pages/HistoryPage/HistoryPage.jsx"),
@@ -84,6 +88,10 @@ export const router = createBrowserRouter([
   // 1. Public Routes (Dành cho khách)
   {
     path: "/",
+    element: <Navigate to="/login" replace />,
+  },
+  {
+    path: "/app",
     element: <MainLayout />,
     children: [
       {
@@ -93,6 +101,10 @@ export const router = createBrowserRouter([
       {
         path: "subjects",
         element: withSuspense(<SubjectsPage />),
+      },
+      {
+        path: "subjects/:subjectId",
+        element: withSuspense(<SubjectDetailPage />),
       },
       {
         path: "profile",

@@ -1,24 +1,41 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BookOpen, Plus } from "lucide-react";
 import AddChapterModal from "../components/modals/AddChapterModal";
 import AdminPageHeader from "../components/AdminPageHeader";
 import SearchBar from "../components/SearchBar";
-
-import { subjects, chapters, questions } from "../../../mock/mockData";
+import { createChapter, getChaptersBySubject, getSubjectById } from "../../../services/contentService";
+import { getQuestionsByChapter } from "../../../services/quizService";
 
 export default function AdminChapters() {
   const { subjectId } = useParams();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [openAddChapter, setOpenAddChapter] = useState(false);
-  // FIX
-  const subject = subjects.find((s) => s.id === subjectId);
+  const [subject, setSubject] = useState(null);
+  const [subjectChapters, setSubjectChapters] = useState([]);
+  const [questionCountByChapter, setQuestionCountByChapter] = useState({});
 
-  const subjectChapters = chapters.filter((c) => c.subjectId === subjectId);
+  useEffect(() => {
+    const load = async () => {
+      const subjectData = await getSubjectById(subjectId);
+      const chapters = (await getChaptersBySubject(subjectId)) || [];
+      setSubject(subjectData);
+      setSubjectChapters(chapters);
+      const entries = await Promise.all(
+        chapters.map(async (chapter) => [
+          chapter.chapterId,
+          ((await getQuestionsByChapter(chapter.chapterId)) || []).length,
+        ]),
+      );
+      setQuestionCountByChapter(Object.fromEntries(entries));
+    };
+    load();
+  }, [subjectId]);
 
-  const filteredChapters = subjectChapters.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase()),
+  const filteredChapters = useMemo(
+    () => subjectChapters.filter((c) => c.name.toLowerCase().includes(search.toLowerCase())),
+    [subjectChapters, search],
   );
 
   if (!subject) return <div>Không tìm thấy môn</div>;
@@ -28,7 +45,7 @@ export default function AdminChapters() {
       <AdminPageHeader
         breadcrumb={["Tổng quan", "Môn học", subject.name]}
         title={subject.name}
-        subtitle={`Mã môn: ${subject.code} • ${subjectChapters.length} chương`}
+        subtitle={`Mã môn: ${subject.courseCode} • ${subjectChapters.length} chương`}
         icon={<BookOpen size={22} />}
         onBack={() => navigate("/admin/subjects")}
         action={
@@ -43,17 +60,13 @@ export default function AdminChapters() {
 
       <div className="chapter-list">
         {filteredChapters.map((chapter, index) => {
-          const totalQuestions = questions.filter(
-            (q) => q.chapterId === chapter.id, // FIX
-          ).length;
-
           return (
             <div
-              key={chapter.id} // FIX
+              key={chapter.chapterId}
               className="chapter-card"
               onClick={() =>
                 navigate(
-                  `/admin/subjects/${subjectId}/chapters/${chapter.id}/questions`,
+                  `/admin/subjects/${subjectId}/chapters/${chapter.chapterId}/questions`,
                 )
               }
             >
@@ -62,7 +75,7 @@ export default function AdminChapters() {
 
                 <div>
                   <div className="chapter-title">{chapter.name}</div>
-                  <div className="chapter-sub">{totalQuestions} câu hỏi</div>
+                  <div className="chapter-sub">{questionCountByChapter[chapter.chapterId] || 0} câu hỏi</div>
                 </div>
               </div>
 
@@ -75,6 +88,11 @@ export default function AdminChapters() {
         open={openAddChapter}
         onClose={() => setOpenAddChapter(false)}
         subject={subject}
+        onSubmit={async (payload) => {
+          const created = await createChapter(subjectId, payload);
+          setSubjectChapters((current) => [...current, created]);
+          setOpenAddChapter(false);
+        }}
       />
     </>
   );

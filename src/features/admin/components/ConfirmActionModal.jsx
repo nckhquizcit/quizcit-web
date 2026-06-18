@@ -1,11 +1,11 @@
 import React from 'react';
-import modalCss from '../modal.css';
+import "../modals/modal.css";
 
 export default function ConfirmActionModal({ isOpen, onClose, onConfirm, user }) {
   if (!isOpen || !user) return null;
 
   const handleConfirm = () => {
-    console.log(`Locked user ${user.user_id}`);
+    console.log(`Delete user ${user.userId || user.user_id}`);
     onConfirm();
   };
 
@@ -16,7 +16,7 @@ export default function ConfirmActionModal({ isOpen, onClose, onConfirm, user })
           <h3>Xác nhận hành động</h3>
         </div>
         <div className="modal-body">
-          <p>Bạn có muốn cấm người dùng {user.user_id} không?</p>
+          <p>Bạn có muốn xóa người dùng {user.userId || user.user_id} không?</p>
         </div>
         <div className="modal-footer">
           <button className="modal-btn primary" onClick={handleConfirm}>

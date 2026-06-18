@@ -1,14 +1,18 @@
 import { useState } from "react";
 import "./RegisterForm.css";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { register } from "../../../../services/authService";
 
 export default function RegisterForm() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     username: "",
     email: "",
     password: "",
     confirmPassword: "",
   });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -18,20 +22,36 @@ export default function RegisterForm() {
     }));
   };
 
-  const handleRegister = (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
-      alert("Mật khẩu nhập lại không khớp!");
+      setError("Mật khẩu nhập lại không khớp.");
       return;
     }
-    // Logic gọi API đăng ký ở đây
-    console.log("Dữ liệu đăng ký:", formData);
+    try {
+      setLoading(true);
+      setError("");
+      const auth = await register({
+        username: formData.username,
+        password: formData.password,
+        email: formData.email,
+        displayName: formData.username,
+      });
+      localStorage.setItem("accessToken", auth.accessToken);
+      localStorage.setItem("user", JSON.stringify(auth));
+      navigate("/app");
+    } catch (apiError) {
+      setError(apiError?.response?.data?.message || "Đăng ký thất bại.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <form className="register-form-container" onSubmit={handleRegister}>
       <h1>Đăng ký</h1>
       <p className="text-gray-500">Tạo tài khoản mới để bắt đầu ôn tập</p>
+      {error && <p className="text-red-500">{error}</p>}
 
       <div className="input-container">
         <label htmlFor="username">Tên đăng nhập</label>
@@ -85,8 +105,8 @@ export default function RegisterForm() {
         />
       </div>
 
-      <button type="submit" className="register-button">
-        Đăng ký
+      <button type="submit" className="register-button" disabled={loading}>
+        {loading ? "Đang xử lý..." : "Đăng ký"}
       </button>
 
       <div className="login-section">

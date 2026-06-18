@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import modalCss from '../modal.css';
+import "../modals/modal.css";
 
 export default function AuthorizationModal({ isOpen, onClose, user, onSave }) {
-  if (!isOpen || !user) return null;
-
   const [role, setRole] = useState('USER');
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (user) setRole(user.role);
   }, [user]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  if (!isOpen || !user) return null;
 
   const handleSave = () => {
-    console.log(`Updated role of ${user.user_id} to ${role}`);
+    console.log(`Updated role of ${user.userId || user.user_id} to ${role}`);
     onSave(role);
     onClose();
   };
@@ -22,7 +24,7 @@ export default function AuthorizationModal({ isOpen, onClose, user, onSave }) {
           <h3>Cấp quyền</h3>
         </div>
         <div className="modal-body">
-          <p><strong>User ID:</strong> {user.user_id}</p>
+          <p><strong>User ID:</strong> {user.userId || user.user_id}</p>
           <p><strong>Username:</strong> {user.username}</p>
           <p><strong>Display Name:</strong> {user.username}</p>
           <div style={{marginTop: '12px'}}>

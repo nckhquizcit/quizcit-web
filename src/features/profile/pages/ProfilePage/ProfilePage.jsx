@@ -1,12 +1,26 @@
+import { useMemo, useState } from "react";
 import ProfileHeader from "../../components/ProfileHeader/ProfileHeader";
 import AchievementCard from "../../components/AchievementCard/AchievementCard";
 import { Target, Award, Zap, BookOpen, Flame, Trophy } from "lucide-react";
+import { changePassword, updateDisplayName } from "../../../../services/userService";
+import Modal from "../../../admin/components/ui/Modal";
 import "./ProfilePage.css";
 
 export default function ProfilePage() {
+  const currentUser = useMemo(() => {
+    const raw = localStorage.getItem("user");
+    return raw ? JSON.parse(raw) : null;
+  }, []);
+  const [displayName, setDisplayName] = useState(currentUser?.displayName || "");
+  const [email, setEmail] = useState(currentUser?.email || "");
+  const [password, setPassword] = useState("");
+  const [openNameModal, setOpenNameModal] = useState(false);
+  const [openEmailModal, setOpenEmailModal] = useState(false);
+  const [openPasswordModal, setOpenPasswordModal] = useState(false);
+  const [message, setMessage] = useState("");
   const userData = {
-    name: "Nguyễn Văn A",
-    username: "huanverified",
+    name: displayName || currentUser?.username || "Người dùng",
+    username: currentUser?.username || "unknown",
     xp: 725,
     completedQuizzes: 4,
     achievementsCount: 1,
@@ -49,7 +63,87 @@ export default function ProfilePage() {
 
   return (
     <div className="profile-page-wrapper">
-      <ProfileHeader user={userData} />
+      <ProfileHeader
+        user={userData}
+        onOpenChangeName={() => setOpenNameModal(true)}
+        onOpenChangeEmail={() => setOpenEmailModal(true)}
+        onOpenChangePassword={() => setOpenPasswordModal(true)}
+      />
+      {message && <p className="profile-update-message">{message}</p>}
+
+      <Modal open={openNameModal} onClose={() => setOpenNameModal(false)}>
+        <div className="profile-modal-content">
+          <h3>Đổi tên hiển thị</h3>
+          <input
+            value={displayName}
+            onChange={(event) => setDisplayName(event.target.value)}
+            placeholder="Tên hiển thị mới"
+          />
+          <button
+            className="profile-modal-submit"
+            type="button"
+            onClick={async () => {
+              if (!currentUser?.userId || !displayName.trim()) return;
+              await updateDisplayName(currentUser.userId, displayName.trim());
+              localStorage.setItem(
+                "user",
+                JSON.stringify({ ...currentUser, displayName: displayName.trim() }),
+              );
+              setMessage("Đã cập nhật tên hiển thị.");
+              setOpenNameModal(false);
+            }}
+          >
+            Lưu
+          </button>
+        </div>
+      </Modal>
+
+      <Modal open={openEmailModal} onClose={() => setOpenEmailModal(false)}>
+        <div className="profile-modal-content">
+          <h3>Đổi email</h3>
+          <input
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="Email mới"
+          />
+          <button
+            className="profile-modal-submit"
+            type="button"
+            onClick={() => {
+              setMessage("Backend hiện chưa hỗ trợ API đổi email.");
+              setOpenEmailModal(false);
+            }}
+          >
+            Lưu
+          </button>
+        </div>
+      </Modal>
+
+      <Modal open={openPasswordModal} onClose={() => setOpenPasswordModal(false)}>
+        <div className="profile-modal-content">
+          <h3>Đổi mật khẩu</h3>
+          <input
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="Mật khẩu mới"
+          />
+          <button
+            className="profile-modal-submit"
+            type="button"
+            onClick={async () => {
+              if (!currentUser?.userId || !password) return;
+              await changePassword(currentUser.userId, password);
+              setPassword("");
+              setMessage("Đã cập nhật mật khẩu.");
+              setOpenPasswordModal(false);
+            }}
+          >
+            Lưu
+          </button>
+        </div>
+      </Modal>
 
       <div className="achievements-section">
         <div className="section-header">

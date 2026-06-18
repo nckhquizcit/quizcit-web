@@ -12,25 +12,26 @@ export const USER_SIDEBAR = [
   {
     id: "user_home",
     label: "Trang chủ",
-    path: "/",
+    path: "/app",
     icon: <House size={20} />,
+    end: true,
   },
   {
     id: "user_subject",
     label: "Môn học",
-    path: "/subjects",
+    path: "/app/subjects",
     icon: <BookOpen size={20} />,
   },
   {
     id: "user_history",
     label: "Lịch sử",
-    path: "/history",
+    path: "/app/history",
     icon: <History size={20} />,
   },
   {
     id: "user_profile",
     label: "Cá nhân",
-    path: "/profile",
+    path: "/app/profile",
     icon: <User size={20} />,
   },
 ];

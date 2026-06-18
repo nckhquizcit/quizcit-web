@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, BookOpen } from "lucide-react";
 
@@ -6,19 +6,39 @@ import "../Admin.css";
 import AdminPageHeader from "../components/AdminPageHeader";
 import SearchBar from "../components/SearchBar";
 import AddSubjectModal from "../components/modals/AddSubjectModal";
-
-import { subjects, chapters } from "../../../mock/mockData";
+import { createSubject, getChaptersBySubject, getSubjects } from "../../../services/contentService";
 
 export default function AdminSubjects() {
   const navigate = useNavigate();
 
   const [search, setSearch] = useState("");
   const [openAddSubject, setOpenAddSubject] = useState(false);
+  const [subjects, setSubjects] = useState([]);
+  const [chapterCountBySubject, setChapterCountBySubject] = useState({});
 
-  const filteredSubjects = subjects.filter(
-    (s) =>
-      s.name.toLowerCase().includes(search.toLowerCase()) ||
-      s.code.toLowerCase().includes(search.toLowerCase()),
+  useEffect(() => {
+    const load = async () => {
+      const data = (await getSubjects()) || [];
+      setSubjects(data);
+      const chapterEntries = await Promise.all(
+        data.map(async (subject) => [
+          subject.subjectId,
+          ((await getChaptersBySubject(subject.subjectId)) || []).length,
+        ]),
+      );
+      setChapterCountBySubject(Object.fromEntries(chapterEntries));
+    };
+    load();
+  }, []);
+
+  const filteredSubjects = useMemo(
+    () =>
+      subjects.filter(
+        (s) =>
+          s.name.toLowerCase().includes(search.toLowerCase()) ||
+          s.courseCode.toLowerCase().includes(search.toLowerCase()),
+      ),
+    [search, subjects],
   );
 
   return (
@@ -43,9 +63,9 @@ export default function AdminSubjects() {
       <div className="subject-grid">
         {filteredSubjects.map((subject) => (
           <div
-            key={subject.id}
+            key={subject.subjectId}
             className="subject-card"
-            onClick={() => navigate(`/admin/subjects/${subject.id}/chapters`)}
+            onClick={() => navigate(`/admin/subjects/${subject.subjectId}/chapters`)}
           >
             <div className="header-icon">
               <BookOpen size={22} />
@@ -53,13 +73,13 @@ export default function AdminSubjects() {
 
             <div className="subject-title">{subject.name}</div>
 
-            <div className="subject-code">Mã môn: {subject.code}</div>
+            <div className="subject-code">Mã môn: {subject.courseCode}</div>
 
             <div className="subject-desc">{subject.description}</div>
 
             <div className="subject-footer">
               <span>
-                {chapters.filter((c) => c.subjectId === subject.id).length}{" "}
+                {chapterCountBySubject[subject.subjectId] || 0}{" "}
                 chương
               </span>
               <span>›</span>
@@ -72,6 +92,11 @@ export default function AdminSubjects() {
       <AddSubjectModal
         open={openAddSubject}
         onClose={() => setOpenAddSubject(false)}
+        onSubmit={async (payload) => {
+          const created = await createSubject(payload);
+          setSubjects((current) => [created, ...current]);
+          setOpenAddSubject(false);
+        }}
       />
     </>
   );

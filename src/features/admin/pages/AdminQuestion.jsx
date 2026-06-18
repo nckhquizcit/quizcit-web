@@ -1,111 +1,26 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ChevronLeft,
   ChevronRight,
-  Clock3,
   Database,
-  Download,
   Funnel,
   Pencil,
   Plus,
   Search,
   Trash2,
-  Upload,
 } from "lucide-react";
 
 import AddQuestionModal from "../components/modals/AddQuestionModal";
 import AdminPageHeader from "../components/AdminPageHeader";
 import Modal from "../components/ui/Modal";
-import { adminQuestionService } from "../services/questionService";
-
-const PAGE_SIZE = 10;
-const bulkSteps = ["Tải file", "Ánh xạ", "Tags", "Xác nhận"];
-
-function ImportHistoryModal({ open, onClose }) {
-  const importLogs = adminQuestionService.getImportHistory();
-
-  return (
-    <Modal open={open} onClose={onClose}>
-      <div className="question-modal question-history-modal">
-        <h2>Lịch sử nhập câu hỏi</h2>
-        <p>Xem các lần nhập gần đây</p>
-
-        <div className="import-history-list">
-          {importLogs.map((item) => (
-            <div className="import-history-item" key={item.id}>
-              <Download size={34} className="import-file-icon" />
-              <div className="import-history-info">
-                <strong>{item.fileName}</strong>
-                <span>
-                  {item.date} • {item.total} câu hỏi
-                </span>
-              </div>
-              <span className={`status-pill ${item.tone}`}>{item.status}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
-function BulkImportModal({ open, onClose }) {
-  return (
-    <Modal open={open} onClose={onClose}>
-      <div className="question-modal bulk-import-modal">
-        <h2>Nhập câu hỏi hàng loạt</h2>
-        <p>Nhập nhiều câu hỏi cùng lúc từ file CSV, Excel hoặc JSON</p>
-
-        <div className="bulk-stepper">
-          {bulkSteps.map((step, index) => (
-            <div className="bulk-step" key={step}>
-              <span className={index === 0 ? "active" : ""}>{index + 1}</span>
-              <strong>{step}</strong>
-            </div>
-          ))}
-        </div>
-
-        <div className="template-panel">
-          <div className="template-title">
-            <Clock3 size={20} />
-            <strong>Tải template mẫu để bắt đầu</strong>
-          </div>
-          <div className="template-actions">
-            <button>
-              <Download size={16} />
-              CSV
-            </button>
-            <button>
-              <Download size={16} />
-              Excel
-            </button>
-            <button>
-              <Download size={16} />
-              JSON
-            </button>
-          </div>
-        </div>
-
-        <label className="drop-zone">
-          <Upload size={54} />
-          <strong>Kéo thả file vào đây hoặc click để chọn</strong>
-          <span>Hỗ trợ: CSV, Excel (.xlsx), JSON</span>
-          <input type="file" accept=".csv,.xlsx,.json" />
-        </label>
-
-        <div className="question-modal-actions">
-          <button className="cancel-btn" onClick={onClose}>
-            Hủy
-          </button>
-          <button className="add-btn disabled" disabled>
-            Tiếp theo
-          </button>
-        </div>
-      </div>
-    </Modal>
-  );
-}
+import {
+  createQuestion,
+  deleteQuestion,
+  getQuestionsByChapter,
+  updateQuestion,
+} from "../../../services/quizService";
+import { getChaptersBySubject, getSubjects } from "../../../services/contentService";
 
 function DeleteQuestionModal({ open, question, onCancel, onConfirm, onClose }) {
   return (
@@ -141,67 +56,87 @@ export default function AdminQuestions() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [questionRows, setQuestionRows] = useState(() =>
-    adminQuestionService.getInitialQuestions(),
-  );
-  const [openHistory, setOpenHistory] = useState(false);
-  const [openBulkImport, setOpenBulkImport] = useState(false);
+  const [questionRows, setQuestionRows] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [chapters, setChapters] = useState([]);
   const [openAddQuestion, setOpenAddQuestion] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [deletingQuestion, setDeletingQuestion] = useState(null);
 
+  useEffect(() => {
+    const load = async () => {
+      if (!chapterId) return;
+      const [questionData, subjectData] = await Promise.all([
+        getQuestionsByChapter(chapterId),
+        getSubjects(),
+      ]);
+      setQuestionRows(questionData || []);
+      setSubjects(subjectData || []);
+
+      if (subjectId) {
+        const chapterData = await getChaptersBySubject(subjectId);
+        setChapters(chapterData || []);
+      }
+    };
+    load();
+  }, [chapterId, subjectId]);
+
   const filteredQuestions = useMemo(
-    () => adminQuestionService.filterQuestions(questionRows, { chapterId, search }),
-    [chapterId, questionRows, search],
+    () =>
+      questionRows.filter((question) =>
+        question.content.toLowerCase().includes(search.trim().toLowerCase()),
+      ),
+    [questionRows, search],
   );
 
-  const {
-    items: paginatedQuestions,
-    totalPages,
-    safePage,
-    startIndex,
-    displayStart,
-    displayEnd,
-  } = adminQuestionService.paginateQuestions(filteredQuestions, {
-    page,
-    pageSize: PAGE_SIZE,
-  });
+  const totalPages = Math.max(1, Math.ceil(filteredQuestions.length / 10));
+  const safePage = Math.min(page, totalPages);
+  const startIndex = (safePage - 1) * 10;
+  const paginatedQuestions = filteredQuestions.slice(startIndex, startIndex + 10);
+  const displayStart = filteredQuestions.length ? startIndex + 1 : 0;
+  const displayEnd = startIndex + paginatedQuestions.length;
 
-  const selectedSubject = adminQuestionService
-    .getSubjects()
-    .find((subject) => subject.id === subjectId);
-  const selectedChapter = adminQuestionService
-    .getChapters()
-    .find((chapter) => chapter.id === chapterId);
+  const selectedSubject = subjects.find((subject) => subject.subjectId === subjectId);
+  const selectedChapter = chapters.find((chapter) => chapter.chapterId === chapterId);
 
   const handleSearchChange = (event) => {
     setSearch(event.target.value);
     setPage(1);
   };
 
-  const handleCreateQuestion = (formValues) => {
-    setQuestionRows((currentRows) => adminQuestionService.createQuestion(currentRows, formValues));
+  const handleCreateQuestion = async (formValues) => {
+    const created = await createQuestion({
+      subjectId: formValues.subjectId,
+      chapterId: formValues.chapterId,
+      content: formValues.content,
+      explaination: "",
+      difficultyB: 0,
+      options: formValues.options,
+    });
+    setQuestionRows((currentRows) => [created, ...currentRows]);
     setOpenAddQuestion(false);
     setPage(1);
   };
 
-  const handleUpdateQuestion = (formValues) => {
-    setQuestionRows((currentRows) =>
-      adminQuestionService.updateQuestion(currentRows, editingQuestion.id, formValues),
-    );
+  const handleUpdateQuestion = async (formValues) => {
+    await updateQuestion(editingQuestion.questionId, {
+      content: formValues.content,
+      explaination: "",
+      difficultyB: 0,
+    });
+    const latest = await getQuestionsByChapter(chapterId);
+    setQuestionRows(latest || []);
     setEditingQuestion(null);
   };
 
   const handleSoftDelete = () => {
-    setQuestionRows((currentRows) =>
-      adminQuestionService.unpublishQuestion(currentRows, deletingQuestion.id),
-    );
     setDeletingQuestion(null);
   };
 
-  const handleHardDelete = () => {
+  const handleHardDelete = async () => {
+    await deleteQuestion(deletingQuestion.questionId);
     setQuestionRows((currentRows) =>
-      adminQuestionService.deleteQuestion(currentRows, deletingQuestion.id),
+      currentRows.filter((question) => question.questionId !== deletingQuestion.questionId),
     );
     setDeletingQuestion(null);
   };
@@ -215,14 +150,6 @@ export default function AdminQuestions() {
         icon={<Database size={22} />}
         action={
           <div className="question-bank-actions">
-            <button className="outline-action purple" onClick={() => setOpenHistory(true)}>
-              <Clock3 size={18} />
-              Lịch sử nhập
-            </button>
-            <button className="outline-action blue" onClick={() => setOpenBulkImport(true)}>
-              <Upload size={18} />
-              Nhập hàng loạt
-            </button>
             <button className="add-btn" onClick={() => setOpenAddQuestion(true)}>
               <Plus size={18} />
               Thêm câu hỏi
@@ -264,7 +191,7 @@ export default function AdminQuestions() {
           </thead>
           <tbody>
             {paginatedQuestions.map((question, index) => (
-              <tr key={question.id}>
+              <tr key={question.questionId}>
                 <td>
                   <div className="bank-question-cell">
                     <span className="bank-question-index">{startIndex + index + 1}</span>
@@ -272,27 +199,27 @@ export default function AdminQuestions() {
                       <strong>{question.content}</strong>
                       <div className="question-tags">
                         <span>Môn: {question.subject?.name || "Mock Subject"}</span>
-                        <span>Chương: {question.chapter?.name || "Mock Chapter"}</span>
+                        <span>Chương: {selectedChapter?.name || "-"}</span>
                       </div>
                     </div>
                   </div>
                 </td>
                 <td>
                   <span className="difficulty-pill">
-                    {adminQuestionService.getDifficultyLabel(question.difficulty)}
+                    {question.difficultyB ?? 0}
                   </span>
                 </td>
-                <td>{question.type}</td>
+                <td>MCQ</td>
                 <td>
                   <span
                     className={
-                      question.status === "Unpublished" ? "unpublished-pill" : "published-pill"
+                      question.active ? "published-pill" : "unpublished-pill"
                     }
                   >
-                    {question.status}
+                    {question.active ? "Published" : "Unpublished"}
                   </span>
                 </td>
-                <td>{question.updatedAt}</td>
+                <td>-</td>
                 <td>
                   <div className="table-actions">
                     <button
@@ -339,14 +266,14 @@ export default function AdminQuestions() {
         </button>
       )}
 
-      <ImportHistoryModal open={openHistory} onClose={() => setOpenHistory(false)} />
-      <BulkImportModal open={openBulkImport} onClose={() => setOpenBulkImport(false)} />
       <AddQuestionModal
         open={openAddQuestion}
         onClose={() => setOpenAddQuestion(false)}
         subject={selectedSubject}
         chapter={selectedChapter}
         onSubmit={handleCreateQuestion}
+        subjects={subjects}
+        chapters={chapters}
       />
       <AddQuestionModal
         open={Boolean(editingQuestion)}
@@ -354,6 +281,8 @@ export default function AdminQuestions() {
         initialQuestion={editingQuestion}
         mode="edit"
         onSubmit={handleUpdateQuestion}
+        subjects={subjects}
+        chapters={chapters}
       />
       <DeleteQuestionModal
         open={Boolean(deletingQuestion)}

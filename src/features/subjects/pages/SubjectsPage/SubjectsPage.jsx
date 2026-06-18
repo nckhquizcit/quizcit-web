@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
+import { useEffect } from "react";
 import { BookOpen, Search, Sparkles, Target } from 'lucide-react';
-import { getSubjectCollection } from '../../data/subjectsData';
+import { getChaptersBySubject, getSubjects } from "../../../../services/contentService";
 import SubjectCard from '../../components/SubjectCard';
 import './SubjectsPage.css';
 
@@ -41,7 +42,43 @@ function getFilteredSubjects(subjects, activeFilter, searchTerm) {
 export default function SubjectsPage() {
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const subjectCollection = useMemo(() => getSubjectCollection(), []);
+  const [subjectCollection, setSubjectCollection] = useState([]);
+
+  useEffect(() => {
+    const loadSubjects = async () => {
+      const subjects = (await getSubjects()) || [];
+      const withChapters = await Promise.all(
+        subjects.map(async (subject) => {
+          const chapters = (await getChaptersBySubject(subject.subjectId)) || [];
+          return {
+            ...subject,
+            chapterCount: chapters.length,
+            chapterPreview: chapters.slice(0, 3).map((chapter) => ({
+              chapter_id: chapter.chapterId,
+              name: chapter.name,
+            })),
+          };
+        }),
+      );
+
+      setSubjectCollection(
+        withChapters.map((subject) => ({
+          ...subject,
+          subject_id: subject.subjectId,
+          course_code: subject.courseCode,
+          accent: "blue",
+          status: "Đang học",
+          weeklyGoal: "2 chương/tuần",
+          category: "Nền tảng",
+          progress: 0,
+          completedChapters: 0,
+          nextChapter: subject.chapterPreview[0] || null,
+          focus: "Tiếp tục học nội dung lý thuyết theo từng chương.",
+        })),
+      );
+    };
+    loadSubjects();
+  }, []);
 
   const filteredSubjects = useMemo(
     () => getFilteredSubjects(subjectCollection, activeFilter, searchTerm),
@@ -64,7 +101,7 @@ export default function SubjectsPage() {
 
     return {
       totalSubjects,
-      averageProgress: Math.round(totalProgress / totalSubjects),
+      averageProgress: totalSubjects ? Math.round(totalProgress / totalSubjects) : 0,
       prioritySubjects,
       completedChapters,
     };

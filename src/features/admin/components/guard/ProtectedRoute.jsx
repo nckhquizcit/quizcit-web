@@ -8,7 +8,7 @@ const getCurrentUser = () => {
   const userJson = localStorage.getItem("user");
   try {
     return userJson ? JSON.parse(userJson) : null;
-  } catch (error) {
+  } catch {
     return null;
   }
 };

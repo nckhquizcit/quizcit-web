@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { FileUp, Upload } from "lucide-react";
 
-import { adminQuizService } from "../../services/quizService";
 import Modal from "../ui/Modal";
 
 const quizTypeOptions = [
@@ -9,43 +8,37 @@ const quizTypeOptions = [
   { label: "Tự động", value: "GENERATED" },
 ];
 
-export default function AddQuizModal({ open, onClose, mode = "create", initialQuiz, onSubmit }) {
+export default function AddQuizModal({
+  open,
+  onClose,
+  mode = "create",
+  initialQuiz,
+  onSubmit,
+  subjects = [],
+  chapters = [],
+}) {
   const isEdit = mode === "edit";
-  const subjects = useMemo(() => adminQuizService.getSubjects(), []);
-  const allQuestions = useMemo(() => adminQuizService.getQuestions(), []);
   const [activeTab, setActiveTab] = useState("manual");
   const [name, setName] = useState("");
-  const [subjectId, setSubjectId] = useState(subjects[0]?.id);
+  const [subjectId, setSubjectId] = useState(subjects[0]?.subjectId);
   const [chapterId, setChapterId] = useState("");
   const [type, setType] = useState("FIXED");
   const [duration, setDuration] = useState("");
-  const [questionFilterChapterId, setQuestionFilterChapterId] = useState("");
-  const [selectedQuestionIds, setSelectedQuestionIds] = useState([]);
+  const [totalQuestion, setTotalQuestion] = useState(0);
 
   const availableChapters = useMemo(
-    () => adminQuizService.getChaptersBySubject(subjectId),
-    [subjectId],
+    () => chapters.filter((chapter) => chapter.subjectId === subjectId),
+    [chapters, subjectId],
   );
 
-  const visibleQuestions = useMemo(
-    () =>
-      allQuestions.filter((question) => {
-        const matchSubject = question.subject?.id === subjectId;
-        const matchChapter =
-          !questionFilterChapterId || question.chapterId === questionFilterChapterId;
-
-        return matchSubject && matchChapter;
-      }),
-    [allQuestions, questionFilterChapterId, subjectId],
-  );
-
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!open) return;
 
-    const fallbackSubjectId = initialQuiz?.subjectId || initialQuiz?.subject?.id || subjects[0]?.id;
-    const fallbackChapters = adminQuizService.getChaptersBySubject(fallbackSubjectId);
+    const fallbackSubjectId = initialQuiz?.subjectId || subjects[0]?.subjectId;
+    const fallbackChapters = chapters.filter((chapter) => chapter.subjectId === fallbackSubjectId);
     const fallbackChapterId =
-      initialQuiz?.chapterId || initialQuiz?.chapter?.id || fallbackChapters[0]?.id || "";
+      initialQuiz?.chapterId || fallbackChapters[0]?.chapterId || "";
 
     setActiveTab("manual");
     setName(initialQuiz?.name || "");
@@ -53,32 +46,14 @@ export default function AddQuizModal({ open, onClose, mode = "create", initialQu
     setChapterId(fallbackChapterId);
     setType(initialQuiz?.type || "FIXED");
     setDuration(initialQuiz?.duration || "");
-    setQuestionFilterChapterId("");
-    setSelectedQuestionIds(initialQuiz?.questionIds || allQuestions.slice(0, 10).map((item) => item.id));
-  }, [allQuestions, initialQuiz, open, subjects]);
+    setTotalQuestion(initialQuiz?.totalQuestion || 0);
+  }, [chapters, initialQuiz, open, subjects]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleSubjectChange = (nextSubjectId) => {
-    const nextChapters = adminQuizService.getChaptersBySubject(nextSubjectId);
+    const nextChapters = chapters.filter((chapter) => chapter.subjectId === nextSubjectId);
     setSubjectId(nextSubjectId);
-    setChapterId(nextChapters[0]?.id || "");
-    setQuestionFilterChapterId("");
-    setSelectedQuestionIds([]);
-  };
-
-  const handleToggleQuestion = (questionId) => {
-    setSelectedQuestionIds((currentIds) =>
-      currentIds.includes(questionId)
-        ? currentIds.filter((id) => id !== questionId)
-        : [...currentIds, questionId],
-    );
-  };
-
-  const handleSelectAll = () => {
-    setSelectedQuestionIds(visibleQuestions.map((question) => question.id));
-  };
-
-  const handleClearSelection = () => {
-    setSelectedQuestionIds([]);
+    setChapterId(nextChapters[0]?.chapterId || "");
   };
 
   const handleSubmit = () => {
@@ -88,7 +63,7 @@ export default function AddQuizModal({ open, onClose, mode = "create", initialQu
       chapterId,
       type,
       duration,
-      questionIds: selectedQuestionIds,
+      totalQuestion,
     });
   };
 
@@ -134,7 +109,7 @@ export default function AddQuizModal({ open, onClose, mode = "create", initialQu
                     onChange={(event) => handleSubjectChange(event.target.value)}
                   >
                     {subjects.map((subject) => (
-                      <option value={subject.id} key={subject.id}>
+                      <option value={subject.subjectId} key={subject.subjectId}>
                         {subject.name}
                       </option>
                     ))}
@@ -145,7 +120,7 @@ export default function AddQuizModal({ open, onClose, mode = "create", initialQu
                   <span>Chương *</span>
                   <select value={chapterId} onChange={(event) => setChapterId(event.target.value)}>
                     {availableChapters.map((chapter) => (
-                      <option value={chapter.id} key={chapter.id}>
+                      <option value={chapter.chapterId} key={chapter.chapterId}>
                         {chapter.name}
                       </option>
                     ))}
@@ -177,53 +152,15 @@ export default function AddQuizModal({ open, onClose, mode = "create", initialQu
                 </label>
               </div>
 
-              <div className="quiz-question-head">
-                <strong>Chọn câu hỏi * ({selectedQuestionIds.length} câu đã chọn)</strong>
-                <div>
-                  <button onClick={handleSelectAll}>Chọn tất cả</button>
-                  <button onClick={handleClearSelection}>Bỏ chọn</button>
-                </div>
-              </div>
-
               <label className="quiz-field full">
-                <span>Lọc theo chương</span>
-                <select
-                  value={questionFilterChapterId}
-                  onChange={(event) => setQuestionFilterChapterId(event.target.value)}
-                >
-                  <option value="">Tất cả chương</option>
-                  {availableChapters.map((chapter) => (
-                    <option value={chapter.id} key={chapter.id}>
-                      {chapter.name}
-                    </option>
-                  ))}
-                </select>
+                <span>Tổng số câu hỏi</span>
+                <input
+                  type="number"
+                  min="1"
+                  value={totalQuestion}
+                  onChange={(event) => setTotalQuestion(event.target.value)}
+                />
               </label>
-
-              <div className="quiz-question-list">
-                {visibleQuestions.map((question) => (
-                  <button
-                    className={
-                      selectedQuestionIds.includes(question.id)
-                        ? "quiz-question-item selected"
-                        : "quiz-question-item"
-                    }
-                    onClick={() => handleToggleQuestion(question.id)}
-                    key={question.id}
-                  >
-                    <span className="quiz-checkmark">
-                      {selectedQuestionIds.includes(question.id) && "✓"}
-                    </span>
-                    <span className="quiz-question-content">
-                      <strong>{question.content}</strong>
-                      <span>
-                        <em>{question.difficultyLabel}</em>
-                        {question.options?.length || 0} đáp án
-                      </span>
-                    </span>
-                  </button>
-                ))}
-              </div>
             </>
           ) : (
             <>

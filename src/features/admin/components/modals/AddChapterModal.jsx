@@ -1,7 +1,10 @@
 import Modal from "../ui/Modal";
 import FormModalLayout from "../ui/FormModalLayout";
 
-export default function AddChapterModal({ open, onClose, subject }) {
+import { useState } from "react";
+
+export default function AddChapterModal({ open, onClose, subject, onSubmit }) {
+  const [name, setName] = useState("");
   if (!subject) return null;
 
   return (
@@ -24,11 +27,13 @@ export default function AddChapterModal({ open, onClose, subject }) {
             <button className="cancel-btn" onClick={onClose}>
               Hủy
             </button>
-            <button className="add-btn">Thêm chương</button>
+            <button className="add-btn" onClick={() => onSubmit?.({ name })}>
+              Thêm chương
+            </button>
           </>
         }
       >
-        <input placeholder="Tên chương" />
+        <input placeholder="Tên chương" value={name} onChange={(e) => setName(e.target.value)} />
       </FormModalLayout>
     </Modal>
   );

@@ -1,8 +1,10 @@
 import { ArrowRight, BookOpen, Clock3, Layers3, Sparkles } from 'lucide-react';
+import { useNavigate } from "react-router-dom";
 import ProgressBar from '../../home/components/ProgressBar';
 import './SubjectCard.css';
 
 export default function SubjectCard({ subject }) {
+  const navigate = useNavigate();
   return (
     <article className={`subject-overview-card accent-${subject.accent}`}>
       <div className="subject-overview-card__header">
@@ -62,7 +64,11 @@ export default function SubjectCard({ subject }) {
       </div>
 
       <div className="subject-overview-card__actions">
-        <button type="button" className="subject-overview-card__primary-button">
+        <button
+          type="button"
+          className="subject-overview-card__primary-button"
+          onClick={() => navigate(`/app/subjects/${subject.subjectId || subject.subject_id}`)}
+        >
           Vào học
           <ArrowRight size={16} />
         </button>

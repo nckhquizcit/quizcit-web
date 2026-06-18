@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { NavLink } from "react-router-dom";
-import { PanelLeftOpen, X } from "lucide-react";
+import { NavLink, useNavigate } from "react-router-dom";
+import { PanelLeftOpen, X, LogOut } from "lucide-react";
 
 import { ADMIN_SIDEBAR, USER_SIDEBAR } from "../../constants/menuConfig";
 import "./Sidebar.css";
@@ -8,6 +8,13 @@ import "./Sidebar.css";
 export default function Sidebar({ type = "USER" }) {
   const sidebarItems = type === "ADMIN" ? ADMIN_SIDEBAR : USER_SIDEBAR;
   const [isMinimized, setIsMinimized] = useState(false);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("user");
+    navigate("/login");
+  };
 
   return (
     <aside className={`sidebar-wrapper ${isMinimized ? "minimized" : ""}`}>
@@ -39,6 +46,7 @@ export default function Sidebar({ type = "USER" }) {
             <NavLink
               key={item.id}
               to={item.path}
+              end={item.end}
               className={({ isActive }) =>
                 isActive ? "sidebar-item active" : "sidebar-item"
               }
@@ -48,6 +56,16 @@ export default function Sidebar({ type = "USER" }) {
             </NavLink>
           ))}
         </nav>
+
+        <button
+          type="button"
+          className="sidebar-logout"
+          onClick={handleLogout}
+          title="Đăng xuất"
+        >
+          <LogOut size={20} />
+          <p>Đăng xuất</p>
+        </button>
       </div>
     </aside>
   );

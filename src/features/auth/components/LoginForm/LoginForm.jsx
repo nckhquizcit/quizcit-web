@@ -1,13 +1,17 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { login } from "../../../../services/authService";
 import "./LoginForm.css";
 
 export default function LoginForm() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     username: "",
     password: "",
     remember: false,
   });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -17,16 +21,27 @@ export default function LoginForm() {
     }));
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    // Logic gọi API đăng nhập (ví dụ: axios.post('/api/login', formData))
-    console.log("Dữ liệu đăng nhập:", formData);
+    try {
+      setLoading(true);
+      setError("");
+      const auth = await login(formData.username, formData.password);
+      localStorage.setItem("accessToken", auth.accessToken);
+      localStorage.setItem("user", JSON.stringify(auth));
+      navigate(auth.role === "ADMINISTRATOR" ? "/admin" : "/app");
+    } catch (apiError) {
+      setError(apiError?.response?.data?.message || "Đăng nhập thất bại.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <form className="login-form-container" onSubmit={handleLogin}>
       <h1>Đăng nhập</h1>
       <p className="text-gray-500">Nhập thông tin đăng nhập để tiếp tục</p>
+      {error && <p className="text-red-500">{error}</p>}
 
       <div className="input-container">
         <label htmlFor="username">Tên đăng nhập</label>
@@ -71,8 +86,8 @@ export default function LoginForm() {
         </p>
       </div>
 
-      <button type="submit" className="login-button">
-        Đăng nhập
+      <button type="submit" className="login-button" disabled={loading}>
+        {loading ? "Đang xử lý..." : "Đăng nhập"}
       </button>
 
       <div className="register-section">

@@ -5,7 +5,7 @@ import { Lock } from "lucide-react";
 export default function AchievementCard({
   title,
   description,
-  icon: Icon, // Component Icon từ Lucide (Target, Trophy, etc.)
+  icon, // Component Icon từ Lucide (Target, Trophy, etc.)
   progress,
   total,
   rank,
@@ -14,6 +14,7 @@ export default function AchievementCard({
 }) {
   // Tính tỷ lệ phần trăm hoàn thành, tối đa 100%
   const percent = Math.min((progress / total) * 100, 100);
+  const DisplayIcon = icon || Lock;
 
   return (
     <div
@@ -23,7 +24,7 @@ export default function AchievementCard({
       <div className="achievement-icon-wrapper">
         <div className="achievement-icon-circle">
           {/* Icon Lucide: Sẽ được CSS tô màu khi có class .active */}
-          <Icon size={40} strokeWidth={1.5} className="lucide-icon" />
+          <DisplayIcon size={40} strokeWidth={1.5} className="lucide-icon" />
         </div>
 
         {/* Badge ổ khóa (chỉ hiện khi bị khóa) */}

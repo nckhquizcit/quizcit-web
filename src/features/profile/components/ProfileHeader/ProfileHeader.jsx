@@ -1,7 +1,12 @@
 import { Edit2, Mail, Lock, Zap, CheckCircle, Trophy } from "lucide-react";
 import "./ProfileHeader.css";
 
-export default function ProfileHeader({ user }) {
+export default function ProfileHeader({
+  user,
+  onOpenChangeName,
+  onOpenChangeEmail,
+  onOpenChangePassword,
+}) {
   return (
     <div className="profile-header-card">
       <div className="profile-info-section">
@@ -14,13 +19,17 @@ export default function ProfileHeader({ user }) {
           <p className="user-handle">@{user.username}</p>
 
           <div className="action-buttons">
-            <button className="btn-outline">
+            <button className="btn-outline" type="button" onClick={onOpenChangeName}>
               <Edit2 size={14} /> <span>Đổi tên</span>
             </button>
-            <button className="btn-outline">
+            <button className="btn-outline" type="button" onClick={onOpenChangeEmail}>
               <Mail size={14} /> <span>Đổi email</span>
             </button>
-            <button className="btn-outline btn-warning">
+            <button
+              className="btn-outline btn-warning"
+              type="button"
+              onClick={onOpenChangePassword}
+            >
               <Lock size={14} /> <span>Đổi mật khẩu</span>
             </button>
           </div>

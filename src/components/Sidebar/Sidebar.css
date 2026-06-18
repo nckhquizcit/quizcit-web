@@ -16,12 +16,14 @@
 }
 
 .sidebar-content {
-  width: 280px; /* Giữ nguyên width để nội dung không bị ép */
+  width: 280px;
   padding: 16px;
   display: flex;
   flex-direction: column;
   transition: opacity 0.2s;
+  min-height: 0; /* Cho phép flex children co lại đúng */
 }
+
 .sidebar-close-icon {
   cursor: pointer;
 }
@@ -68,6 +70,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  flex: 1 1 auto;
 }
 
 .sidebar-item {
@@ -86,4 +89,38 @@
 .sidebar-item:hover {
   background-color: #009e60;
   color: white;
+}
+/* Nút đăng xuất - đặt cuối sidebar */
+.sidebar-logout {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #1e293b;
+  font-family: inherit;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.3s ease;
+}
+
+.sidebar-logout p {
+  margin: 0;
+}
+
+.sidebar-logout:hover,
+.sidebar-logout:focus-visible {
+  background-color: #fef2f2;
+  border-color: #fecaca;
+  color: #e7040f;
+  outline: none;
+}
+
+.sidebar-logout:active {
+  background-color: #fee2e2;
 }

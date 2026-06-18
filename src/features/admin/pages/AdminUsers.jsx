@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AdminPageHeader from "../components/AdminPageHeader";
 import SearchBar from "../components/SearchBar";
 import ConfirmActionModal from "../components/modals/ConfirmActionModal";
 import AuthorizationModal from "../components/modals/AuthorizationModal";
-import { adminUserService } from "../services/userService";
+import { deleteUser, getUsers } from "../../../services/userService";
 
 import "../Admin.css";
 import "./AdminUsers.css";
@@ -12,17 +12,38 @@ import "../components/modals/modal.css";
 export default function AdminUsers() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
-  const [users, setUsers] = useState(() => adminUserService.getUsers());
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [selectedUser, setSelectedUser] = useState(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   // ===== FILTER =====
-  const filteredUsers = adminUserService.filterUsers(users, {
-    searchTerm,
-    status: filterStatus,
-  });
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const data = await getUsers();
+        setUsers(data || []);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadUsers();
+  }, []);
+
+  const filteredUsers = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return users.filter((user) => {
+      const matchSearch =
+        !normalizedSearch ||
+        user.username?.toLowerCase().includes(normalizedSearch) ||
+        user.email?.toLowerCase().includes(normalizedSearch);
+      const matchStatus = filterStatus === "ALL" || user.status === filterStatus;
+      return matchSearch && matchStatus;
+    });
+  }, [users, searchTerm, filterStatus]);
 
   // ===== ACTIONS =====
   const openConfirmModal = (user) => {
@@ -45,16 +66,20 @@ export default function AdminUsers() {
     setSelectedUser(null);
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
+    if (!selectedUser?.userId) return;
+    await deleteUser(selectedUser.userId);
     setUsers((currentUsers) =>
-      adminUserService.lockUser(currentUsers, selectedUser?.user_id),
+      currentUsers.filter((user) => user.userId !== selectedUser.userId),
     );
     closeConfirmModal();
   };
 
   const handleAuthSave = (newRole) => {
     setUsers((currentUsers) =>
-      adminUserService.updateUserRole(currentUsers, selectedUser?.user_id, newRole),
+      currentUsers.map((user) =>
+        user.userId === selectedUser?.userId ? { ...user, role: newRole } : user,
+      ),
     );
     closeAuthModal();
   };
@@ -100,8 +125,14 @@ export default function AdminUsers() {
         </thead>
 
         <tbody>
-          {filteredUsers.map((user) => (
-            <tr key={user.user_id}>
+          {loading && (
+            <tr>
+              <td colSpan={6}>Đang tải dữ liệu người dùng...</td>
+            </tr>
+          )}
+          {!loading &&
+            filteredUsers.map((user) => (
+            <tr key={user.userId}>
               <td>{user.username}</td>
               <td>{user.email}</td>
 
@@ -131,14 +162,14 @@ export default function AdminUsers() {
                 </span>
               </td>
 
-              <td>{user.user_id}</td>
+              <td>{user.userId}</td>
 
               <td>
                 <button
                   className="action-btn danger-btn"
                   onClick={() => openConfirmModal(user)}
                 >
-                  Khóa
+                  Xóa
                 </button>
 
                 <button

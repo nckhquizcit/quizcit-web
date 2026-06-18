@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Eye, EyeOff, Search } from "lucide-react";
 
-import { chapters, subjects } from "../../../../mock/mockData";
 import Modal from "../ui/Modal";
 
 const defaultAnswers = ["", "", "", ""];
@@ -26,6 +25,8 @@ export default function AddQuestionModal({
   initialQuestion,
   mode = "create",
   onSubmit,
+  subjects = [],
+  chapters = [],
 }) {
   const isEdit = mode === "edit";
   const [question, setQuestion] = useState("");
@@ -34,10 +35,11 @@ export default function AddQuestionModal({
   const [status, setStatus] = useState("Bản nháp");
   const [answers, setAnswers] = useState(defaultAnswers);
   const [correctIndex, setCorrectIndex] = useState(null);
-  const [selectedSubjectId, setSelectedSubjectId] = useState(subject?.id || subjects[0]?.id);
-  const [selectedChapterId, setSelectedChapterId] = useState(chapter?.id || chapters[0]?.id);
+  const [selectedSubjectId, setSelectedSubjectId] = useState(subject?.subjectId || subjects[0]?.subjectId);
+  const [selectedChapterId, setSelectedChapterId] = useState(chapter?.chapterId || chapters[0]?.chapterId);
   const [preview, setPreview] = useState(false);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!open) return;
 
@@ -51,14 +53,15 @@ export default function AddQuestionModal({
     setStatus(initialQuestion?.status || "Bản nháp");
     setAnswers(nextAnswers.length === 4 ? nextAnswers : [...nextAnswers, ...defaultAnswers].slice(0, 4));
     setCorrectIndex(nextCorrectIndex >= 0 ? nextCorrectIndex : null);
-    setSelectedSubjectId(initialQuestion?.subject?.id || subject?.id || subjects[0]?.id);
-    setSelectedChapterId(initialQuestion?.chapter?.id || chapter?.id || chapters[0]?.id);
+    setSelectedSubjectId(initialQuestion?.subjectId || subject?.subjectId || subjects[0]?.subjectId);
+    setSelectedChapterId(initialQuestion?.chapterId || chapter?.chapterId || chapters[0]?.chapterId);
     setPreview(false);
-  }, [chapter?.id, initialQuestion, open, subject?.id]);
+  }, [chapter?.chapterId, chapters, initialQuestion, open, subject?.subjectId, subjects]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const availableChapters = useMemo(
     () => chapters.filter((item) => item.subjectId === selectedSubjectId),
-    [selectedSubjectId],
+    [chapters, selectedSubjectId],
   );
 
   const handleAnswerChange = (index, value) => {
@@ -70,7 +73,7 @@ export default function AddQuestionModal({
   const handleSubjectToggle = (subjectId) => {
     setSelectedSubjectId(subjectId);
     const firstChapter = chapters.find((item) => item.subjectId === subjectId);
-    setSelectedChapterId(firstChapter?.id);
+    setSelectedChapterId(firstChapter?.chapterId);
   };
 
   const handleSubmit = () => {
@@ -153,9 +156,9 @@ export default function AddQuestionModal({
                   <div className="choice-list">
                     {subjects.map((item) => (
                       <button
-                        className={selectedSubjectId === item.id ? "selected" : ""}
-                        onClick={() => handleSubjectToggle(item.id)}
-                        key={item.id}
+                        className={selectedSubjectId === item.subjectId ? "selected" : ""}
+                        onClick={() => handleSubjectToggle(item.subjectId)}
+                        key={item.subjectId}
                       >
                         <span />
                         {item.name}
@@ -175,9 +178,9 @@ export default function AddQuestionModal({
                   <div className="choice-list">
                     {availableChapters.map((item) => (
                       <button
-                        className={selectedChapterId === item.id ? "selected" : ""}
-                        onClick={() => setSelectedChapterId(item.id)}
-                        key={item.id}
+                        className={selectedChapterId === item.chapterId ? "selected" : ""}
+                        onClick={() => setSelectedChapterId(item.chapterId)}
+                        key={item.chapterId}
                       >
                         <span />
                         {item.name}

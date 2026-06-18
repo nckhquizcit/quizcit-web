@@ -14,7 +14,7 @@ export default function AuthorizationModal({ isOpen, onClose, user, onSave }) {
   if (!isOpen || !user) return null;
 
   const handleSave = () => {
-    console.log(`Updated role of ${user.user_id} to ${role}`);
+    console.log(`Updated role of ${user.userId || user.user_id} to ${role}`);
     onSave(role);
     onClose();
   };
@@ -27,7 +27,7 @@ export default function AuthorizationModal({ isOpen, onClose, user, onSave }) {
         </div>
 
         <div className="modal-body">
-          <p><strong>User ID:</strong> {user.user_id}</p>
+          <p><strong>User ID:</strong> {user.userId || user.user_id}</p>
           <p><strong>Username:</strong> {user.username}</p>
           <p><strong>Display Name:</strong> {user.username}</p>
 
