@@ -1,4 +1,4 @@
-".subject-detail-page {
+.subject-detail-page {
   max-width: 1000px;
   margin: 0 auto;
   padding: 24px;
@@ -154,4 +154,38 @@
   text-align: center;
   color: #94a3b8;
   font-style: italic;
-}"
+}
+/* === ERROR STATE STYLES === */
+.error-state {
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.error-state h1 {
+  font-size: 2rem;
+  color: #ef4444;
+  margin-bottom: 16px;
+}
+
+.error-state p {
+  color: #64748b;
+  margin-bottom: 24px;
+  font-size: 1.1rem;
+}
+
+.error-state button {
+  padding: 12px 24px;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.error-state button:hover {
+  background: #059669;
+  transform: translateY(-2px);
+}

@@ -15,55 +15,84 @@ export default function SubjectDetailPage() {
   const [chapters, setChapters] = useState([]);
   const [theoriesByChapter, setTheoriesByChapter] = useState({});
   const [quizzesByChapter, setQuizzesByChapter] = useState({});
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const load = async () => {
-      const subjectData = await getSubjectById(subjectId);
-      const chapterData = (await getChaptersBySubject(subjectId)) || [];
+      try {
+        setError(null);
+        const subjectData = await getSubjectById(subjectId);
+        const chapterData = (await getChaptersBySubject(subjectId)) || [];
 
-      const [theoryEntries, quizEntries] = await Promise.all([
-        Promise.all(
-          chapterData.map(async (chapter) => [
-            chapter.chapterId,
-            (await getTheoriesByChapter(chapter.chapterId)) || [],
-          ]),
-        ),
-        Promise.all(
-          chapterData.map(async (chapter) => [
-            chapter.chapterId,
-            (await getQuizzesByChapter(chapter.chapterId)) || [],
-          ]),
-        ),
-      ]);
+        const [theoryEntries, quizEntries] = await Promise.all([
+          Promise.all(
+            chapterData.map(async (chapter) => [
+              chapter.chapterId || chapter.chapter_id,
+              (await getTheoriesByChapter(chapter.chapterId || chapter.chapter_id)) || [],
+            ]),
+          ),
+          Promise.all(
+            chapterData.map(async (chapter) => [
+              chapter.chapterId || chapter.chapter_id,
+              (await getQuizzesByChapter(chapter.chapterId || chapter.chapter_id)) || [],
+            ]),
+          ),
+        ]);
 
-      setSubject(subjectData);
-      setChapters(chapterData);
-      setTheoriesByChapter(Object.fromEntries(theoryEntries));
-      setQuizzesByChapter(Object.fromEntries(quizEntries));
+        setSubject(subjectData);
+        setChapters(chapterData);
+        setTheoriesByChapter(Object.fromEntries(theoryEntries));
+        setQuizzesByChapter(Object.fromEntries(quizEntries));
+      } catch (err) {
+        console.error("Error loading subject details:", err);
+        setError(err.message || "Không thể tải thông tin môn học");
+      }
     };
-    load();
+    if (subjectId) {
+      load();
+    }
   }, [subjectId]);
 
-  if (!subject) return <div>Đang tải nội dung môn học...</div>;
+  if (!subject && !error) return <div>Đang tải nội dung môn học...</div>;
+  
+  if (error) {
+    return (
+      <div className="subject-detail-page">
+        <div className="error-state">
+          <h1>Lỗi</h1>
+          <p>{error}</p>
+          <button onClick={() => navigate("/app/subjects")}>
+            Quay lại danh sách môn học
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Normalize subject data to handle both camelCase and snake_case
+  const subjectName = subject?.name || subject?.title || "Môn học";
+  const subjectCourseCode = subject?.courseCode || subject?.course_code || "-";
+  const subjectDescription = subject?.description || "";
 
   return (
     <div className="subject-detail-page">
       <div className="subject-detail-header">
-        <h1>{subject.name}</h1>
+        <h1>{subjectName}</h1>
         <div className="subject-detail-meta">
-          <span>Mã môn: {subject.courseCode}</span>
+          <span>Mã môn: {subjectCourseCode}</span>
           <span>{chapters.length} chương</span>
         </div>
-        {subject.description && <p>{subject.description}</p>}
+        {subjectDescription && <p>{subjectDescription}</p>}
       </div>
 
       <div className="chapters-section">
         {chapters.map((chapter) => {
-          const theories = theoriesByChapter[chapter.chapterId] || [];
-          const quizzes = quizzesByChapter[chapter.chapterId] || [];
+          const chapterId = chapter.chapterId || chapter.chapter_id;
+          const theories = theoriesByChapter[chapterId] || [];
+          const quizzes = quizzesByChapter[chapterId] || [];
 
           return (
-            <article key={chapter.chapterId} className="chapter-section">
+            <article key={chapterId} className="chapter-section">
               <div className="chapter-header">
                 <h3>{chapter.name}</h3>
               </div>
@@ -77,7 +106,7 @@ export default function SubjectDetailPage() {
                     </div>
                   ) : (
                     theories.map((theory) => (
-                      <div key={theory.theoryId} className="theory-item">
+                      <div key={theory.theoryId || theory.theory_id} className="theory-item">
                         {theory.content}
                       </div>
                     ))
@@ -94,9 +123,9 @@ export default function SubjectDetailPage() {
                     <div className="quiz-list">
                       {quizzes.map((quiz) => (
                         <div
-                          key={quiz.quizId}
+                          key={quiz.quizId || quiz.quiz_id}
                           className="quiz-card"
-                          onClick={() => navigate(`/app/quiz/${quiz.quizId}`)}
+                          onClick={() => navigate(`/app/quiz/${quiz.quizId || quiz.quiz_id}`)}
                         >
                           <div className="quiz-card-title">{quiz.name}</div>
                           <div className="quiz-card-meta">

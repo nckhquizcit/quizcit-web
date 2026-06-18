@@ -1,18 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, BookOpen } from "lucide-react";
+import { Plus, BookOpen, Pencil, Trash2 } from "lucide-react";
 
 import "../Admin.css";
 import AdminPageHeader from "../components/AdminPageHeader";
 import SearchBar from "../components/SearchBar";
 import AddSubjectModal from "../components/modals/AddSubjectModal";
-import { createSubject, getChaptersBySubject, getSubjects } from "../../../services/contentService";
+import EditSubjectModal from "../components/modals/EditSubjectModal";
+import ConfirmDeleteModal from "../components/modals/ConfirmDeleteModal";
+import { createSubject, updateSubject, deleteSubject, getChaptersBySubject, getSubjects } from "../../../services/contentService";
 
 export default function AdminSubjects() {
   const navigate = useNavigate();
 
   const [search, setSearch] = useState("");
   const [openAddSubject, setOpenAddSubject] = useState(false);
+  const [editingSubject, setEditingSubject] = useState(null);
+  const [deletingSubject, setDeletingSubject] = useState(null);
   const [subjects, setSubjects] = useState([]);
   const [chapterCountBySubject, setChapterCountBySubject] = useState({});
 
@@ -41,6 +45,24 @@ export default function AdminSubjects() {
     [search, subjects],
   );
 
+  const handleUpdateSubject = async (payload) => {
+    await updateSubject(editingSubject.subjectId, payload);
+    setSubjects((current) =>
+      current.map((s) =>
+        s.subjectId === editingSubject.subjectId ? { ...s, ...payload } : s,
+      ),
+    );
+    setEditingSubject(null);
+  };
+
+  const handleDeleteSubject = async () => {
+    await deleteSubject(deletingSubject.subjectId);
+    setSubjects((current) =>
+      current.filter((s) => s.subjectId !== deletingSubject.subjectId),
+    );
+    setDeletingSubject(null);
+  };
+
   return (
     <>
       {/* ===== HEADER ===== */}
@@ -67,6 +89,27 @@ export default function AdminSubjects() {
             className="subject-card"
             onClick={() => navigate(`/admin/subjects/${subject.subjectId}/chapters`)}
           >
+            <div className="subject-card-actions">
+              <button
+                className="icon-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEditingSubject(subject);
+                }}
+              >
+                <Pencil size={16} />
+              </button>
+              <button
+                className="icon-btn danger"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDeletingSubject(subject);
+                }}
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+
             <div className="header-icon">
               <BookOpen size={22} />
             </div>
@@ -88,7 +131,7 @@ export default function AdminSubjects() {
         ))}
       </div>
 
-      {/* ===== MODAL ===== */}
+      {/* ===== MODALS ===== */}
       <AddSubjectModal
         open={openAddSubject}
         onClose={() => setOpenAddSubject(false)}
@@ -97,6 +140,22 @@ export default function AdminSubjects() {
           setSubjects((current) => [created, ...current]);
           setOpenAddSubject(false);
         }}
+      />
+
+      <EditSubjectModal
+        open={Boolean(editingSubject)}
+        onClose={() => setEditingSubject(null)}
+        subject={editingSubject}
+        onSubmit={handleUpdateSubject}
+      />
+
+      <ConfirmDeleteModal
+        open={Boolean(deletingSubject)}
+        onClose={() => setDeletingSubject(null)}
+        title="Xóa môn học"
+        message="Bạn có muốn xóa môn học này không? Tất cả chương, lý thuyết, câu hỏi và đề thi liên quan cũng sẽ bị xóa."
+        itemName={deletingSubject?.name}
+        onConfirm={handleDeleteSubject}
       />
     </>
   );

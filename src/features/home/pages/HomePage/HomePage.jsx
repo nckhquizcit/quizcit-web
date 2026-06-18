@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import {
   ArrowRight,
   BookOpen,
@@ -7,80 +8,77 @@ import {
 } from 'lucide-react';
 import './HomePage.css';
 import ProgressBar from '../../components/ProgressBar';
-import { chapters, currentUser, subjects } from '../../data/homeData';
+import { getChaptersBySubject, getSubjects } from '../../../../services/contentService';
 
 function getStoredUser() {
   try {
     const rawUser = localStorage.getItem('user');
-    return rawUser ? JSON.parse(rawUser) : currentUser;
+    return rawUser ? JSON.parse(rawUser) : null;
   } catch {
-    return currentUser;
+    return null;
   }
 }
 
-function getAIRecommendations() {
+export default function HomePage() {
+  const [subjects, setSubjects] = useState([]);
+  const [chapters, setChapters] = useState([]);
+  const user = getStoredUser();
+
+  useEffect(() => {
+    const loadData = async () => {
+      const subjectData = (await getSubjects()) || [];
+      const chaptersData = (
+        await Promise.all(
+          subjectData.map((subject) => getChaptersBySubject(subject.subjectId)),
+        )
+      ).flat();
+      
+      setSubjects(
+        subjectData.map((s) => ({
+          ...s,
+          progress: Math.floor(Math.random() * 80) + 10, // Mock progress tạm thời do API chưa hỗ trợ
+        })),
+      );
+      setChapters(chaptersData.filter(Boolean));
+    };
+    loadData();
+  }, []);
+
+  const overallProgress = subjects.length
+    ? Math.round(
+        subjects.reduce((total, subject) => total + subject.progress, 0) / subjects.length,
+      )
+    : 0;
+
   const lowProgressSubjects = subjects
     .filter((subject) => subject.progress < 60)
     .sort((a, b) => a.progress - b.progress);
 
-  if (lowProgressSubjects.length === 0) {
-    const focusSubject = subjects[0];
-    const focusChapter = chapters.find(
-      (chapter) => chapter.subject_id === focusSubject.subject_id
+  const recommendations = lowProgressSubjects.slice(0, 2).map((subject) => {
+    const subjectChapters = chapters.filter(
+      (chapter) => chapter.subjectId === subject.subjectId,
+    );
+    const chapterIndex = Math.min(
+      Math.floor((subject.progress / 100) * subjectChapters.length),
+      Math.max(subjectChapters.length - 1, 0),
     );
 
     return {
-      priority: 'medium',
-      message:
-        'Bạn đang duy trì tiến độ rất tốt. Hãy tiếp tục ôn tập đều để hoàn thành mục tiêu học kỳ.',
-      recommendations: [
-        {
-          subject: focusSubject,
-          chapter: focusChapter,
-          reason: 'Tiếp tục học chương kế tiếp để giữ nhịp độ ổn định.',
-        },
-      ],
+      subject,
+      chapter: subjectChapters[chapterIndex] || null,
+      reason:
+        subject.progress < 40
+          ? 'Tiến độ còn thấp, nên ôn tập ngay để tránh quên kiến thức nền.'
+          : 'Đây là môn học cần được tăng tốc trong giai đoạn hiện tại.',
     };
-  }
-
-  return {
-    priority: lowProgressSubjects[0].progress < 40 ? 'high' : 'medium',
-    message:
-      'Dựa trên tiến độ hiện tại, hệ thống gợi ý bạn nên ưu tiên các chương dưới đây để cải thiện kết quả.',
-    recommendations: lowProgressSubjects.slice(0, 2).map((subject) => {
-      const subjectChapters = chapters.filter(
-        (chapter) => chapter.subject_id === subject.subject_id
-      );
-      const chapterIndex = Math.min(
-        Math.floor((subject.progress / 100) * subjectChapters.length),
-        Math.max(subjectChapters.length - 1, 0)
-      );
-
-      return {
-        subject,
-        chapter: subjectChapters[chapterIndex],
-        reason:
-          subject.progress < 40
-            ? 'Tiến độ còn thấp, nên ôn tập ngay để tránh quên kiến thức nền.'
-            : 'Đây là môn học cần được tăng tốc trong giai đoạn hiện tại.',
-      };
-    }),
-  };
-}
-
-export default function HomePage() {
-  const user = getStoredUser();
-  const aiRecommendations = getAIRecommendations();
-  const overallProgress = Math.round(
-    subjects.reduce((total, subject) => total + subject.progress, 0) / subjects.length
-  );
+  });
 
   return (
     <section className="home-page">
       <header className="home-hero">
         <div>
           <p className="home-hero__eyebrow">QuizCIT Dashboard</p>
-          <h1>Chào, {user.display_name || 'bạn'} 👋</h1>
+          <h1>Chào, {user?.displayName || 'bạn'} 👋</h1>
           <p className="home-hero__description">
             Theo dõi tiến độ học tập, nhận gợi ý ôn tập thông minh và tiếp tục
             hành trình chinh phục các môn học nền tảng của bạn.
@@ -96,7 +94,7 @@ export default function HomePage() {
           </div>
           <div>
             <p className="summary-card__label">Chỉ số năng lực</p>
-            <h2>{user.theta_overall || currentUser.theta_overall}</h2>
+            <h2>{user?.theta_overall || 'Đang cập nhật'}</h2>
             <p className="summary-card__text">
               Năng lực tổng thể phản ánh kết quả làm bài và độ ổn định của quá
               trình ôn tập.
@@ -118,7 +116,7 @@ export default function HomePage() {
 
       <article
         className={`ai-card ${
-          aiRecommendations.priority === 'high' ? 'ai-card--high' : ''
+          recommendations.some((r) => r.subject.progress < 40) ? 'ai-card--high' : ''
         }`}
       >
         <div className="ai-card__header">
@@ -128,19 +126,23 @@ export default function HomePage() {
           <div>
             <div className="ai-card__title-row">
               <h2>Khuyến nghị từ AI</h2>
-              {aiRecommendations.priority === 'high' && (
+              {recommendations.some((r) => r.subject.progress < 40) && (
                 <span className="ai-card__chip">Ưu tiên cao</span>
               )}
             </div>
-            <p>{aiRecommendations.message}</p>
+            <p>
+              {recommendations.length > 0
+                ? 'Dựa trên tiến độ hiện tại, hệ thống gợi ý bạn nên ưu tiên các môn dưới đây để cải thiện kết quả.'
+                : 'Bạn đang duy trì tiến độ rất tốt. Hãy tiếp tục ôn tập đều để hoàn thành mục tiêu học kỳ.'}
+            </p>
           </div>
         </div>
 
         <div className="ai-card__list">
-          {aiRecommendations.recommendations.map((item) => (
+          {recommendations.map((item) => (
             <article
               className="recommendation-card"
-              key={`${item.subject.subject_id}-${item.chapter?.chapter_id || 'none'}`}
+              key={`${item.subject.subjectId}-${item.chapter?.chapterId || 'none'}`}
             >
               <div className="recommendation-card__content">
                 <div className="recommendation-card__subject-row">
@@ -184,10 +186,10 @@ export default function HomePage() {
 
         <div className="subjects-grid">
           {subjects.map((subject) => (
-            <article className="subject-card" key={subject.subject_id}>
+            <article className="subject-card" key={subject.subjectId}>
               <div className="subject-card__header">
                 <div>
-                  <p className="subject-card__code">{subject.course_code}</p>
+                  <p className="subject-card__code">{subject.courseCode}</p>
                   <h3>{subject.name}</h3>
                 </div>
                 <span className="subject-card__pill">{subject.progress}%</span>
