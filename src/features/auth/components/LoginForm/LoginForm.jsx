@@ -8,7 +8,6 @@ export default function LoginForm() {
   const [formData, setFormData] = useState({
     username: "",
     password: "",
-    remember: false,
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -69,17 +68,7 @@ export default function LoginForm() {
         />
       </div>
 
-      <div className="remember-container">
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            name="remember"
-            type="checkbox"
-            checked={formData.remember}
-            onChange={handleChange}
-          />
-          <span>Ghi nhớ tôi</span>
-        </label>
-      </div>
+      
       <div className="forgot-password-section">
         <p>
           <Link to="/forgot-password">Quên mật khẩu?</Link>

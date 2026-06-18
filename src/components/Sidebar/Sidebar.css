@@ -1,5 +1,7 @@
 .sidebar-wrapper {
   height: 100vh;
+  position: sticky;
+  top: 0;
   background-color: white;
   box-shadow: 2px 0px 5px #ededed;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -22,6 +24,7 @@
   flex-direction: column;
   transition: opacity 0.2s;
   min-height: 0; /* Cho phép flex children co lại đúng */
+  overflow-y: auto; /* Cho phép cuộn nội bộ nếu menu quá dài */
 }
 
 .sidebar-close-icon {
