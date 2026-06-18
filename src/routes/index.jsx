@@ -69,6 +69,14 @@ const HistoryPage = lazy(
   () => import("../features/history/pages/HistoryPage/HistoryPage.jsx"),
 );
 
+// Quiz pages
+const QuizTakingPage = lazy(
+  () => import("../features/quiz/pages/QuizTakingPage/QuizTakingPage.jsx"),
+);
+const QuizResultPage = lazy(
+  () => import("../features/quiz/pages/QuizResultPage/QuizResultPage.jsx"),
+);
+
 // Loading Component
 const PageLoader = () => (
   <div
@@ -105,6 +113,14 @@ export const router = createBrowserRouter([
       {
         path: "subjects/:subjectId",
         element: withSuspense(<SubjectDetailPage />),
+      },
+      {
+        path: "quiz/:quizId",
+        element: withSuspense(<QuizTakingPage />),
+      },
+      {
+        path: "quiz/result/:attemptId",
+        element: withSuspense(<QuizResultPage />),
       },
       {
         path: "profile",
