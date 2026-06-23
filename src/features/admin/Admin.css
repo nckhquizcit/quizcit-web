@@ -849,22 +849,29 @@
 
 .question-tags span + span {
   border-color: #ddb8ff;
+  background: #f8edff;
+  color: #8a00d4;
+}
 
 .skill-preview-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
   border: 1px solid #bfdbfe;
   background: #eff6ff;
   color: #1d4ed8;
   border-radius: 999px;
-  padding: 8px 12px;
-  font-weight: 600;
+  padding: 8px 14px;
+  font-weight: 700;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .skill-preview-trigger:hover {
+  border-color: #93c5fd;
   background: #dbeafe;
-}
-  background: #f8edff;
-  color: #8a00d4;
+  transform: translateY(-1px);
 }
 
 .difficulty-pill,
@@ -1362,6 +1369,10 @@
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+  margin-top: 26px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+}
 
 .skill-hint {
   color: #64748b;
@@ -1382,7 +1393,7 @@
 
 .selected-skill-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 120px auto;
+  grid-template-columns: minmax(0, 1fr) 140px 120px auto;
   gap: 12px;
   align-items: center;
   padding: 12px 14px;
@@ -1409,6 +1420,18 @@
   cursor: pointer;
 }
 
+.selected-skill-row .primary-skill-btn {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.selected-skill-row .primary-skill-btn.active {
+  border-color: #009e60;
+  background: #d8fae5;
+  color: #007a44;
+}
+
 .question-skills-modal {
   max-width: 640px;
 }
@@ -1430,6 +1453,31 @@
   background: #f8fafc;
 }
 
+.question-skill-popup-item strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.question-skill-popup-item em {
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.question-skill-popup-item em.primary {
+  background: #d8fae5;
+  color: #007a44;
+}
+
+.question-skill-popup-item em.secondary {
+  background: #eef2ff;
+  color: #4338ca;
+}
+
 .question-skill-popup-item span {
   color: #475569;
   font-weight: 600;
@@ -1437,10 +1485,6 @@
 
 .question-skill-empty {
   color: #64748b;
-}
-  margin-top: 26px;
-  padding-top: 20px;
-  border-top: 1px solid #e2e8f0;
 }
 
 .add-btn.disabled {

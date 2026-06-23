@@ -30,14 +30,31 @@ const getSkillName = (skill) =>
 
 const getSkillWeight = (skill) => skill?.weight ?? skill?.skillWeight ?? skill?.questionWeight ?? 0;
 
+const getSkillPrimary = (skill) =>
+  Boolean(skill?.primary ?? skill?.isPrimary ?? skill?.is_primary ?? skill?.questionSkill?.primary);
+
 const normalizeQuestionSkills = (skills = []) =>
   skills
-    .map((skill) => ({
+    .map((skill, index) => ({
       skillId: getSkillId(skill),
       name: getSkillName(skill),
       weight: getSkillWeight(skill),
+      primary: getSkillPrimary(skill) || (index === 0 && !skills.some(getSkillPrimary)),
     }))
     .filter((skill) => skill.skillId);
+
+const normalizeSkillPayload = (skills = []) =>
+  skills.map((skill) => ({
+    skillId: skill.skillId,
+    weight: Number(skill.weight),
+    primary: Boolean(skill.primary),
+  }));
+
+const getDifficultyLabel = (difficultyB) => {
+  if (difficultyB <= -1) return "Easy";
+  if (difficultyB >= 1) return "Hard";
+  return "Medium";
+};
 
 const normalizeSubject = (subject) => ({
   ...subject,
@@ -141,7 +158,12 @@ function QuestionSkillsModal({ open, question, onClose }) {
           {skills.length ? (
             skills.map((skill) => (
               <div className="question-skill-popup-item" key={skill.skillId}>
-                <strong>{skill.name}</strong>
+                <strong>
+                  {skill.name}
+                  <em className={skill.primary ? "primary" : "secondary"}>
+                    {skill.primary ? "Kỹ năng chính" : "Kỹ năng phụ"}
+                  </em>
+                </strong>
                 <span>Trọng số: {skill.weight}</span>
               </div>
             ))
@@ -241,7 +263,7 @@ export default function AdminQuestions() {
       content: formValues.content,
       explanation: formValues.explanation,
       difficultyB: formValues.difficulty === "Easy" ? -1 : formValues.difficulty === "Medium" ? 0 : 1,
-      skills: formValues.skills,
+      skills: normalizeSkillPayload(formValues.skills),
       options: formValues.options,
     });
     setQuestionRows((currentRows) => [
@@ -254,10 +276,12 @@ export default function AdminQuestions() {
 
   const handleUpdateQuestion = async (formValues) => {
     const updated = await updateQuestion(editingQuestion.questionId, {
+      subjectId: formValues.subjectId,
+      chapterId: formValues.chapterId,
       content: formValues.content,
       explanation: formValues.explanation,
       difficultyB: formValues.difficulty === "Easy" ? -1 : formValues.difficulty === "Medium" ? 0 : 1,
-      skills: formValues.skills,
+      skills: normalizeSkillPayload(formValues.skills),
       options: formValues.options,
     });
     setQuestionRows((currentRows) => {
@@ -365,13 +389,13 @@ export default function AdminQuestions() {
                     onClick={() => setSkillPreviewQuestion(question)}
                     type="button"
                   >
-                    {(question.skills || []).length} kỹ năng
+                    {(question.skills || []).length > 0
+                      ? `${(question.skills || []).length} kỹ năng`
+                      : "Xem danh sách"}
                   </button>
                 </td>
                 <td>
-                  <span className="difficulty-pill">
-                    {question.difficultyB ?? 0}
-                  </span>
+                  <span className="difficulty-pill">{getDifficultyLabel(question.difficultyB ?? 0)}</span>
                 </td>
                 <td>-</td>
                 <td>

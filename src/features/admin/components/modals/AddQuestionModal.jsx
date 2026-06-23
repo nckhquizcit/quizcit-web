@@ -38,6 +38,9 @@ const getSkillName = (skill) =>
 
 const getSkillWeight = (skill) => skill?.weight ?? skill?.skillWeight ?? skill?.questionWeight ?? 0;
 
+const getSkillPrimary = (skill) =>
+  Boolean(skill?.primary ?? skill?.isPrimary ?? skill?.is_primary ?? skill?.questionSkill?.primary);
+
 const normalizeSubject = (subject) => ({
   ...subject,
   subjectId: getSubjectId(subject),
@@ -58,12 +61,34 @@ const normalizeSkill = (skill) => ({
 
 const normalizeQuestionSkills = (skills = []) =>
   skills
-    .map((skill) => ({
+    .map((skill, index) => ({
       skillId: normalizeId(getSkillId(skill)),
       name: getSkillName(skill),
       weight: String(getSkillWeight(skill)),
+      primary: getSkillPrimary(skill) || (index === 0 && !skills.some(getSkillPrimary)),
     }))
     .filter((skill) => skill.skillId);
+
+const ensureSinglePrimarySkill = (skills = []) => {
+  if (!skills.length) return [];
+
+  const primaryIndex = skills.findIndex((skill) => skill.primary);
+  const safePrimaryIndex = primaryIndex >= 0 ? primaryIndex : 0;
+
+  return skills.map((skill, index) => ({
+    ...skill,
+    primary: index === safePrimaryIndex,
+  }));
+};
+
+const clampSkillWeight = (value) => {
+  if (value === "" || value === null || value === undefined) return "";
+
+  const parsedValue = Number(value);
+  if (Number.isNaN(parsedValue)) return value;
+
+  return String(Math.max(-1, Math.min(1, parsedValue)));
+};
 
 const isOptionCorrect = (option) =>
   Boolean(option?.corrected ?? option?.isCorrect ?? option?.is_correct);
@@ -203,7 +228,6 @@ export default function AddQuestionModal({
     };
   }, [initialQuestion?.subjectId, open, subject, subjects]);
 
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!open) return;
 
@@ -229,7 +253,6 @@ export default function AddQuestionModal({
     setSkillSearch("");
     setPreview(false);
   }, [chapter, chapters, initialQuestion, open, subject, subjects]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     if (!open) return;
@@ -399,19 +422,38 @@ export default function AddQuestionModal({
       );
 
       if (exists) {
-        return currentSkills.filter(
+        return ensureSinglePrimarySkill(currentSkills.filter(
           (item) => normalizeId(item.skillId) !== normalizeId(normalizedSkill.skillId),
-        );
+        ));
       }
 
-      return [...currentSkills, { skillId: normalizedSkill.skillId, name: normalizedSkill.name, weight: "0" }];
+      return ensureSinglePrimarySkill([
+        ...currentSkills,
+        {
+          skillId: normalizedSkill.skillId,
+          name: normalizedSkill.name,
+          weight: "0",
+          primary: currentSkills.length === 0,
+        },
+      ]);
     });
+  };
+
+  const handlePrimarySkillChange = (skillId) => {
+    setSelectedSkills((currentSkills) =>
+      currentSkills.map((skill) => ({
+        ...skill,
+        primary: normalizeId(skill.skillId) === normalizeId(skillId),
+      })),
+    );
   };
 
   const handleSkillWeightChange = (skillId, value) => {
     setSelectedSkills((currentSkills) =>
       currentSkills.map((skill) =>
-        normalizeId(skill.skillId) === normalizeId(skillId) ? { ...skill, weight: value } : skill,
+        normalizeId(skill.skillId) === normalizeId(skillId)
+          ? { ...skill, weight: clampSkillWeight(value) }
+          : skill,
       ),
     );
   };
@@ -447,6 +489,11 @@ export default function AddQuestionModal({
       return;
     }
 
+    if (selectedSkills.length > 0 && selectedSkills.filter((skill) => skill.primary).length !== 1) {
+      window.alert("Vui lòng chọn đúng một kỹ năng chính cho câu hỏi.");
+      return;
+    }
+
     onSubmit?.({
       content: question.trim(),
       explanation: explanation.trim(),
@@ -455,7 +502,8 @@ export default function AddQuestionModal({
       chapterId: selectedChapterId,
       skills: selectedSkills.map((skill) => ({
         skillId: skill.skillId,
-        weight: Number(skill.weight),
+        weight: Number(clampSkillWeight(skill.weight)),
+        primary: Boolean(skill.primary),
       })),
       options: answers.map((answer, index) => ({
         content: answer.trim(),
@@ -612,7 +660,9 @@ export default function AddQuestionModal({
               <div className="form-field full">
                 <div className="field-inline-header">
                   <span>Kỹ năng</span>
-                  <span className="skill-hint">Chọn 0 hoặc nhiều kỹ năng, mỗi kỹ năng cần trọng số từ -1 đến 1</span>
+                  <span className="skill-hint">
+                    Nếu chọn kỹ năng, cần đúng 1 kỹ năng chính; các kỹ năng còn lại là kỹ năng phụ
+                  </span>
                 </div>
                 <div className="mini-search">
                   <Search size={18} />
@@ -650,6 +700,13 @@ export default function AddQuestionModal({
                     {selectedSkills.map((skill) => (
                       <div className="selected-skill-row" key={skill.skillId}>
                         <strong>{skill.name}</strong>
+                        <button
+                          className={skill.primary ? "primary-skill-btn active" : "primary-skill-btn"}
+                          type="button"
+                          onClick={() => handlePrimarySkillChange(skill.skillId)}
+                        >
+                          {skill.primary ? "Kỹ năng chính" : "Đặt làm chính"}
+                        </button>
                         <input
                           type="number"
                           min="-1"
@@ -657,6 +714,7 @@ export default function AddQuestionModal({
                           step="0.1"
                           value={skill.weight}
                           onChange={(event) => handleSkillWeightChange(skill.skillId, event.target.value)}
+                          placeholder="-1 đến 1"
                         />
                         <button type="button" onClick={() => handleSkillToggle(skill)}>
                           Bỏ chọn
