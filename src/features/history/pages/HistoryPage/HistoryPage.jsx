@@ -20,10 +20,14 @@ export default function HistoryPage() {
           title: `Quiz ${attempt.quizId}`,
           date: "-",
           questionCount: attempt.totalQuestion,
-          score: Math.round((attempt.rawScore || 0) * attempt.totalQuestion),
+          score: Math.round(attempt.rawScore || 0),
           totalQuestions: attempt.totalQuestion,
           powerIndex: Math.round((attempt.overallTheta || 0) * 100),
-          percentage: Math.round((attempt.rawScore || 0) * 100),
+          percentage: Math.round(
+            attempt.totalQuestion > 0
+              ? ((attempt.rawScore || 0) / attempt.totalQuestion) * 100
+              : 0,
+          ),
         })),
       );
     };
