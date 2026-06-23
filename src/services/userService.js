@@ -24,6 +24,14 @@ export async function changePassword(userId, password) {
   });
 }
 
+export async function updateUserStatus(userId, status) {
+  return request({
+    method: "PATCH",
+    url: `/api/users/${userId}/status`,
+    data: { status },
+  });
+}
+
 export async function deleteUser(userId) {
   return request({ method: "DELETE", url: `/api/users/${userId}` });
 }

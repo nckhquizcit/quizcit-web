@@ -3,7 +3,7 @@ import AdminPageHeader from "../components/AdminPageHeader";
 import SearchBar from "../components/SearchBar";
 import ConfirmActionModal from "../components/modals/ConfirmActionModal";
 import AuthorizationModal from "../components/modals/AuthorizationModal";
-import { deleteUser, getUsers } from "../../../services/userService";
+import { getUsers, updateUserStatus } from "../../../services/userService";
 
 import "../Admin.css";
 import "./AdminUsers.css";
@@ -68,9 +68,13 @@ export default function AdminUsers() {
 
   const handleConfirm = async () => {
     if (!selectedUser?.userId) return;
-    await deleteUser(selectedUser.userId);
+    const updatedUser = await updateUserStatus(selectedUser.userId, "BANNED");
     setUsers((currentUsers) =>
-      currentUsers.filter((user) => user.userId !== selectedUser.userId),
+      currentUsers.map((user) =>
+        user.userId === selectedUser.userId
+          ? { ...user, ...(updatedUser || {}), status: "BANNED" }
+          : user,
+      ),
     );
     closeConfirmModal();
   };
@@ -169,7 +173,7 @@ export default function AdminUsers() {
                   className="action-btn danger-btn"
                   onClick={() => openConfirmModal(user)}
                 >
-                  Xóa
+                  Ban
                 </button>
 
                 <button

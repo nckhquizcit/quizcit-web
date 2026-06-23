@@ -9,6 +9,10 @@ export async function getSubjectById(subjectId) {
   return request({ method: "GET", url: `/api/subjects/${subjectId}` });
 }
 
+export async function getQuizzesBySubject(subjectId) {
+  return request({ method: "GET", url: `/api/subjects/${subjectId}/quizzes` });
+}
+
 export async function createSubject(payload) {
   return request({ method: "POST", url: "/api/subjects", data: payload });
 }

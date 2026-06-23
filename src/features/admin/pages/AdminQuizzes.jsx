@@ -8,7 +8,12 @@ import SearchBar from "../components/SearchBar";
 import AddQuizModal from "../components/modals/AddQuizModal";
 import EditQuizModal from "../components/modals/EditQuizModal";
 import ConfirmDeleteModal from "../components/modals/ConfirmDeleteModal";
-import { createQuiz, updateQuiz, deleteQuiz, getQuizzesBySubject } from "../../../services/contentService";
+import {
+  createQuiz,
+  updateQuiz,
+  deleteQuiz,
+  getQuizzesByChapter as getQuizzesBySubject,
+} from "../../../services/quizService";
 
 export default function AdminQuizzes() {
   const navigate = useNavigate();
