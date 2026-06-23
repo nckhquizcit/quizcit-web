@@ -385,7 +385,7 @@ export default function AdminQuestions() {
                 </td>
                 <td>
                   <button
-                    className="skill-preview-trigger"
+                    className={`skill-preview-trigger ${(question.skills || []).length === 0 ? "empty" : ""}`}
                     onClick={() => setSkillPreviewQuestion(question)}
                     type="button"
                   >
