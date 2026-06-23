@@ -4,7 +4,9 @@ import { Eye, EyeOff, Search } from "lucide-react";
 import Modal from "../ui/Modal";
 import { getChaptersBySubject, getSubjects } from "../../../../services/contentService";
 
-const defaultAnswers = ["", "", "", ""];
+const MIN_ANSWER_COUNT = 2;
+const MAX_ANSWER_COUNT = 10;
+const createEmptyAnswers = (count = MIN_ANSWER_COUNT) => Array.from({ length: count }, () => "");
 const difficultyMap = {
   Easy: -1,
   Medium: 0,
@@ -39,6 +41,20 @@ const normalizeChapter = (chapter, fallbackSubjectId = "") => ({
 const isOptionCorrect = (option) =>
   Boolean(option?.corrected ?? option?.isCorrect ?? option?.is_correct);
 
+const normalizeAnswers = (options = []) => {
+  const nextAnswers = options.map((option) => option.content).slice(0, MAX_ANSWER_COUNT);
+
+  if (!nextAnswers.length) {
+    return createEmptyAnswers();
+  }
+
+  if (nextAnswers.length < MIN_ANSWER_COUNT) {
+    return [...nextAnswers, ...createEmptyAnswers(MIN_ANSWER_COUNT - nextAnswers.length)];
+  }
+
+  return nextAnswers;
+};
+
 export default function AddQuestionModal({
   open,
   onClose,
@@ -54,7 +70,7 @@ export default function AddQuestionModal({
   const [question, setQuestion] = useState("");
   const [explaination, setExplaination] = useState("");
   const [difficulty, setDifficulty] = useState("Hard");
-  const [answers, setAnswers] = useState(defaultAnswers);
+  const [answers, setAnswers] = useState(() => createEmptyAnswers());
   const [correctIndex, setCorrectIndex] = useState(null);
   const [selectedSubjectId, setSelectedSubjectId] = useState(
     normalizeId(getSubjectId(subject) || getSubjectId(subjects[0])),
@@ -129,15 +145,14 @@ export default function AddQuestionModal({
   useEffect(() => {
     if (!open) return;
 
-    const nextAnswers =
-      initialQuestion?.options?.map((option) => option.content).slice(0, 4) || defaultAnswers;
+    const nextAnswers = normalizeAnswers(initialQuestion?.options);
     const nextCorrectIndex = initialQuestion?.options?.findIndex((option) => isOptionCorrect(option));
 
     setQuestion(initialQuestion?.content || "");
     setExplaination(initialQuestion?.explaination || "");
     setDifficulty(normalizeDifficulty(initialQuestion?.difficulty));
-    setAnswers(nextAnswers.length === 4 ? nextAnswers : [...nextAnswers, ...defaultAnswers].slice(0, 4));
-    setCorrectIndex(nextCorrectIndex >= 0 ? nextCorrectIndex : null);
+    setAnswers(nextAnswers);
+    setCorrectIndex(nextCorrectIndex >= 0 && nextCorrectIndex < nextAnswers.length ? nextCorrectIndex : null);
     setSelectedSubjectId(
       normalizeId(
         initialQuestion?.subjectId || getSubjectId(subject) || getSubjectId(subjects[0]),
@@ -265,6 +280,22 @@ export default function AddQuestionModal({
     const updated = [...answers];
     updated[index] = value;
     setAnswers(updated);
+  };
+
+  const handleAnswerCountChange = (event) => {
+    const nextCount = Number(event.target.value);
+
+    setAnswers((currentAnswers) => {
+      if (nextCount > currentAnswers.length) {
+        return [...currentAnswers, ...createEmptyAnswers(nextCount - currentAnswers.length)];
+      }
+
+      return currentAnswers.slice(0, nextCount);
+    });
+
+    setCorrectIndex((currentCorrectIndex) =>
+      currentCorrectIndex !== null && currentCorrectIndex >= nextCount ? null : currentCorrectIndex,
+    );
   };
 
   const handleSubjectToggle = (subjectId) => {
@@ -433,7 +464,22 @@ export default function AddQuestionModal({
               </label>
 
               <div className="form-field full">
-                <span>Các đáp án *</span>
+                <div className="field-inline-header">
+                  <span>Các đáp án *</span>
+                  <label className="answer-count-control">
+                    <span>Số đáp án</span>
+                    <select value={answers.length} onChange={handleAnswerCountChange}>
+                      {Array.from(
+                        { length: MAX_ANSWER_COUNT - MIN_ANSWER_COUNT + 1 },
+                        (_, index) => MIN_ANSWER_COUNT + index,
+                      ).map((count) => (
+                        <option key={count} value={count}>
+                          {count}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
                 <div className="answer-editor">
                   {answers.map((answer, index) => (
                     <div className="answer-row" key={index}>
