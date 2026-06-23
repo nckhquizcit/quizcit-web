@@ -64,11 +64,116 @@
   color: #64748b;
 }
 
+/* ===== Task 2: Thanh điều hướng nhanh theo số câu ===== */
+.quiz-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.quiz-nav-item {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
+  color: #475569;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.quiz-nav-item:hover {
+  border-color: #10b981;
+}
+
+/* Câu đã trả lời */
+.quiz-nav-item.answered {
+  background: #10b981;
+  border-color: #10b981;
+  color: white;
+}
+
+/* Câu thuộc cụm/trang đang xem */
+.quiz-nav-item.in-current-page {
+  outline: 2px solid #0ea5e9;
+  outline-offset: 1px;
+}
+
+/* Câu đã cắm cờ -> marker đỏ */
+.quiz-nav-item.flagged {
+  border-color: #ef4444;
+}
+
+.quiz-nav-flag {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
 .quiz-questions {
   display: flex;
   flex-direction: column;
   gap: 24px;
 }
+
+/* ===== Task 2: Header câu hỏi với nút Skill + Cắm cờ ===== */
+.question-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.question-tools {
+  display: flex;
+  gap: 8px;
+}
+
+.skill-btn,
+.flag-btn {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: white;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.skill-btn:hover {
+  border-color: #6366f1;
+  color: #6366f1;
+}
+
+.flag-btn:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.flag-btn.active {
+  border-color: #ef4444;
+  background: #fef2f2;
+  color: #ef4444;
+}
+
+.quiz-question-card.is-flagged {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 1px #ef4444;
+}
+
 
 .quiz-question-card {
   background: white;
@@ -162,3 +267,133 @@
   cursor: not-allowed;
   opacity: 0.6;
 }
+
+/* ===== Task 2: Phân trang cụm 5 câu ===== */
+.quiz-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.page-btn {
+  padding: 10px 20px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #475569;
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.page-btn:hover:not(:disabled) {
+  border-color: #10b981;
+  color: #10b981;
+}
+
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-indicator {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+/* ===== Task 2: Popup skill ===== */
+.skill-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.skill-modal {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 420px;
+  padding: 24px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+}
+
+.skill-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.skill-modal-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #1e293b;
+}
+
+.skill-modal-close {
+  border: none;
+  background: none;
+  font-size: 1.2rem;
+  color: #64748b;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.skill-modal-close:hover {
+  color: #1e293b;
+}
+
+.skill-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.skill-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.skill-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.skill-primary-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: white;
+  background: #6366f1;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.skill-weight {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.skill-empty {
+  justify-content: center;
+  color: #94a3b8;
+}
+

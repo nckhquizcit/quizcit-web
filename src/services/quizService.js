@@ -26,6 +26,12 @@ export async function getQuizById(quizId) {
   return request({ method: "GET", url: `/api/quizzes/${quizId}` });
 }
 
+// Task 1: lấy câu hỏi theo quiz kèm options + skills cho trang làm bài.
+export async function getQuestionsByQuiz(quizId) {
+  return request({ method: "GET", url: `/api/quizzes/${quizId}/questions` });
+}
+
+
 export async function createQuiz(payload) {
   return request({ method: "POST", url: "/api/quizzes", data: payload });
 }
@@ -44,7 +50,18 @@ export async function startQuiz(quizId, userId) {
 }
 
 export async function submitAttempt(payload) {
-  return request({ method: "POST", url: "/api/attempts/submit", data: payload });
+  const { quizId, attemptId, answers = [] } = payload || {};
+  const data = { quizId, attemptId, answers };
+
+  if (quizId && attemptId) {
+    return request({
+      method: "POST",
+      url: `/api/quizzes/${quizId}/attempts/${attemptId}/submit`,
+      data,
+    });
+  }
+
+  return request({ method: "POST", url: "/api/attempts/submit", data });
 }
 
 export async function getAttemptResult(attemptId) {
