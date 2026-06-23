@@ -1,13 +1,13 @@
 import { chapters, questions, quizzes, subjects } from "../../../mock/mockData";
 
 const quizTypeLabels = {
-  FIXED: "Cố định",
-  GENERATED: "Tự động",
+  CHAPTER: "Theo chương",
+  FINAL: "Tổng hợp",
 };
 
 const normalizeQuizType = (type) => {
-  if (type === "Tự động" || type === "GENERATED") return "GENERATED";
-  return "FIXED";
+  if (type === "Tổng hợp" || type === "FINAL") return "FINAL";
+  return "CHAPTER";
 };
 
 const enrichQuiz = (quiz) => {

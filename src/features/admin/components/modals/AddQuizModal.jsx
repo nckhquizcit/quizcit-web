@@ -4,8 +4,8 @@ import { FileUp, Upload } from "lucide-react";
 import Modal from "../ui/Modal";
 
 const quizTypeOptions = [
-  { label: "Cố định", value: "FIXED" },
-  { label: "Tự động", value: "GENERATED" },
+  { label: "Theo chương", value: "CHAPTER" },
+  { label: "Tổng hợp", value: "FINAL" },
 ];
 
 export default function AddQuizModal({
@@ -22,7 +22,7 @@ export default function AddQuizModal({
   const [name, setName] = useState("");
   const [subjectId, setSubjectId] = useState(subjects[0]?.subjectId);
   const [chapterId, setChapterId] = useState("");
-  const [type, setType] = useState("FIXED");
+  const [type, setType] = useState("CHAPTER");
   const [duration, setDuration] = useState("");
   const [totalQuestion, setTotalQuestion] = useState(0);
 
@@ -44,7 +44,7 @@ export default function AddQuizModal({
     setName(initialQuiz?.name || "");
     setSubjectId(fallbackSubjectId);
     setChapterId(fallbackChapterId);
-    setType(initialQuiz?.type || "FIXED");
+    setType(initialQuiz?.type || "CHAPTER");
     setDuration(initialQuiz?.duration || "");
     setTotalQuestion(initialQuiz?.totalQuestion || 0);
   }, [chapters, initialQuiz, open, subjects]);
@@ -181,7 +181,7 @@ export default function AddQuizModal({
   "name": "Kiểm tra Chương 2",
   "subject_id": "s1",
   "chapter_id": "c2",
-  "type": "FIXED",
+  "type": "CHAPTER",
   "duration": 1200,
   "questions": ["q1", "q2", "q3"]
 }`}</pre>
