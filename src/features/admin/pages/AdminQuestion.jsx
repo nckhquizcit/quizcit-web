@@ -33,6 +33,54 @@ const normalizeChapter = (chapter) => ({
   subjectId: chapter?.subjectId ?? chapter?.subject?.subjectId ?? chapter?.subject?.id,
 });
 
+const getQuestionChapterId = (question) => question?.chapterId ?? question?.chapter?.chapterId ?? question?.chapter?.id;
+
+const getQuestionSubjectId = (question) =>
+  question?.subjectId ??
+  question?.subject?.subjectId ??
+  question?.subject?.id ??
+  question?.chapter?.subjectId ??
+  question?.chapter?.subject?.subjectId ??
+  question?.chapter?.subject?.id;
+
+const enrichQuestion = (question, chapterMap, subjectMap) => {
+  const chapterKey = getQuestionChapterId(question);
+  const subjectKey = getQuestionSubjectId(question) ?? chapterMap.get(chapterKey)?.subjectId;
+
+  return {
+    ...question,
+    chapterId: chapterKey,
+    subjectId: subjectKey,
+    chapter: question?.chapter ?? chapterMap.get(chapterKey),
+    subject: question?.subject ?? subjectMap.get(subjectKey),
+  };
+};
+
+const loadQuestionsFromChapters = async (chapterList, selectedSubjectId, selectedChapterId) => {
+  const normalizedChapters = (chapterList || []).map(normalizeChapter);
+  const chaptersToLoad = selectedChapterId
+    ? normalizedChapters.filter((chapter) => chapter.chapterId === selectedChapterId)
+    : selectedSubjectId
+      ? normalizedChapters.filter((chapter) => chapter.subjectId === selectedSubjectId)
+      : normalizedChapters;
+
+  if (!chaptersToLoad.length) {
+    return { chapters: normalizedChapters, questions: [] };
+  }
+
+  const questionGroups = await Promise.all(
+    chaptersToLoad.map(async (chapter) => {
+      const questions = (await getQuestionsByChapter(chapter.chapterId)) || [];
+      return questions.map((question) => ({ ...question, chapterId: question.chapterId ?? chapter.chapterId }));
+    }),
+  );
+
+  return {
+    chapters: normalizedChapters,
+    questions: questionGroups.flat(),
+  };
+};
+
 function DeleteQuestionModal({ open, question, onCancel, onConfirm, onClose }) {
   return (
     <Modal open={open} onClose={onClose}>
@@ -78,22 +126,28 @@ export default function AdminQuestions() {
     const load = async () => {
       const subjectData = await getSubjects();
       const normalizedSubjects = (subjectData || []).map(normalizeSubject);
+      const chapterGroups = await Promise.all(
+        normalizedSubjects.map(async (subject) => ({
+          subjectId: subject.subjectId,
+          chapters: (await getChaptersBySubject(subject.subjectId)) || [],
+        })),
+      );
+      const allChapters = chapterGroups.flatMap((group) => group.chapters || []);
+      const { chapters: normalizedChapters, questions } = await loadQuestionsFromChapters(
+        allChapters,
+        subjectId,
+        chapterId,
+      );
+      const chapterMap = new Map(normalizedChapters.map((chapter) => [chapter.chapterId, chapter]));
+      const subjectMap = new Map(normalizedSubjects.map((subject) => [subject.subjectId, subject]));
 
       setSubjects(normalizedSubjects);
-
-      if (!chapterId) {
-        setQuestionRows([]);
-        setChapters([]);
-        return;
-      }
-
-      const [questionData, chapterData] = await Promise.all([
-        getQuestionsByChapter(chapterId),
-        subjectId ? getChaptersBySubject(subjectId) : Promise.resolve([]),
-      ]);
-
-      setQuestionRows(questionData || []);
-      setChapters((chapterData || []).map(normalizeChapter));
+      setChapters(
+        subjectId
+          ? normalizedChapters.filter((chapter) => chapter.subjectId === subjectId)
+          : normalizedChapters,
+      );
+      setQuestionRows(questions.map((question) => enrichQuestion(question, chapterMap, subjectMap)));
     };
     load();
   }, [chapterId, subjectId]);
@@ -115,6 +169,14 @@ export default function AdminQuestions() {
 
   const selectedSubject = subjects.find((subject) => subject.subjectId === subjectId);
   const selectedChapter = chapters.find((chapter) => chapter.chapterId === chapterId);
+  const chapterMap = useMemo(
+    () => new Map(chapters.map((chapter) => [chapter.chapterId, chapter])),
+    [chapters],
+  );
+  const subjectMap = useMemo(
+    () => new Map(subjects.map((subject) => [subject.subjectId, subject])),
+    [subjects],
+  );
 
   const handleSearchChange = (event) => {
     setSearch(event.target.value);
@@ -130,7 +192,7 @@ export default function AdminQuestions() {
       difficultyB: formValues.difficulty === "Easy" ? -1 : formValues.difficulty === "Medium" ? 0 : 1,
       options: formValues.options,
     });
-    setQuestionRows((currentRows) => [created, ...currentRows]);
+    setQuestionRows((currentRows) => [enrichQuestion(created, chapterMap, subjectMap), ...currentRows]);
     setOpenAddQuestion(false);
     setPage(1);
   };
@@ -142,8 +204,15 @@ export default function AdminQuestions() {
       difficultyB: formValues.difficulty === "Easy" ? -1 : formValues.difficulty === "Medium" ? 0 : 1,
       options: formValues.options,
     });
-    const latest = await getQuestionsByChapter(chapterId);
-    setQuestionRows(latest || []);
+    const latest = await getQuestionsByChapter(editingQuestion.chapterId ?? chapterId);
+    setQuestionRows((currentRows) => {
+      const remainingRows = currentRows.filter((question) => question.questionId !== editingQuestion.questionId);
+      const chapterRows = (latest || []).map((question) =>
+        enrichQuestion(question, chapterMap, subjectMap),
+      );
+
+      return [...remainingRows, ...chapterRows];
+    });
     setEditingQuestion(null);
   };
 
@@ -201,7 +270,6 @@ export default function AdminQuestions() {
             <tr>
               <th>Câu hỏi</th>
               <th>Độ khó</th>
-              <th>Loại</th>
               <th>Cập nhật</th>
               <th>Hành động</th>
             </tr>
@@ -215,8 +283,8 @@ export default function AdminQuestions() {
                     <div>
                       <strong>{question.content}</strong>
                       <div className="question-tags">
-                        <span>Môn: {question.subject?.name || "Mock Subject"}</span>
-                        <span>Chương: {selectedChapter?.name || "-"}</span>
+                        <span>Môn: {question.subject?.name || "-"}</span>
+                        <span>Chương: {question.chapter?.name || "-"}</span>
                       </div>
                     </div>
                   </div>
@@ -226,7 +294,6 @@ export default function AdminQuestions() {
                     {question.difficultyB ?? 0}
                   </span>
                 </td>
-                <td>MCQ</td>
                 <td>-</td>
                 <td>
                   <div className="table-actions">
