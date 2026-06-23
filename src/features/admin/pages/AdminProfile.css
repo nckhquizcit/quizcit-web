@@ -30,6 +30,12 @@
   letter-spacing: -0.01em;
 }
 
+.admin-profile-error {
+  margin: -4px 0 14px;
+  color: #dc2626;
+  font-weight: 700;
+}
+
 .admin-profile-top {
   display: grid;
   grid-template-columns: 1.1fr 0.9fr;

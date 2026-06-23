@@ -1,21 +1,13 @@
-import React from 'react';
-import { mockUsers } from '../../../mock/mockUser.js';
-import { subjects, questions } from '../../../mock/mockData.js';
-import {mockAttempts} from '../../../mock/mockAttempt.js';
+import React, { useEffect, useMemo, useState } from 'react';
+import { adminProfileService } from '../services/profileService.js';
 import './AdminProfile.css';
 
-const currentUser = mockUsers.find(u => u.user_id === 'u1');
-
-const displayName = currentUser?.display_name || currentUser?.username || 'Admin';
-const username = currentUser?.username || 'admin';
-const email = currentUser?.email || 'admin@quizcit.vn';
-const roleCode = currentUser?.role || 'ADMINISTRATOR';
-const roleLabel = roleCode === 'ADMINISTRATOR' ? 'Quản trị viên' : 'Người dùng';
-
-const totalUsers = mockUsers.length;
-const totalSubjects = subjects.length;
-const totalQuestions = questions.length;
-const totalAttempts = mockAttempts.length;
+const emptyStats = {
+  totalUsers: 0,
+  totalSubjects: 0,
+  totalQuestions: 0,
+  totalAttempts: 0,
+};
 
 function IconShield({ className }) {
   return (
@@ -187,9 +179,63 @@ function IconAttempt({ className }) {
 }
 
 export default function AdminProfile() {
+  const [admin, setAdmin] = useState(null);
+  const [stats, setStats] = useState(emptyStats);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const numberFormatter = useMemo(() => new Intl.NumberFormat("vi-VN"), []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadProfile() {
+      setLoading(true);
+      setError("");
+
+      const [adminResult, statsResult] = await Promise.allSettled([
+        adminProfileService.getCurrentAdmin(),
+        adminProfileService.getAdminProfileStats(),
+      ]);
+
+      if (!isMounted) return;
+
+      if (adminResult.status === "fulfilled") {
+        setAdmin(adminResult.value);
+      }
+
+      if (statsResult.status === "fulfilled") {
+        setStats({ ...emptyStats, ...statsResult.value });
+      }
+
+      if (adminResult.status === "rejected" || statsResult.status === "rejected") {
+        console.error("Failed to load admin profile:", {
+          adminError: adminResult.status === "rejected" ? adminResult.reason : null,
+          statsError: statsResult.status === "rejected" ? statsResult.reason : null,
+        });
+        setError("Không thể tải thông tin quản trị viên");
+      }
+
+      setLoading(false);
+    }
+
+    loadProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const displayName = admin?.displayName || admin?.display_name || admin?.username || 'Admin';
+  const username = admin?.username || 'admin';
+  const email = admin?.email || 'admin@quizcit.vn';
+  const roleCode = admin?.role || 'ADMINISTRATOR';
+  const roleLabel = roleCode === 'ADMINISTRATOR' ? 'Quản trị viên' : 'Người dùng';
+  const formatStat = (value) => (loading ? "..." : numberFormatter.format(value ?? 0));
+
   return (
     <div className="admin-profile-page">
       <h1 className="admin-profile-title">Thông tin quản trị viên</h1>
+      {error && <p className="admin-profile-error">{error}</p>}
 
       <div className="admin-profile-top">
         <section className="admin-card admin-card--primary">
@@ -271,7 +317,7 @@ export default function AdminProfile() {
               <IconUsers className="admin-icon admin-icon--md" />
             </div>
             <div className="admin-stat__meta">
-              <div className="admin-stat__value">{totalUsers}</div>
+              <div className="admin-stat__value">{formatStat(stats.totalUsers)}</div>
               <div className="admin-stat__label">Người dùng</div>
             </div>
           </div>
@@ -281,7 +327,7 @@ export default function AdminProfile() {
               <IconBook className="admin-icon admin-icon--md" />
             </div>
             <div className="admin-stat__meta">
-              <div className="admin-stat__value">{totalSubjects}</div>
+              <div className="admin-stat__value">{formatStat(stats.totalSubjects)}</div>
               <div className="admin-stat__label">Môn học</div>
             </div>
           </div>
@@ -291,7 +337,7 @@ export default function AdminProfile() {
               <IconQuestion className="admin-icon admin-icon--md" />
             </div>
             <div className="admin-stat__meta">
-              <div className="admin-stat__value">{totalQuestions}</div>
+              <div className="admin-stat__value">{formatStat(stats.totalQuestions)}</div>
               <div className="admin-stat__label">Câu hỏi</div>
             </div>
           </div>
@@ -301,7 +347,7 @@ export default function AdminProfile() {
               <IconAttempt className="admin-icon admin-icon--md" />
             </div>
             <div className="admin-stat__meta">
-              <div className="admin-stat__value">{totalAttempts}</div>
+              <div className="admin-stat__value">{formatStat(stats.totalAttempts)}</div>
               <div className="admin-stat__label">Lượt thi</div>
             </div>
           </div>
