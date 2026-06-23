@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Eye, EyeOff, Search } from "lucide-react";
 
 import Modal from "../ui/Modal";
+import { getSkills } from "../../services/skillService";
 import { getChaptersBySubject, getSubjects } from "../../../../services/contentService";
 
 const MIN_ANSWER_COUNT = 2;
@@ -14,6 +15,9 @@ const difficultyMap = {
 };
 
 const normalizeDifficulty = (value) => {
+  if (value === -1 || value === "-1") return "Easy";
+  if (value === 0 || value === "0") return "Medium";
+  if (value === 1 || value === "1") return "Hard";
   if (!value) return "Hard";
   if (value === "medium" || value === "Medium") return "Medium";
   if (value === "hard" || value === "Hard") return "Hard";
@@ -26,6 +30,14 @@ const getSubjectId = (subject) => subject?.subjectId ?? subject?.id;
 
 const getChapterId = (chapter) => chapter?.chapterId ?? chapter?.id;
 
+const getSkillId = (skill) =>
+  skill?.skillId ?? skill?.id ?? skill?.skill?.skillId ?? skill?.skill?.id;
+
+const getSkillName = (skill) =>
+  skill?.name ?? skill?.skillName ?? skill?.skill?.name ?? "Kỹ năng chưa đặt tên";
+
+const getSkillWeight = (skill) => skill?.weight ?? skill?.skillWeight ?? skill?.questionWeight ?? 0;
+
 const normalizeSubject = (subject) => ({
   ...subject,
   subjectId: getSubjectId(subject),
@@ -37,6 +49,21 @@ const normalizeChapter = (chapter, fallbackSubjectId = "") => ({
   subjectId:
     chapter?.subjectId ?? chapter?.subject?.subjectId ?? chapter?.subject?.id ?? fallbackSubjectId,
 });
+
+const normalizeSkill = (skill) => ({
+  ...skill,
+  skillId: normalizeId(getSkillId(skill)),
+  name: getSkillName(skill),
+});
+
+const normalizeQuestionSkills = (skills = []) =>
+  skills
+    .map((skill) => ({
+      skillId: normalizeId(getSkillId(skill)),
+      name: getSkillName(skill),
+      weight: String(getSkillWeight(skill)),
+    }))
+    .filter((skill) => skill.skillId);
 
 const isOptionCorrect = (option) =>
   Boolean(option?.corrected ?? option?.isCorrect ?? option?.is_correct);
@@ -68,7 +95,7 @@ export default function AddQuestionModal({
 }) {
   const isEdit = mode === "edit";
   const [question, setQuestion] = useState("");
-  const [explaination, setExplaination] = useState("");
+  const [explanation, setExplanation] = useState("");
   const [difficulty, setDifficulty] = useState("Hard");
   const [answers, setAnswers] = useState(() => createEmptyAnswers());
   const [correctIndex, setCorrectIndex] = useState(null);
@@ -85,8 +112,12 @@ export default function AddQuestionModal({
   const [availableChapters, setAvailableChapters] = useState(() =>
     chapters.map((item) => normalizeChapter(item, normalizeId(getSubjectId(subject)))),
   );
+  const [availableSkills, setAvailableSkills] = useState([]);
+  const [selectedSkills, setSelectedSkills] = useState([]);
+  const [skillSearch, setSkillSearch] = useState("");
   const [loadingSubjects, setLoadingSubjects] = useState(false);
   const [loadingChapters, setLoadingChapters] = useState(false);
+  const [loadingSkills, setLoadingSkills] = useState(false);
 
   useEffect(() => {
     setAvailableSubjects(subjects.map(normalizeSubject));
@@ -97,6 +128,37 @@ export default function AddQuestionModal({
       chapters.map((item) => normalizeChapter(item, normalizeId(getSubjectId(subject)))),
     );
   }, [chapters, subject]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    let cancelled = false;
+
+    const loadSkills = async () => {
+      setLoadingSkills(true);
+
+      try {
+        const skillData = await getSkills();
+        if (cancelled) return;
+
+        setAvailableSkills((skillData || []).map(normalizeSkill));
+      } catch {
+        if (!cancelled) {
+          setAvailableSkills([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingSkills(false);
+        }
+      }
+    };
+
+    loadSkills();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -149,8 +211,8 @@ export default function AddQuestionModal({
     const nextCorrectIndex = initialQuestion?.options?.findIndex((option) => isOptionCorrect(option));
 
     setQuestion(initialQuestion?.content || "");
-    setExplaination(initialQuestion?.explaination || "");
-    setDifficulty(normalizeDifficulty(initialQuestion?.difficulty));
+    setExplanation(initialQuestion?.explanation || initialQuestion?.explaination || "");
+    setDifficulty(normalizeDifficulty(initialQuestion?.difficulty ?? initialQuestion?.difficultyB));
     setAnswers(nextAnswers);
     setCorrectIndex(nextCorrectIndex >= 0 && nextCorrectIndex < nextAnswers.length ? nextCorrectIndex : null);
     setSelectedSubjectId(
@@ -161,8 +223,10 @@ export default function AddQuestionModal({
     setSelectedChapterId(
       normalizeId(initialQuestion?.chapterId || getChapterId(chapter) || getChapterId(chapters[0])),
     );
+    setSelectedSkills(normalizeQuestionSkills(initialQuestion?.skills || initialQuestion?.questionSkills));
     setSubjectSearch("");
     setChapterSearch("");
+    setSkillSearch("");
     setPreview(false);
   }, [chapter, chapters, initialQuestion, open, subject, subjects]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -276,6 +340,28 @@ export default function AddQuestionModal({
     return availableChapters.filter((item) => item.name?.toLowerCase().includes(keyword));
   }, [availableChapters, chapterSearch]);
 
+  const filteredSkills = useMemo(() => {
+    const keyword = skillSearch.trim().toLowerCase();
+
+    if (!keyword) return availableSkills;
+
+    return availableSkills.filter((item) => item.name?.toLowerCase().includes(keyword));
+  }, [availableSkills, skillSearch]);
+
+  useEffect(() => {
+    if (!availableSkills.length || !selectedSkills.length) return;
+
+    setSelectedSkills((currentSkills) =>
+      currentSkills.map((skill) => {
+        const matchedSkill = availableSkills.find(
+          (item) => normalizeId(item.skillId) === normalizeId(skill.skillId),
+        );
+
+        return matchedSkill ? { ...skill, name: matchedSkill.name } : skill;
+      }),
+    );
+  }, [availableSkills, selectedSkills.length]);
+
   const handleAnswerChange = (index, value) => {
     const updated = [...answers];
     updated[index] = value;
@@ -304,15 +390,75 @@ export default function AddQuestionModal({
     setChapterSearch("");
   };
 
+  const handleSkillToggle = (skill) => {
+    const normalizedSkill = normalizeSkill(skill);
+
+    setSelectedSkills((currentSkills) => {
+      const exists = currentSkills.some(
+        (item) => normalizeId(item.skillId) === normalizeId(normalizedSkill.skillId),
+      );
+
+      if (exists) {
+        return currentSkills.filter(
+          (item) => normalizeId(item.skillId) !== normalizeId(normalizedSkill.skillId),
+        );
+      }
+
+      return [...currentSkills, { skillId: normalizedSkill.skillId, name: normalizedSkill.name, weight: "0" }];
+    });
+  };
+
+  const handleSkillWeightChange = (skillId, value) => {
+    setSelectedSkills((currentSkills) =>
+      currentSkills.map((skill) =>
+        normalizeId(skill.skillId) === normalizeId(skillId) ? { ...skill, weight: value } : skill,
+      ),
+    );
+  };
+
   const handleSubmit = () => {
+    if (!question.trim()) {
+      window.alert("Vui lòng nhập nội dung câu hỏi.");
+      return;
+    }
+
+    if (!selectedSubjectId || !selectedChapterId) {
+      window.alert("Vui lòng chọn môn học và chương cho câu hỏi.");
+      return;
+    }
+
+    if (answers.some((answer) => !answer.trim())) {
+      window.alert("Vui lòng nhập đầy đủ nội dung cho tất cả đáp án.");
+      return;
+    }
+
+    if (correctIndex === null) {
+      window.alert("Vui lòng chọn một đáp án đúng.");
+      return;
+    }
+
+    const invalidSkill = selectedSkills.some((skill) => {
+      const weight = Number(skill.weight);
+      return skill.weight === "" || Number.isNaN(weight) || weight < -1 || weight > 1;
+    });
+
+    if (invalidSkill) {
+      window.alert("Trọng số của mỗi kỹ năng phải nằm trong khoảng từ -1 đến 1.");
+      return;
+    }
+
     onSubmit?.({
-      content: question,
-      explaination,
+      content: question.trim(),
+      explanation: explanation.trim(),
       difficulty,
       subjectId: selectedSubjectId,
       chapterId: selectedChapterId,
+      skills: selectedSkills.map((skill) => ({
+        skillId: skill.skillId,
+        weight: Number(skill.weight),
+      })),
       options: answers.map((answer, index) => ({
-        content: answer,
+        content: answer.trim(),
         corrected: correctIndex === index,
         isCorrect: correctIndex === index,
       })),
@@ -458,10 +604,68 @@ export default function AddQuestionModal({
                 <span>Giải thích</span>
                 <textarea
                   placeholder="Nhập giải thích cho câu hỏi"
-                  value={explaination}
-                  onChange={(event) => setExplaination(event.target.value)}
+                  value={explanation}
+                  onChange={(event) => setExplanation(event.target.value)}
                 />
               </label>
+
+              <div className="form-field full">
+                <div className="field-inline-header">
+                  <span>Kỹ năng</span>
+                  <span className="skill-hint">Chọn 0 hoặc nhiều kỹ năng, mỗi kỹ năng cần trọng số từ -1 đến 1</span>
+                </div>
+                <div className="mini-search">
+                  <Search size={18} />
+                  <input
+                    placeholder="Tìm kỹ năng..."
+                    value={skillSearch}
+                    onChange={(event) => setSkillSearch(event.target.value)}
+                  />
+                </div>
+                <div className="choice-list skill-choice-list">
+                  {loadingSkills && <span>Đang tải danh sách kỹ năng...</span>}
+                  {!loadingSkills &&
+                    filteredSkills.map((item) => {
+                      const isSelected = selectedSkills.some(
+                        (skill) => normalizeId(skill.skillId) === normalizeId(item.skillId),
+                      );
+
+                      return (
+                        <button
+                          className={isSelected ? "selected" : ""}
+                          onClick={() => handleSkillToggle(item)}
+                          key={item.skillId}
+                          type="button"
+                        >
+                          <span />
+                          {item.name}
+                        </button>
+                      );
+                    })}
+                  {!loadingSkills && !filteredSkills.length && <span>Không có kỹ năng phù hợp</span>}
+                </div>
+
+                {selectedSkills.length > 0 && (
+                  <div className="selected-skill-list">
+                    {selectedSkills.map((skill) => (
+                      <div className="selected-skill-row" key={skill.skillId}>
+                        <strong>{skill.name}</strong>
+                        <input
+                          type="number"
+                          min="-1"
+                          max="1"
+                          step="0.1"
+                          value={skill.weight}
+                          onChange={(event) => handleSkillWeightChange(skill.skillId, event.target.value)}
+                        />
+                        <button type="button" onClick={() => handleSkillToggle(skill)}>
+                          Bỏ chọn
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               <div className="form-field full">
                 <div className="field-inline-header">

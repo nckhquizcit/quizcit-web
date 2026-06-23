@@ -22,6 +22,23 @@ import {
 } from "../../../services/quizService";
 import { getChaptersBySubject, getSubjects } from "../../../services/contentService";
 
+const getSkillId = (skill) =>
+  skill?.skillId ?? skill?.id ?? skill?.skill?.skillId ?? skill?.skill?.id;
+
+const getSkillName = (skill) =>
+  skill?.name ?? skill?.skillName ?? skill?.skill?.name ?? "Kỹ năng chưa đặt tên";
+
+const getSkillWeight = (skill) => skill?.weight ?? skill?.skillWeight ?? skill?.questionWeight ?? 0;
+
+const normalizeQuestionSkills = (skills = []) =>
+  skills
+    .map((skill) => ({
+      skillId: getSkillId(skill),
+      name: getSkillName(skill),
+      weight: getSkillWeight(skill),
+    }))
+    .filter((skill) => skill.skillId);
+
 const normalizeSubject = (subject) => ({
   ...subject,
   subjectId: subject?.subjectId ?? subject?.id,
@@ -53,6 +70,7 @@ const enrichQuestion = (question, chapterMap, subjectMap) => {
     subjectId: subjectKey,
     chapter: question?.chapter ?? chapterMap.get(chapterKey),
     subject: question?.subject ?? subjectMap.get(subjectKey),
+    skills: normalizeQuestionSkills(question?.skills ?? question?.questionSkills),
   };
 };
 
@@ -110,6 +128,38 @@ function DeleteQuestionModal({ open, question, onCancel, onConfirm, onClose }) {
   );
 }
 
+function QuestionSkillsModal({ open, question, onClose }) {
+  const skills = normalizeQuestionSkills(question?.skills ?? question?.questionSkills);
+
+  return (
+    <Modal open={open} onClose={onClose}>
+      <div className="question-modal question-skills-modal">
+        <h2>Danh sách kỹ năng</h2>
+        <p>{question?.content || "Câu hỏi"}</p>
+
+        <div className="question-skill-popup-list">
+          {skills.length ? (
+            skills.map((skill) => (
+              <div className="question-skill-popup-item" key={skill.skillId}>
+                <strong>{skill.name}</strong>
+                <span>Trọng số: {skill.weight}</span>
+              </div>
+            ))
+          ) : (
+            <span className="question-skill-empty">Câu hỏi này chưa được gắn kỹ năng.</span>
+          )}
+        </div>
+
+        <div className="question-modal-actions">
+          <button className="add-btn" onClick={onClose}>
+            Đóng
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 export default function AdminQuestions() {
   const { subjectId, chapterId } = useParams();
   const navigate = useNavigate();
@@ -121,6 +171,7 @@ export default function AdminQuestions() {
   const [openAddQuestion, setOpenAddQuestion] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [deletingQuestion, setDeletingQuestion] = useState(null);
+  const [skillPreviewQuestion, setSkillPreviewQuestion] = useState(null);
 
   useEffect(() => {
     const load = async () => {
@@ -188,30 +239,48 @@ export default function AdminQuestions() {
       subjectId: formValues.subjectId,
       chapterId: formValues.chapterId,
       content: formValues.content,
-      explanation: formValues.explaination,
+      explanation: formValues.explanation,
       difficultyB: formValues.difficulty === "Easy" ? -1 : formValues.difficulty === "Medium" ? 0 : 1,
+      skills: formValues.skills,
       options: formValues.options,
     });
-    setQuestionRows((currentRows) => [enrichQuestion(created, chapterMap, subjectMap), ...currentRows]);
+    setQuestionRows((currentRows) => [
+      enrichQuestion({ ...created, skills: created?.skills ?? formValues.skills }, chapterMap, subjectMap),
+      ...currentRows,
+    ]);
     setOpenAddQuestion(false);
     setPage(1);
   };
 
   const handleUpdateQuestion = async (formValues) => {
-    await updateQuestion(editingQuestion.questionId, {
+    const updated = await updateQuestion(editingQuestion.questionId, {
       content: formValues.content,
-      explanation: formValues.explaination,
+      explanation: formValues.explanation,
       difficultyB: formValues.difficulty === "Easy" ? -1 : formValues.difficulty === "Medium" ? 0 : 1,
+      skills: formValues.skills,
       options: formValues.options,
     });
-    const latest = await getQuestionsByChapter(editingQuestion.chapterId ?? chapterId);
     setQuestionRows((currentRows) => {
-      const remainingRows = currentRows.filter((question) => question.questionId !== editingQuestion.questionId);
-      const chapterRows = (latest || []).map((question) =>
-        enrichQuestion(question, chapterMap, subjectMap),
+      const nextQuestion = enrichQuestion(
+        {
+          ...editingQuestion,
+          ...updated,
+          subjectId: formValues.subjectId,
+          chapterId: formValues.chapterId,
+          content: formValues.content,
+          explanation: formValues.explanation,
+          difficultyB:
+            formValues.difficulty === "Easy" ? -1 : formValues.difficulty === "Medium" ? 0 : 1,
+          options: formValues.options,
+          skills: updated?.skills ?? formValues.skills,
+        },
+        chapterMap,
+        subjectMap,
       );
 
-      return [...remainingRows, ...chapterRows];
+      return currentRows.map((question) =>
+        question.questionId === editingQuestion.questionId ? nextQuestion : question,
+      );
     });
     setEditingQuestion(null);
   };
@@ -269,6 +338,7 @@ export default function AdminQuestions() {
           <thead>
             <tr>
               <th>Câu hỏi</th>
+              <th>Kỹ năng</th>
               <th>Độ khó</th>
               <th>Cập nhật</th>
               <th>Hành động</th>
@@ -288,6 +358,15 @@ export default function AdminQuestions() {
                       </div>
                     </div>
                   </div>
+                </td>
+                <td>
+                  <button
+                    className="skill-preview-trigger"
+                    onClick={() => setSkillPreviewQuestion(question)}
+                    type="button"
+                  >
+                    {(question.skills || []).length} kỹ năng
+                  </button>
                 </td>
                 <td>
                   <span className="difficulty-pill">
@@ -365,6 +444,11 @@ export default function AdminQuestions() {
         onCancel={handleSoftDelete}
         onConfirm={handleHardDelete}
         onClose={() => setDeletingQuestion(null)}
+      />
+      <QuestionSkillsModal
+        open={Boolean(skillPreviewQuestion)}
+        question={skillPreviewQuestion}
+        onClose={() => setSkillPreviewQuestion(null)}
       />
     </>
   );

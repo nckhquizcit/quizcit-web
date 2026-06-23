@@ -1,6 +1,7 @@
 import {
   House,
   BookOpen,
+  Brain,
   History,
   User,
   ChartColumn,
@@ -66,5 +67,11 @@ export const ADMIN_SIDEBAR = [
     label: "Quản lý đề thi",
     path: "/admin/quizzes",
     icon: <BookOpenCheck size={20} />,
+  },
+  {
+    id: "admin_skill",
+    label: "Quản lý kỹ năng",
+    path: "/admin/skills",
+    icon: <Brain size={20} />,
   },
 ];

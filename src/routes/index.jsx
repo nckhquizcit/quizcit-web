@@ -44,6 +44,9 @@ const AdminQuestions = lazy(
 const AdminQuizzes = lazy(
   () => import("../features/admin/pages/AdminQuizzes.jsx"),
 );
+const AdminSkills = lazy(
+  () => import("../features/admin/pages/AdminSkills.jsx"),
+);
 const AdminUsers = lazy(() => import("../features/admin/pages/AdminUsers.jsx"));
 const AdminProfile = lazy(
   () => import("../features/admin/pages/AdminProfile.jsx"),
@@ -216,6 +219,11 @@ export const router = createBrowserRouter([
       {
         path: "quizzes",
         element: <AdminQuizzes />,
+      },
+
+      {
+        path: "skills",
+        element: <AdminSkills />,
       },
 
       {
