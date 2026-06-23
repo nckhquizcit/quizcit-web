@@ -8,6 +8,12 @@ const quizTypeOptions = [
   { label: "Tổng hợp", value: "FINAL" },
 ];
 
+const getSubjectId = (subject) => subject?.subjectId ?? subject?.id;
+
+const getChapterId = (chapter) => chapter?.chapterId ?? chapter?.id;
+
+const getChapterSubjectId = (chapter) => chapter?.subjectId ?? chapter?.subject?.subjectId ?? chapter?.subject?.id;
+
 export default function AddQuizModal({
   open,
   onClose,
@@ -20,14 +26,14 @@ export default function AddQuizModal({
   const isEdit = mode === "edit";
   const [activeTab, setActiveTab] = useState("manual");
   const [name, setName] = useState("");
-  const [subjectId, setSubjectId] = useState(subjects[0]?.subjectId);
+  const [subjectId, setSubjectId] = useState(getSubjectId(subjects[0]));
   const [chapterId, setChapterId] = useState("");
   const [type, setType] = useState("CHAPTER");
   const [duration, setDuration] = useState("");
   const [totalQuestion, setTotalQuestion] = useState(0);
 
   const availableChapters = useMemo(
-    () => chapters.filter((chapter) => chapter.subjectId === subjectId),
+    () => chapters.filter((chapter) => getChapterSubjectId(chapter) === subjectId),
     [chapters, subjectId],
   );
 
@@ -35,10 +41,11 @@ export default function AddQuizModal({
   useEffect(() => {
     if (!open) return;
 
-    const fallbackSubjectId = initialQuiz?.subjectId || subjects[0]?.subjectId;
-    const fallbackChapters = chapters.filter((chapter) => chapter.subjectId === fallbackSubjectId);
-    const fallbackChapterId =
-      initialQuiz?.chapterId || fallbackChapters[0]?.chapterId || "";
+    const fallbackSubjectId = initialQuiz?.subjectId || getSubjectId(subjects[0]);
+    const fallbackChapters = chapters.filter(
+      (chapter) => getChapterSubjectId(chapter) === fallbackSubjectId,
+    );
+    const fallbackChapterId = initialQuiz?.chapterId || getChapterId(fallbackChapters[0]) || "";
 
     setActiveTab("manual");
     setName(initialQuiz?.name || "");
@@ -51,9 +58,9 @@ export default function AddQuizModal({
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleSubjectChange = (nextSubjectId) => {
-    const nextChapters = chapters.filter((chapter) => chapter.subjectId === nextSubjectId);
+    const nextChapters = chapters.filter((chapter) => getChapterSubjectId(chapter) === nextSubjectId);
     setSubjectId(nextSubjectId);
-    setChapterId(nextChapters[0]?.chapterId || "");
+    setChapterId(getChapterId(nextChapters[0]) || "");
   };
 
   const handleSubmit = () => {
@@ -109,7 +116,7 @@ export default function AddQuizModal({
                     onChange={(event) => handleSubjectChange(event.target.value)}
                   >
                     {subjects.map((subject) => (
-                      <option value={subject.subjectId} key={subject.subjectId}>
+                      <option value={getSubjectId(subject)} key={getSubjectId(subject)}>
                         {subject.name}
                       </option>
                     ))}
@@ -120,7 +127,7 @@ export default function AddQuizModal({
                   <span>Chương *</span>
                   <select value={chapterId} onChange={(event) => setChapterId(event.target.value)}>
                     {availableChapters.map((chapter) => (
-                      <option value={chapter.chapterId} key={chapter.chapterId}>
+                      <option value={getChapterId(chapter)} key={getChapterId(chapter)}>
                         {chapter.name}
                       </option>
                     ))}

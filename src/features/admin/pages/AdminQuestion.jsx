@@ -22,6 +22,17 @@ import {
 } from "../../../services/quizService";
 import { getChaptersBySubject, getSubjects } from "../../../services/contentService";
 
+const normalizeSubject = (subject) => ({
+  ...subject,
+  subjectId: subject?.subjectId ?? subject?.id,
+});
+
+const normalizeChapter = (chapter) => ({
+  ...chapter,
+  chapterId: chapter?.chapterId ?? chapter?.id,
+  subjectId: chapter?.subjectId ?? chapter?.subject?.subjectId ?? chapter?.subject?.id,
+});
+
 function DeleteQuestionModal({ open, question, onCancel, onConfirm, onClose }) {
   return (
     <Modal open={open} onClose={onClose}>
@@ -65,18 +76,24 @@ export default function AdminQuestions() {
 
   useEffect(() => {
     const load = async () => {
-      if (!chapterId) return;
-      const [questionData, subjectData] = await Promise.all([
-        getQuestionsByChapter(chapterId),
-        getSubjects(),
-      ]);
-      setQuestionRows(questionData || []);
-      setSubjects(subjectData || []);
+      const subjectData = await getSubjects();
+      const normalizedSubjects = (subjectData || []).map(normalizeSubject);
 
-      if (subjectId) {
-        const chapterData = await getChaptersBySubject(subjectId);
-        setChapters(chapterData || []);
+      setSubjects(normalizedSubjects);
+
+      if (!chapterId) {
+        setQuestionRows([]);
+        setChapters([]);
+        return;
       }
+
+      const [questionData, chapterData] = await Promise.all([
+        getQuestionsByChapter(chapterId),
+        subjectId ? getChaptersBySubject(subjectId) : Promise.resolve([]),
+      ]);
+
+      setQuestionRows(questionData || []);
+      setChapters((chapterData || []).map(normalizeChapter));
     };
     load();
   }, [chapterId, subjectId]);
@@ -109,8 +126,8 @@ export default function AdminQuestions() {
       subjectId: formValues.subjectId,
       chapterId: formValues.chapterId,
       content: formValues.content,
-      explaination: "",
-      difficultyB: 0,
+      explanation: formValues.explaination,
+      difficultyB: formValues.difficulty === "Easy" ? -1 : formValues.difficulty === "Medium" ? 0 : 1,
       options: formValues.options,
     });
     setQuestionRows((currentRows) => [created, ...currentRows]);
@@ -121,8 +138,9 @@ export default function AdminQuestions() {
   const handleUpdateQuestion = async (formValues) => {
     await updateQuestion(editingQuestion.questionId, {
       content: formValues.content,
-      explaination: "",
-      difficultyB: 0,
+      explanation: formValues.explaination,
+      difficultyB: formValues.difficulty === "Easy" ? -1 : formValues.difficulty === "Medium" ? 0 : 1,
+      options: formValues.options,
     });
     const latest = await getQuestionsByChapter(chapterId);
     setQuestionRows(latest || []);
@@ -184,7 +202,6 @@ export default function AdminQuestions() {
               <th>Câu hỏi</th>
               <th>Độ khó</th>
               <th>Loại</th>
-              <th>Trạng thái</th>
               <th>Cập nhật</th>
               <th>Hành động</th>
             </tr>
@@ -210,15 +227,6 @@ export default function AdminQuestions() {
                   </span>
                 </td>
                 <td>MCQ</td>
-                <td>
-                  <span
-                    className={
-                      question.active ? "published-pill" : "unpublished-pill"
-                    }
-                  >
-                    {question.active ? "Published" : "Unpublished"}
-                  </span>
-                </td>
                 <td>-</td>
                 <td>
                   <div className="table-actions">
