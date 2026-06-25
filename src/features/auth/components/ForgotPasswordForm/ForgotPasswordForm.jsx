@@ -17,8 +17,7 @@ export default function ForgotPasswordForm() {
   };
   const handleSend = (e) => {
     e.preventDefault();
-    // Logic gọi API đăng ký ở đây
-    console.log("Dữ liệu quên mật khẩu:", formData);
+    // Backend forgot-password API is not available yet; keep the placeholder flow.
     setCurrentState(2);
   };
   return (

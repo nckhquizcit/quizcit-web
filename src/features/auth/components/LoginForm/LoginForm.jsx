@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { getErrorMessage } from "../../../../services/apiClient";
 import { login } from "../../../../services/authService";
 import "./LoginForm.css";
 
@@ -30,7 +31,7 @@ export default function LoginForm() {
       localStorage.setItem("user", JSON.stringify(auth));
       navigate(auth.role === "ADMINISTRATOR" ? "/admin" : "/app");
     } catch (apiError) {
-      setError(apiError?.response?.data?.message || "Đăng nhập thất bại.");
+      setError(getErrorMessage(apiError, "Đăng nhập thất bại."));
     } finally {
       setLoading(false);
     }
@@ -71,7 +72,7 @@ export default function LoginForm() {
       
       <div className="forgot-password-section">
         <p>
-          <Link to="/forgot-password">Quên mật khẩu?</Link>
+          Quên mật khẩu? <span>Chức năng đang phát triển.</span>
         </p>
       </div>
 

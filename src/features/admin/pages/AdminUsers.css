@@ -1,11 +1,9 @@
-/* ===== PAGE WRAPPER ===== */
 .admin-users-page {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-/* ===== TOOLBAR (SEARCH + FILTER) ===== */
 .admin-users-toolbar {
   display: flex;
   justify-content: space-between;
@@ -22,7 +20,6 @@
   cursor: pointer;
 }
 
-/* ===== TABLE ===== */
 .admin-users-table {
   width: 100%;
   border-collapse: collapse;
@@ -55,7 +52,6 @@
   background: #f9fafb;
 }
 
-/* ===== BADGES ===== */
 .badge {
   display: inline-block;
   padding: 4px 10px;
@@ -65,7 +61,6 @@
   color: white;
 }
 
-/* Status */
 .badge-green {
   background: #10b981;
 }
@@ -78,7 +73,6 @@
   background: #ef4444;
 }
 
-/* Role */
 .badge-purple {
   background: #8b5cf6;
 }
@@ -87,7 +81,6 @@
   background: #6b7280;
 }
 
-/* ===== ACTION BUTTONS ===== */
 .action-btn {
   display: inline-flex;
   align-items: center;
@@ -105,7 +98,6 @@
   white-space: nowrap;
 }
 
-/* Khóa */
 .danger-btn {
   background: #fee2e2;
   color: #dc2626;
@@ -115,7 +107,6 @@
   background: #fecaca;
 }
 
-/* Phân quyền */
 .primary-btn {
   background: #e0f2fe;
   color: #0284c7;
@@ -123,4 +114,69 @@
 
 .primary-btn:hover {
   background: #bae6fd;
+}
+
+.admin-users-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.admin-table-btn,
+.admin-table-icon {
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.admin-table-btn {
+  min-width: 92px;
+  padding: 10px 12px;
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.admin-table-btn:hover,
+.admin-table-icon:hover {
+  transform: translateY(-1px);
+}
+
+.admin-table-btn.danger {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.admin-table-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.admin-table-icon.danger {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.admin-empty-state,
+.admin-error-text {
+  padding: 18px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.admin-empty-state {
+  background: #f9fafb;
+  color: #6b7280;
+}
+
+.admin-error-text {
+  background: #fef2f2;
+  color: #dc2626;
 }

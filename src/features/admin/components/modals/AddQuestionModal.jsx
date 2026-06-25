@@ -3,6 +3,7 @@ import { Eye, EyeOff, Search } from "lucide-react";
 
 import Modal from "../ui/Modal";
 import { getSkills } from "../../services/skillService";
+import { getErrorMessage } from "../../../../services/apiClient";
 import { getChaptersBySubject, getSubjects } from "../../../../services/contentService";
 
 const MIN_ANSWER_COUNT = 2;
@@ -143,6 +144,8 @@ export default function AddQuestionModal({
   const [loadingSubjects, setLoadingSubjects] = useState(false);
   const [loadingChapters, setLoadingChapters] = useState(false);
   const [loadingSkills, setLoadingSkills] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   useEffect(() => {
     setAvailableSubjects(subjects.map(normalizeSubject));
@@ -252,6 +255,8 @@ export default function AddQuestionModal({
     setChapterSearch("");
     setSkillSearch("");
     setPreview(false);
+    setSubmitting(false);
+    setSubmitError("");
   }, [chapter, chapters, initialQuestion, open, subject, subjects]);
 
   useEffect(() => {
@@ -458,7 +463,9 @@ export default function AddQuestionModal({
     );
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (submitting) return;
+
     if (!question.trim()) {
       window.alert("Vui lòng nhập nội dung câu hỏi.");
       return;
@@ -494,7 +501,7 @@ export default function AddQuestionModal({
       return;
     }
 
-    onSubmit?.({
+    const payload = {
       content: question.trim(),
       explanation: explanation.trim(),
       difficulty,
@@ -510,7 +517,17 @@ export default function AddQuestionModal({
         corrected: correctIndex === index,
         isCorrect: correctIndex === index,
       })),
-    });
+    };
+
+    try {
+      setSubmitting(true);
+      setSubmitError("");
+      await onSubmit?.(payload);
+    } catch (error) {
+      setSubmitError(getErrorMessage(error, "Không thể lưu câu hỏi. Vui lòng thử lại."));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -765,12 +782,14 @@ export default function AddQuestionModal({
           )}
         </div>
 
+        {submitError && <div className="modal-inline-error">{submitError}</div>}
+
         <div className="question-modal-actions">
           <button className="cancel-btn" onClick={onClose}>
             Hủy
           </button>
-          <button className="add-btn" onClick={handleSubmit}>
-            {isEdit ? "Cập nhật" : "Thêm câu hỏi"}
+          <button className="add-btn" onClick={handleSubmit} disabled={submitting}>
+            {submitting ? "Đang lưu..." : isEdit ? "Cập nhật" : "Thêm câu hỏi"}
           </button>
         </div>
       </div>

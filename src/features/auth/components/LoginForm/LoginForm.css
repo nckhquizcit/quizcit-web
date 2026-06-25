@@ -51,9 +51,9 @@
   text-decoration: none;
 }
 
-.forgot-password-section a {
-  color: #00673e;
-  text-decoration: none;
+.forgot-password-section span {
+  color: #6b7280;
+  font-size: 0.9rem;
 }
 .forgot-password-section p {
   text-align: right;

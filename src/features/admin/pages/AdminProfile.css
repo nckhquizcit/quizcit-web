@@ -113,6 +113,15 @@
   background: rgba(16, 185, 129, 0.10);
 }
 
+.admin-card__editBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.admin-card__editBtn:disabled:hover {
+  background: rgba(16, 185, 129, 0.06);
+}
+
 .admin-profile-main {
   display: grid;
   grid-template-columns: 88px 1fr;
@@ -203,6 +212,22 @@
 
 .admin-actionBtn:hover {
   filter: brightness(0.98);
+}
+
+.admin-actionBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.admin-actionBtn:disabled:hover {
+  filter: none;
+}
+
+.admin-profile-note {
+  color: #64748b;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0 6px 6px;
 }
 
 .admin-permissionBody {

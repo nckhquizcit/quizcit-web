@@ -1,47 +1,137 @@
 import { useEffect, useMemo, useState } from "react";
+import { getErrorMessage, getStoredUser } from "../../../../services/apiClient";
+import { getQuizById, getUserAttempts } from "../../../../services/quizService";
+import { getSubjectById } from "../../../../services/subjectService";
 import HistoryCard from "../../components/HistoryCard/HistoryCard";
-import { getUserAttempts } from "../../../../services/quizService";
 import "./HistoryPage.css";
+
+const FALLBACK_QUIZ_NAME = "Chưa có tên bài quiz";
+const FALLBACK_SUBJECT_NAME = "Không rõ môn học";
+const FALLBACK_DATE = "—";
+const submittedAtFormatter = new Intl.DateTimeFormat("vi-VN", {
+  dateStyle: "short",
+  timeStyle: "short",
+});
+
+const isFakeQuizName = (name, quizId) => {
+  const trimmedName = typeof name === "string" ? name.trim() : "";
+  return !trimmedName || trimmedName === "Quiz" || (quizId && trimmedName === `Quiz ${quizId}`);
+};
+
+const isMissingQuizName = (name, quizId) => isFakeQuizName(name, quizId) || name === FALLBACK_QUIZ_NAME;
+const isMissingSubjectName = (name) => {
+  const trimmedName = typeof name === "string" ? name.trim() : "";
+  return !trimmedName || trimmedName === FALLBACK_SUBJECT_NAME;
+};
+
+const formatSubmittedAt = (value) => {
+  if (!value) return FALLBACK_DATE;
+
+  const submittedDate = new Date(value);
+  return Number.isNaN(submittedDate.getTime()) ? FALLBACK_DATE : submittedAtFormatter.format(submittedDate);
+};
+
+async function resolveAttemptMetadata(attempts) {
+  const quizIds = [...new Set(attempts.map((attempt) => attempt.quizId).filter(Boolean))];
+  const quizEntries = await Promise.all(
+    quizIds.map(async (quizId) => {
+      try {
+        return [quizId, await getQuizById(quizId)];
+      } catch {
+        return [quizId, null];
+      }
+    }),
+  );
+  const quizById = new Map(quizEntries);
+  const subjectIds = [
+    ...new Set(
+      quizEntries
+        .map(([, quiz]) => quiz?.subjectId)
+        .filter(Boolean),
+    ),
+  ];
+  const subjectEntries = await Promise.all(
+    subjectIds.map(async (subjectId) => {
+      try {
+        return [subjectId, await getSubjectById(subjectId)];
+      } catch {
+        return [subjectId, null];
+      }
+    }),
+  );
+  const subjectById = new Map(subjectEntries);
+
+  return attempts.map((attempt) => {
+    const quiz = quizById.get(attempt.quizId);
+    const subject = quiz?.subjectId ? subjectById.get(quiz.subjectId) : null;
+
+    return {
+      ...attempt,
+      quizName: isMissingQuizName(attempt.quizName, attempt.quizId)
+        ? quiz?.name || FALLBACK_QUIZ_NAME
+        : attempt.quizName,
+      subjectName: isMissingSubjectName(attempt.subjectName)
+        ? subject?.name || FALLBACK_SUBJECT_NAME
+        : attempt.subjectName,
+    };
+  });
+}
 
 export default function HistoryPage() {
   const [historyData, setHistoryData] = useState([]);
-  const user = useMemo(() => {
-    const raw = localStorage.getItem("user");
-    return raw ? JSON.parse(raw) : null;
-  }, []);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const user = useMemo(() => getStoredUser(), []);
 
   useEffect(() => {
-    const load = async () => {
+    let alive = true;
+
+    async function loadHistory() {
       if (!user?.userId) return;
-      const attempts = (await getUserAttempts(user.userId)) || [];
-      setHistoryData(
-        attempts.map((attempt) => ({
-          id: attempt.attemptId,
-          title: `Quiz ${attempt.quizId}`,
-          date: "-",
-          questionCount: attempt.totalQuestion,
-          score: Math.round(attempt.rawScore || 0),
-          totalQuestions: attempt.totalQuestion,
-          powerIndex: Math.round((attempt.overallTheta || 0) * 100),
-          percentage: Math.round(
-            attempt.totalQuestion > 0
-              ? ((attempt.rawScore || 0) / attempt.totalQuestion) * 100
-              : 0,
-          ),
-        })),
-      );
+      try {
+        setLoading(true);
+        setError("");
+        const attempts = (await getUserAttempts(user.userId)) || [];
+        const resolvedAttempts = await resolveAttemptMetadata(attempts);
+        if (!alive) return;
+        setHistoryData(
+          resolvedAttempts.map((attempt) => ({
+            id: attempt.attemptId,
+            title: isFakeQuizName(attempt.quizName, attempt.quizId) ? FALLBACK_QUIZ_NAME : attempt.quizName,
+            subjectName: attempt.subjectName || FALLBACK_SUBJECT_NAME,
+            date: formatSubmittedAt(attempt.submittedAt),
+            questionCount: attempt.totalQuestion,
+            score: Math.round(attempt.rawScore || 0),
+            totalQuestions: attempt.totalQuestion,
+            powerIndex: Math.round((attempt.overallTheta || 0) * 100),
+            percentage: attempt.percentage,
+          })),
+        );
+      } catch (loadError) {
+        if (alive) setError(getErrorMessage(loadError, "Không thể tải lịch sử làm bài."));
+      } finally {
+        if (alive) setLoading(false);
+      }
+    }
+
+    loadHistory();
+    return () => {
+      alive = false;
     };
-    load();
   }, [user?.userId]);
 
   return (
     <div className="history-page-wrapper">
       <div className="history-page-header">
         <h1 className="history-title">Lịch sử làm bài</h1>
-        <p className="history-subtitle">
-          Xem lại các bài kiểm tra đã hoàn thành
-        </p>
+        <p className="history-subtitle">Xem lại các bài kiểm tra đã hoàn thành</p>
       </div>
+
+      {loading && <div className="history-list-state">Đang tải lịch sử...</div>}
+      {error && <div className="history-list-state">{error}</div>}
+      {!loading && !error && historyData.length === 0 && (
+        <div className="history-list-state">Bạn chưa có bài làm nào. Hãy bắt đầu một bài quiz.</div>
+      )}
 
       <div className="history-list">
         {historyData.map((item) => (

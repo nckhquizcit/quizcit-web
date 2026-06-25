@@ -244,7 +244,7 @@ export default function AdminProfile() {
               <span className="admin-card__headerDot" aria-hidden="true" />
               <span className="admin-card__headerTitle">Thông tin cá nhân</span>
             </div>
-            <button type="button" className="admin-card__editBtn">
+            <button type="button" className="admin-card__editBtn" disabled title="Chức năng này đang phát triển.">
               <IconPencil className="admin-icon admin-icon--sm" />
               <span>Chỉnh sửa</span>
             </button>
@@ -280,15 +280,16 @@ export default function AdminProfile() {
           <div className="admin-divider" />
 
           <div className="admin-actions">
-            <button type="button" className="admin-actionBtn admin-actionBtn--outline admin-actionBtn--blue">
+            <button type="button" className="admin-actionBtn admin-actionBtn--outline admin-actionBtn--blue" disabled>
               <IconMail className="admin-icon admin-icon--sm" />
               <span>Đổi email</span>
             </button>
-            <button type="button" className="admin-actionBtn admin-actionBtn--outline admin-actionBtn--orange">
+            <button type="button" className="admin-actionBtn admin-actionBtn--outline admin-actionBtn--orange" disabled>
               <IconLock className="admin-icon admin-icon--sm" />
               <span>Đổi mật khẩu</span>
             </button>
           </div>
+          <p className="admin-profile-note">Chức năng này đang phát triển.</p>
         </section>
 
         <section className="admin-card admin-card--permission">

@@ -32,7 +32,7 @@ export default function VerifyForm({ email = "nhhun@example.com" }) {
       return;
     }
 
-    console.log("Đang gửi mã xác minh:", verificationCode);
+    // Backend verification API is not available yet.
     // Đây là nơi bạn gọi API từ service của QuizCIT
   };
   return (

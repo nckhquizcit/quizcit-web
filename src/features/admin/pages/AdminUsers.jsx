@@ -1,40 +1,57 @@
 import { useEffect, useMemo, useState } from "react";
+import { Trash2 } from "lucide-react";
+import { changeUserRole, deleteUser, getUsers, updateUserStatus } from "../../../services/userService";
+import { getErrorMessage } from "../../../services/apiClient";
 import AdminPageHeader from "../components/AdminPageHeader";
 import SearchBar from "../components/SearchBar";
-import ConfirmActionModal from "../components/modals/ConfirmActionModal";
 import AuthorizationModal from "../components/modals/AuthorizationModal";
-import { getUsers, updateUserStatus } from "../../../services/userService";
-
+import ConfirmActionModal from "../components/modals/ConfirmActionModal";
 import "../Admin.css";
-import "./AdminUsers.css";
 import "../components/modals/modal.css";
+import "./AdminUsers.css";
+
+const ROLE_LABELS = {
+  ADMINISTRATOR: "Quản trị viên",
+  USER: "Người dùng",
+};
+
+const STATUS_LABELS = {
+  VERIFIED: "Đã xác thực",
+  UNVERIFIED: "Chưa xác thực",
+  BANNED: "Đã khóa",
+};
+
+const formatRole = (role) => ROLE_LABELS[role] || role || "—";
+const formatStatus = (status) => STATUS_LABELS[status] || status || "—";
 
 export default function AdminUsers() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  const [error, setError] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  // ===== FILTER =====
+  async function loadUsers() {
+    try {
+      setLoading(true);
+      setError("");
+      setUsers((await getUsers()) || []);
+    } catch (loadError) {
+      setError(getErrorMessage(loadError, "Không thể tải danh sách người dùng."));
+    } finally {
+      setLoading(false);
+    }
+  }
+
   useEffect(() => {
-    const loadUsers = async () => {
-      try {
-        const data = await getUsers();
-        setUsers(data || []);
-      } finally {
-        setLoading(false);
-      }
-    };
     loadUsers();
   }, []);
 
   const filteredUsers = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
-
     return users.filter((user) => {
       const matchSearch =
         !normalizedSearch ||
@@ -44,17 +61,6 @@ export default function AdminUsers() {
       return matchSearch && matchStatus;
     });
   }, [users, searchTerm, filterStatus]);
-
-  // ===== ACTIONS =====
-  const openConfirmModal = (user) => {
-    setSelectedUser(user);
-    setIsConfirmModalOpen(true);
-  };
-
-  const openAuthModal = (user) => {
-    setSelectedUser(user);
-    setIsAuthModalOpen(true);
-  };
 
   const closeConfirmModal = () => {
     setIsConfirmModalOpen(false);
@@ -66,133 +72,126 @@ export default function AdminUsers() {
     setSelectedUser(null);
   };
 
-  const handleConfirm = async () => {
+  const handleLockUser = async () => {
     if (!selectedUser?.userId) return;
-    const updatedUser = await updateUserStatus(selectedUser.userId, "BANNED");
-    setUsers((currentUsers) =>
-      currentUsers.map((user) =>
-        user.userId === selectedUser.userId
-          ? { ...user, ...(updatedUser || {}), status: "BANNED" }
-          : user,
-      ),
-    );
-    closeConfirmModal();
+    try {
+      const updatedUser = await updateUserStatus(selectedUser.userId, "BANNED");
+      setUsers((currentUsers) =>
+        currentUsers.map((user) =>
+          user.userId === selectedUser.userId ? { ...user, ...(updatedUser || {}), status: "BANNED" } : user,
+        ),
+      );
+    } catch (actionError) {
+      setError(getErrorMessage(actionError, "Không thể cập nhật trạng thái người dùng."));
+    } finally {
+      closeConfirmModal();
+    }
   };
 
-  const handleAuthSave = (newRole) => {
-    setUsers((currentUsers) =>
-      currentUsers.map((user) =>
-        user.userId === selectedUser?.userId ? { ...user, role: newRole } : user,
-      ),
-    );
-    closeAuthModal();
+  const handleAuthSave = async (newRole) => {
+    if (!selectedUser?.userId) return;
+    try {
+      const updatedUser = await changeUserRole(selectedUser.userId, newRole);
+      setUsers((currentUsers) =>
+        currentUsers.map((user) =>
+          user.userId === selectedUser.userId ? { ...user, ...(updatedUser || {}), role: newRole } : user,
+        ),
+      );
+    } catch (actionError) {
+      setError(getErrorMessage(actionError, "Không thể cập nhật vai trò người dùng."));
+    } finally {
+      closeAuthModal();
+    }
+  };
+
+  const handleDeleteUser = async (user) => {
+    const confirmed = window.confirm(`Xóa người dùng ${user.username}? Hành động này không thể hoàn tác.`);
+    if (!confirmed) return;
+    try {
+      await deleteUser(user.userId);
+      setUsers((currentUsers) => currentUsers.filter((item) => item.userId !== user.userId));
+    } catch (actionError) {
+      setError(getErrorMessage(actionError, "Không thể xóa người dùng."));
+    }
   };
 
   return (
     <div className="admin-users-page">
-      {/* ===== HEADER ===== */}
       <AdminPageHeader
         title="Quản lý người dùng"
-        subtitle="Quản lý tài khoản và phân quyền người dùng"
+        subtitle="Quản lý tài khoản, trạng thái và phân quyền người dùng"
       />
 
-      {/* ===== SEARCH + FILTER ===== */}
       <div className="admin-users-toolbar">
-        <SearchBar
-          placeholder="Tìm kiếm người dùng..."
-          onChange={(value) => setSearchTerm(value)}
-        />
-
-        <select
-          className="filter-select"
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-        >
+        <SearchBar placeholder="Tìm kiếm người dùng..." onChange={setSearchTerm} />
+        <select className="filter-select" value={filterStatus} onChange={(event) => setFilterStatus(event.target.value)}>
           <option value="ALL">Tất cả</option>
-          <option value="VERIFIED">VERIFIED</option>
-          <option value="UNVERIFIED">UNVERIFIED</option>
-          <option value="BANNED">BANNED</option>
+          <option value="VERIFIED">Đã xác thực</option>
+          <option value="UNVERIFIED">Chưa xác thực</option>
+          <option value="BANNED">Đã khóa</option>
         </select>
       </div>
 
-      {/* ===== TABLE ===== */}
-      <table className="admin-users-table">
-        <thead>
-          <tr>
-            <th>Username</th>
-            <th>Email</th>
-            <th>Role</th>
-            <th>Status</th>
-            <th>User ID</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
+      {error && <p className="admin-error-text">{error}</p>}
+      {loading && <p className="admin-empty-state">Đang tải người dùng...</p>}
+      {!loading && filteredUsers.length === 0 && <p className="admin-empty-state">Không có người dùng phù hợp.</p>}
 
-        <tbody>
-          {loading && (
+      {!loading && filteredUsers.length > 0 && (
+        <table className="admin-users-table">
+          <thead>
             <tr>
-              <td colSpan={6}>Đang tải dữ liệu người dùng...</td>
+              <th>Tên đăng nhập</th>
+              <th>Email</th>
+              <th>Vai trò</th>
+              <th>Trạng thái</th>
+              <th>Mã người dùng</th>
+              <th>Thao tác</th>
             </tr>
-          )}
-          {!loading &&
-            filteredUsers.map((user) => (
-            <tr key={user.userId}>
-              <td>{user.username}</td>
-              <td>{user.email}</td>
+          </thead>
+          <tbody>
+            {filteredUsers.map((user) => (
+              <tr key={user.userId}>
+                <td>{user.username}</td>
+                <td>{user.email}</td>
+                <td>{formatRole(user.role)}</td>
+                <td>{formatStatus(user.status)}</td>
+                <td>{user.userId}</td>
+                <td className="admin-users-actions">
+                  <button
+                    type="button"
+                    className="admin-table-btn"
+                    onClick={() => {
+                      setSelectedUser(user);
+                      setIsAuthModalOpen(true);
+                    }}
+                  >
+                    Vai trò
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-table-btn danger"
+                    disabled={user.status === "BANNED"}
+                    onClick={() => {
+                      setSelectedUser(user);
+                      setIsConfirmModalOpen(true);
+                    }}
+                  >
+                    Khóa
+                  </button>
+                  <button type="button" className="admin-table-icon danger" onClick={() => handleDeleteUser(user)}>
+                    <Trash2 size={16} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
 
-              <td>
-                <span
-                  className={`badge ${
-                    user.role === "ADMINISTRATOR"
-                      ? "badge-purple"
-                      : "badge-gray"
-                  }`}
-                >
-                  {user.role}
-                </span>
-              </td>
-
-              <td>
-                <span
-                  className={`badge ${
-                    user.status === "VERIFIED"
-                      ? "badge-green"
-                      : user.status === "UNVERIFIED"
-                      ? "badge-yellow"
-                      : "badge-red"
-                  }`}
-                >
-                  {user.status}
-                </span>
-              </td>
-
-              <td>{user.userId}</td>
-
-              <td>
-                <button
-                  className="action-btn danger-btn"
-                  onClick={() => openConfirmModal(user)}
-                >
-                  Ban
-                </button>
-
-                <button
-                  className="action-btn primary-btn"
-                  onClick={() => openAuthModal(user)}
-                >
-                  Phân quyền
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {/* ===== MODALS ===== */}
       <ConfirmActionModal
         isOpen={isConfirmModalOpen}
         onClose={closeConfirmModal}
-        onConfirm={handleConfirm}
+        onConfirm={handleLockUser}
         user={selectedUser}
       />
 

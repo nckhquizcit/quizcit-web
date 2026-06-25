@@ -1,8 +1,8 @@
 import { useState } from "react";
+import { LogOut, PanelLeftOpen, X } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { PanelLeftOpen, X, LogOut } from "lucide-react";
-
 import { ADMIN_SIDEBAR, USER_SIDEBAR } from "../../constants/menuConfig";
+import { logout } from "../../services/authService";
 import "./Sidebar.css";
 
 export default function Sidebar({ type = "USER" }) {
@@ -11,8 +11,7 @@ export default function Sidebar({ type = "USER" }) {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("user");
+    logout();
     navigate("/login");
   };
 
@@ -20,11 +19,7 @@ export default function Sidebar({ type = "USER" }) {
     <aside className={`sidebar-wrapper ${isMinimized ? "minimized" : ""}`}>
       {isMinimized && (
         <div className="open-sidebar-container">
-          <PanelLeftOpen
-            size="32"
-            className="open-sidebar-icon"
-            onClick={() => setIsMinimized(false)}
-          />
+          <PanelLeftOpen size="32" className="open-sidebar-icon" onClick={() => setIsMinimized(false)} />
         </div>
       )}
 
@@ -34,11 +29,7 @@ export default function Sidebar({ type = "USER" }) {
             <h2>QuizCIT</h2>
             <p>{type === "USER" ? "Ôn tập trực tuyến" : "Quản trị viên"}</p>
           </div>
-          <X
-            size="32"
-            className="sidebar-close-icon"
-            onClick={() => setIsMinimized(true)}
-          />
+          <X size="32" className="sidebar-close-icon" onClick={() => setIsMinimized(true)} />
         </div>
 
         <nav className="sidebar-menu">
@@ -47,9 +38,7 @@ export default function Sidebar({ type = "USER" }) {
               key={item.id}
               to={item.path}
               end={item.end}
-              className={({ isActive }) =>
-                isActive ? "sidebar-item active" : "sidebar-item"
-              }
+              className={({ isActive }) => (isActive ? "sidebar-item active" : "sidebar-item")}
             >
               {item.icon}
               <p>{item.label}</p>
@@ -57,12 +46,7 @@ export default function Sidebar({ type = "USER" }) {
           ))}
         </nav>
 
-        <button
-          type="button"
-          className="sidebar-logout"
-          onClick={handleLogout}
-          title="Đăng xuất"
-        >
+        <button type="button" className="sidebar-logout" onClick={handleLogout} title="Đăng xuất">
           <LogOut size={20} />
           <p>Đăng xuất</p>
         </button>

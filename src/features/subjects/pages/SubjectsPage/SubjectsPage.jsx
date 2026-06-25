@@ -111,11 +111,11 @@ export default function SubjectsPage() {
     <section className="subjects-page">
       <header className="subjects-page__hero">
         <div>
-          <p className="subjects-page__eyebrow">Learning Hub</p>
+          <p className="subjects-page__eyebrow">Không gian học tập</p>
           <h1>Môn học</h1>
           <p className="subjects-page__description">
             Theo dõi các môn đang học, mức độ hoàn thành từng học phần và đề
-            xuất ưu tiên ôn tập theo đúng tinh thần từ bản thiết kế Figma.
+            xuất ưu tiên ôn tập phù hợp với tiến độ của bạn.
           </p>
         </div>
 

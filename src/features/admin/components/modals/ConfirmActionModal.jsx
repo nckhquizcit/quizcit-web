@@ -5,7 +5,6 @@ export default function ConfirmActionModal({ isOpen, onClose, onConfirm, user })
   const userId = user.userId || user.user_id;
 
   const handleConfirm = () => {
-    console.log(`Ban user ${userId}`);
     onConfirm();
   };
 
@@ -18,14 +17,14 @@ export default function ConfirmActionModal({ isOpen, onClose, onConfirm, user })
           <h3>Xác nhận hành động</h3>
         </div>
         <div className="modal-body">
-          <p>Bạn có muốn ban người dùng {userId} không?</p>
+          <p>Bạn có muốn khóa người dùng {userId} không?</p>
         </div>
         <div className="modal-footer">
           <button className="modal-btn primary" onClick={handleConfirm}>
-            Yes
+            Có
           </button>
           <button className="modal-btn secondary" onClick={onClose}>
-            No
+            Không
           </button>
         </div>
       </div>

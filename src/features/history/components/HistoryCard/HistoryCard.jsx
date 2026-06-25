@@ -4,6 +4,7 @@ import { Calendar, FileText, TrendingUp } from "lucide-react";
 
 export default function HistoryCard({
   title,
+  subjectName,
   date,
   questionCount,
   score,
@@ -22,6 +23,10 @@ export default function HistoryCard({
         <div className="meta-info">
           <Calendar size={14} />
           <span>{date}</span>
+        </div>
+        <div className="meta-info">
+          <FileText size={14} />
+          <span>{subjectName}</span>
         </div>
         <div className="meta-info">
           <FileText size={14} />

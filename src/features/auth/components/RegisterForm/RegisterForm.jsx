@@ -1,6 +1,7 @@
 import { useState } from "react";
 import "./RegisterForm.css";
 import { Link, useNavigate } from "react-router-dom";
+import { getErrorMessage } from "../../../../services/apiClient";
 import { register } from "../../../../services/authService";
 
 export default function RegisterForm() {
@@ -41,7 +42,7 @@ export default function RegisterForm() {
       localStorage.setItem("user", JSON.stringify(auth));
       navigate("/app");
     } catch (apiError) {
-      setError(apiError?.response?.data?.message || "Đăng ký thất bại.");
+      setError(getErrorMessage(apiError, "Đăng ký thất bại."));
     } finally {
       setLoading(false);
     }

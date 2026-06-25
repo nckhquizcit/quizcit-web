@@ -17,8 +17,7 @@ export default function ChangeForgotPasswordForm() {
   };
   const handleSend = (e) => {
     e.preventDefault();
-    // Logic gọi API đăng ký ở đây
-    console.log("Dữ liệu quên mật khẩu:", formData);
+    // Backend reset-password API is not available yet; keep the placeholder flow.
     navigate("/login", { replace: true });
   };
   return (

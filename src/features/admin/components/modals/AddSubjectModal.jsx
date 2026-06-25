@@ -1,5 +1,6 @@
 import Modal from "../ui/Modal";
 import FormModalLayout from "../ui/FormModalLayout";
+import { getErrorMessage } from "../../../../services/apiClient";
 
 import { useState } from "react";
 
@@ -7,6 +8,25 @@ export default function AddSubjectModal({ open, onClose, onSubmit }) {
   const [name, setName] = useState("");
   const [courseCode, setCourseCode] = useState("");
   const [description, setDescription] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+
+  const handleSubmit = async () => {
+    if (submitting) return;
+
+    try {
+      setSubmitting(true);
+      setSubmitError("");
+      await onSubmit?.({ name, courseCode, description });
+      setName("");
+      setCourseCode("");
+      setDescription("");
+    } catch (error) {
+      setSubmitError(getErrorMessage(error, "Không thể lưu môn học. Vui lòng thử lại."));
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <Modal open={open} onClose={onClose}>
@@ -20,13 +40,15 @@ export default function AddSubjectModal({ open, onClose, onSubmit }) {
             </button>
             <button
               className="add-btn"
-              onClick={() => onSubmit?.({ name, courseCode, description })}
+              onClick={handleSubmit}
+              disabled={submitting}
             >
-              Thêm môn học
+              {submitting ? "Đang lưu..." : "Thêm môn học"}
             </button>
           </>
         }
       >
+        {submitError && <div className="modal-inline-error">{submitError}</div>}
         <input placeholder="Tên môn học" value={name} onChange={(e) => setName(e.target.value)} />
         <input
           placeholder="Mã môn học"

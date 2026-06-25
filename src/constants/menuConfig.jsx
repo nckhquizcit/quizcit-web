@@ -30,6 +30,12 @@ export const USER_SIDEBAR = [
     icon: <History size={20} />,
   },
   {
+    id: "user_progress",
+    label: "Tiến độ",
+    path: "/app/progress",
+    icon: <Brain size={20} />,
+  },
+  {
     id: "user_profile",
     label: "Cá nhân",
     path: "/app/profile",

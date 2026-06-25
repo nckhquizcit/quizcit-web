@@ -46,6 +46,10 @@
 }
 
 .profile-update-message {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
   margin-bottom: 12px;
   padding: 10px 14px;
   border-radius: 10px;
@@ -55,14 +59,82 @@
   font-size: 0.95rem;
 }
 
+.profile-update-message--success {
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.profile-update-message--error {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.profile-update-message button {
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: transparent;
+  color: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.profile-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.38);
+}
+
+.profile-modal-card {
+  width: min(100%, 440px);
+  border-radius: 18px;
+  border: 1px solid #d1fae5;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.2);
+}
+
+.profile-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 20px 0;
+}
+
+.profile-modal-header h3 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 1.15rem;
+}
+
+.profile-modal-close {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
 .profile-modal-content {
   display: grid;
   gap: 12px;
+  padding: 18px 20px 20px;
 }
 
-.profile-modal-content h3 {
-  font-size: 1.1rem;
-  color: #1e293b;
+.profile-modal-content label {
+  color: #334155;
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .profile-modal-content input {
@@ -79,8 +151,30 @@
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
 }
 
+.profile-modal-error {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 0.9rem;
+}
+
+.profile-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.profile-modal-cancel {
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 10px 16px;
+  background: #fff;
+  color: #475569;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .profile-modal-submit {
-  justify-self: end;
   border: none;
   border-radius: 10px;
   padding: 10px 16px;
@@ -88,4 +182,22 @@
   color: #fff;
   font-weight: 600;
   cursor: pointer;
+}
+
+.profile-modal-cancel:disabled,
+.profile-modal-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+@media (max-width: 640px) {
+  .section-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .profile-update-message {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }

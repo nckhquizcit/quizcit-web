@@ -48,8 +48,8 @@
 }
 
 .btn-outline {
-  padding: 6px 16px;
-  border: 1px solid #cbd5e1;
+padding: 6px 16px;
+border: 1px solid #cbd5e1;
   background: white;
   border-radius: 8px;
   font-size: 0.85rem;
@@ -57,7 +57,12 @@
   align-items: center;
   gap: 6px;
   cursor: pointer;
-  color: #475569;
+color: #475569;
+}
+
+.btn-outline:disabled {
+cursor: not-allowed;
+opacity: 0.55;
 }
 
 .btn-warning {

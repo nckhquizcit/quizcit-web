@@ -1,9 +1,27 @@
 import { useState } from "react";
 import Modal from "../ui/Modal";
 import FormModalLayout from "../ui/FormModalLayout";
+import { getErrorMessage } from "../../../../services/apiClient";
 
 export default function AddTheoryModal({ open, onClose, chapter, onSubmit }) {
   const [content, setContent] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+
+  const handleSubmit = async () => {
+    if (submitting || !content.trim()) return;
+
+    try {
+      setSubmitting(true);
+      setSubmitError("");
+      await onSubmit?.({ content: content.trim() });
+      setContent("");
+    } catch (error) {
+      setSubmitError(getErrorMessage(error, "Không thể lưu lý thuyết. Vui lòng thử lại."));
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (!chapter) return null;
 
@@ -17,16 +35,15 @@ export default function AddTheoryModal({ open, onClose, chapter, onSubmit }) {
             <button className="cancel-btn" onClick={onClose}>Hủy</button>
             <button
               className="add-btn"
-              onClick={() => {
-                onSubmit?.({ content });
-                setContent("");
-              }}
+              onClick={handleSubmit}
+              disabled={submitting || !content.trim()}
             >
-              Thêm
+              {submitting ? "Đang lưu..." : "Thêm"}
             </button>
           </>
         }
       >
+        {submitError && <div className="modal-inline-error">{submitError}</div>}
         <textarea
           placeholder="Nội dung lý thuyết"
           value={content}

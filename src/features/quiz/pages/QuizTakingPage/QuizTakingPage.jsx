@@ -1,153 +1,192 @@
-import { useEffect, useState, useRef, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { getQuizById, getQuestionsByQuiz, startQuiz, submitAttempt } from "../../../../services/quizService";
-
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import {
+  clearQuizDraft,
+  getQuestionsByQuiz,
+  getQuizById,
+  loadQuizDraft,
+  saveQuizDraft,
+  startQuiz,
+  submitAttempt,
+} from "../../../../services/quizService";
+import { getErrorMessage, getStoredUser } from "../../../../services/apiClient";
 import "./QuizTakingPage.css";
 
-// Task 2: số câu hỏi render mỗi cụm/trang.
 const PAGE_SIZE = 5;
+
+const getDurationSeconds = (quizData) => {
+  const durationMinutes = Number(quizData?.duration ?? quizData?.durationMinutes);
+  return Number.isFinite(durationMinutes) && durationMinutes > 0
+    ? Math.floor(durationMinutes * 60)
+    : 0;
+};
 
 export default function QuizTakingPage() {
   const { quizId } = useParams();
   const navigate = useNavigate();
+  const currentUser = useMemo(() => getStoredUser(), []);
   const [quiz, setQuiz] = useState(null);
-  // `questions` là nguồn dữ liệu đầy đủ đã cache (toàn bộ câu hỏi của quiz).
   const [questions, setQuestions] = useState([]);
   const [attempt, setAttempt] = useState(null);
   const [answers, setAnswers] = useState({});
-  // Tập câu hỏi đã cắm cờ (lưu theo questionId để không phụ thuộc index).
   const [flaggedQuestionIds, setFlaggedQuestionIds] = useState(() => new Set());
-  // Trang hiện tại (0-based) của cụm 5 câu.
   const [currentPage, setCurrentPage] = useState(0);
-  // Câu đang mở popup skill (null nếu đóng).
   const [activeSkillQuestion, setActiveSkillQuestion] = useState(null);
   const [timeLeft, setTimeLeft] = useState(0);
+  const [hasTimeLimit, setHasTimeLimit] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const submittedRef = useRef(false);
-  // Chỉ khởi tạo attempt một lần cho mỗi quiz; tránh gọi startQuiz lặp lại.
   const startedRef = useRef(false);
-
-  // Đọc user một lần với reference ổn định. Nếu parse trực tiếp trong render,
-  // mỗi lần render sẽ tạo object mới -> useEffect chạy lại -> startQuiz bị gọi
-  // liên tục, sinh ra hàng loạt attempt rỗng trong DB.
-  const currentUser = useMemo(
-    () => JSON.parse(localStorage.getItem("user") || "null"),
-    [],
-  );
+  const submittedRef = useRef(false);
+  const timerStartedRef = useRef(false);
+  const autoSubmittedRef = useRef(false);
 
   useEffect(() => {
     if (startedRef.current) return;
     startedRef.current = true;
 
-    const loadQuiz = async () => {
+    async function loadQuiz() {
       if (!currentUser?.userId) {
         navigate("/login");
         return;
       }
 
       try {
+        setLoading(true);
+        setError("");
         const [quizData, questionsData, attemptData] = await Promise.all([
           getQuizById(quizId),
           getQuestionsByQuiz(quizId),
           startQuiz(quizId, currentUser.userId),
         ]);
+        const draft = loadQuizDraft(quizId, currentUser.userId);
+
+        const durationSeconds = getDurationSeconds(quizData);
 
         setQuiz(quizData);
         setQuestions(Array.isArray(questionsData) ? questionsData : []);
         setAttempt(attemptData);
-        setTimeLeft(quizData.duration * 60);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error loading quiz:", error);
-        alert("Không thể bắt đầu bài kiểm tra. Vui lòng thử lại.");
-        // Cho phép thử lại nếu khởi tạo thất bại.
+        setHasTimeLimit(durationSeconds > 0);
+        setTimeLeft(durationSeconds);
+        timerStartedRef.current = durationSeconds > 0;
+        autoSubmittedRef.current = false;
+
+        if (draft?.answers) {
+          setAnswers(draft.answers);
+          setCurrentPage(Number(draft.currentPage || 0));
+          setFlaggedQuestionIds(new Set(draft.flaggedQuestionIds || []));
+        }
+      } catch (loadError) {
         startedRef.current = false;
-        navigate("/app/subjects");
+        setError(getErrorMessage(loadError, "Không thể bắt đầu bài kiểm tra."));
+      } finally {
+        setLoading(false);
       }
-    };
+    }
 
     loadQuiz();
-  }, [quizId, currentUser, navigate]);
-
+  }, [currentUser?.userId, navigate, quizId]);
 
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(questions.length / PAGE_SIZE)),
     [questions.length],
   );
 
-  // Câu hỏi của trang hiện tại (cụm 5 câu). Toàn bộ questions vẫn được cache
-  // trong state nên chuyển trang không mất đáp án/cờ đã chọn.
   const visibleQuestions = useMemo(() => {
     const start = currentPage * PAGE_SIZE;
     return questions.slice(start, start + PAGE_SIZE);
-  }, [questions, currentPage]);
-
-  const doSubmit = async (currentAnswers) => {
-    if (!attempt || submittedRef.current) return;
-    submittedRef.current = true;
-    setSubmitting(true);
-
-    try {
-      const answerList = Object.entries(currentAnswers).map(([questionId, optionId]) => ({
-        questionId,
-        optionId,
-      }));
-
-      await submitAttempt({
-        quizId,
-        attemptId: attempt.attemptId,
-        answers: answerList,
-      });
-
-      navigate(`/app/quiz/result/${attempt.attemptId}`);
-    } catch (error) {
-      console.error("Error submitting quiz:", error);
-      alert("Có lỗi xảy ra khi nộp bài. Vui lòng thử lại.");
-      submittedRef.current = false;
-      setSubmitting(false);
-    }
-  };
+  }, [currentPage, questions]);
 
   useEffect(() => {
-    if (timeLeft <= 0 || !attempt) return;
+    if (!attempt || submittedRef.current || !currentUser?.userId) return;
+    saveQuizDraft(quizId, currentUser.userId, {
+      answers,
+      currentPage,
+      flaggedQuestionIds: Array.from(flaggedQuestionIds),
+      updatedAt: new Date().toISOString(),
+    });
+  }, [answers, attempt, currentPage, currentUser?.userId, flaggedQuestionIds, quizId]);
+
+  useEffect(() => {
+    const hasWork = Object.keys(answers).length > 0 && !submittedRef.current;
+    if (!hasWork) return undefined;
+
+    const handleBeforeUnload = (event) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [answers]);
+
+  const doSubmit = useCallback(
+    async (currentAnswers) => {
+      if (!attempt || submittedRef.current) return;
+      submittedRef.current = true;
+      setSubmitting(true);
+      setError("");
+
+      try {
+        const answerList = Object.entries(currentAnswers).map(([questionId, optionId]) => ({
+          questionId,
+          optionId,
+        }));
+
+        await submitAttempt({
+          quizId,
+          attemptId: attempt.attemptId,
+          answers: answerList,
+        });
+        clearQuizDraft(quizId, currentUser?.userId);
+        navigate(`/app/quiz/result/${attempt.attemptId}`);
+      } catch (submitError) {
+        submittedRef.current = false;
+        setSubmitting(false);
+        setError(getErrorMessage(submitError, "Có lỗi xảy ra khi nộp bài. Đáp án của bạn vẫn được giữ lại."));
+      }
+    },
+    [attempt, currentUser?.userId, navigate, quizId],
+  );
+
+  useEffect(() => {
+    if (!hasTimeLimit || !attempt || submitting || timeLeft <= 0) return undefined;
 
     const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
+      setTimeLeft((previous) => Math.max(previous - 1, 0));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft, attempt]);
+  }, [attempt, hasTimeLimit, submitting, timeLeft]);
 
   useEffect(() => {
-    if (timeLeft === 0 && attempt && !submittedRef.current) {
+    if (
+      hasTimeLimit &&
+      timerStartedRef.current &&
+      timeLeft === 0 &&
+      attempt &&
+      !submittedRef.current &&
+      !autoSubmittedRef.current
+    ) {
+      autoSubmittedRef.current = true;
       doSubmit(answers);
     }
-  }, [timeLeft]);
+  }, [answers, attempt, doSubmit, hasTimeLimit, timeLeft]);
 
   const handleAnswerChange = (questionId, optionId) => {
-    setAnswers((prev) => ({ ...prev, [questionId]: optionId }));
+    setAnswers((current) => ({ ...current, [questionId]: optionId }));
   };
 
   const toggleFlag = (questionId) => {
-    setFlaggedQuestionIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(questionId)) {
-        next.delete(questionId);
-      } else {
-        next.add(questionId);
-      }
+    setFlaggedQuestionIds((current) => {
+      const next = new Set(current);
+      if (next.has(questionId)) next.delete(questionId);
+      else next.add(questionId);
       return next;
     });
   };
 
-  // Click số câu `x` trên navigation -> chuyển tới page chứa câu `x`.
   const goToQuestion = (index) => {
     setCurrentPage(Math.floor(index / PAGE_SIZE));
   };
@@ -158,14 +197,9 @@ export default function QuizTakingPage() {
 
   const handleSubmit = async () => {
     if (submitting) return;
-
     const answered = Object.keys(answers).length;
-    const confirmed = window.confirm(
-      `Bạn đã trả lời ${answered}/${questions.length} câu. Xác nhận nộp bài?`,
-    );
-    if (!confirmed) return;
-
-    await doSubmit(answers);
+    const confirmed = window.confirm(`Bạn đã trả lời ${answered}/${questions.length} câu. Xác nhận nộp bài?`);
+    if (confirmed) await doSubmit(answers);
   };
 
   const formatTime = (seconds) => {
@@ -174,8 +208,22 @@ export default function QuizTakingPage() {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const timeLimitLabel = hasTimeLimit ? `${quiz?.duration} phút` : "Không giới hạn thời gian";
+  const timerLabel = hasTimeLimit ? formatTime(timeLeft) : "Không giới hạn thời gian";
+
   if (loading) {
     return <div className="quiz-loading">Đang tải đề thi...</div>;
+  }
+
+  if (error && !quiz) {
+    return (
+      <div className="quiz-error">
+        <p>{error}</p>
+        <button type="button" onClick={() => navigate("/app/subjects")}>
+          Quay lại danh sách môn học
+        </button>
+      </div>
+    );
   }
 
   if (!quiz || !attempt) {
@@ -188,45 +236,33 @@ export default function QuizTakingPage() {
         <div>
           <h1>{quiz.name}</h1>
           <div className="quiz-meta">
-            <span>{quiz.totalQuestion} câu hỏi</span>
-            <span>•</span>
-            <span>{quiz.duration} phút</span>
+            <span>{quiz.totalQuestion || questions.length} câu hỏi</span>
+            <span>-</span>
+            <span>{timeLimitLabel}</span>
           </div>
         </div>
-        <div className={`quiz-timer ${timeLeft < 60 ? "time-warning" : ""}`}>
-          ⏱️ {formatTime(timeLeft)}
-        </div>
+        <div className={`quiz-timer ${hasTimeLimit && timeLeft < 60 ? "time-warning" : ""}`}>{timerLabel}</div>
       </div>
+
+      {error && <div className="quiz-error inline-error">{error}</div>}
 
       <div className="quiz-progress">
         Đã trả lời: {Object.keys(answers).length} / {questions.length}
       </div>
 
-      {/* Thanh điều hướng nhanh theo số câu */}
       <div className="quiz-nav">
         {questions.map((question, index) => {
           const answered = answers[question.questionId] != null;
           const flagged = flaggedQuestionIds.has(question.questionId);
-          const isCurrentPage =
-            Math.floor(index / PAGE_SIZE) === currentPage;
-          const classes = [
-            "quiz-nav-item",
-            answered ? "answered" : "",
-            flagged ? "flagged" : "",
-            isCurrentPage ? "in-current-page" : "",
-          ]
+          const isCurrentPage = Math.floor(index / PAGE_SIZE) === currentPage;
+          const classes = ["quiz-nav-item", answered ? "answered" : "", flagged ? "flagged" : "", isCurrentPage ? "in-current-page" : ""]
             .filter(Boolean)
             .join(" ");
+
           return (
-            <button
-              key={question.questionId}
-              type="button"
-              className={classes}
-              onClick={() => goToQuestion(index)}
-              title={`Câu ${index + 1}${flagged ? " (đã cắm cờ)" : ""}`}
-            >
+            <button key={question.questionId} type="button" className={classes} onClick={() => goToQuestion(index)}>
               {index + 1}
-              {flagged && <span className="quiz-nav-flag">🚩</span>}
+              {flagged && <span className="quiz-nav-flag">!</span>}
             </button>
           );
         })}
@@ -234,45 +270,37 @@ export default function QuizTakingPage() {
 
       <div className="quiz-questions">
         {visibleQuestions.map((question) => {
-          const questionIndex = questions.findIndex(
-            (q) => q.questionId === question.questionId,
-          );
+          const questionIndex = questions.findIndex((item) => item.questionId === question.questionId);
           const flagged = flaggedQuestionIds.has(question.questionId);
           const hasSkills = Array.isArray(question.skills) && question.skills.length > 0;
+
           return (
-            <div
-              key={question.questionId}
-              className={`quiz-question-card ${flagged ? "is-flagged" : ""}`}
-            >
+            <article key={question.questionId} className={`quiz-question-card ${flagged ? "is-flagged" : ""}`}>
               <div className="question-top">
                 <div className="question-number">Câu {questionIndex + 1}</div>
-                <div className="question-tools">
-                  {hasSkills && (
-                    <button
-                      type="button"
-                      className="skill-btn"
-                      onClick={() => setActiveSkillQuestion(question)}
-                    >
-                      🧠 Skill
-                    </button>
-                  )}
+                <div className="question-actions">
+                  <button type="button" className="flag-btn" onClick={() => toggleFlag(question.questionId)}>
+                    {flagged ? "Bỏ đánh dấu" : "Đánh dấu"}
+                  </button>
                   <button
                     type="button"
-                    className={`flag-btn ${flagged ? "active" : ""}`}
-                    onClick={() => toggleFlag(question.questionId)}
+                    className="skill-btn"
+                    disabled={!hasSkills}
+                    onClick={() => setActiveSkillQuestion(question)}
                   >
-                    {flagged ? "🚩 Đã cắm cờ" : "⚐ Cắm cờ"}
+                    {hasSkills ? `${question.skills.length} kỹ năng` : "Chưa gắn kỹ năng"}
                   </button>
                 </div>
               </div>
-              <div className="question-content">{question.content}</div>
-              <div className="question-options">
-                {question.options?.map((option) => (
-                  <label key={option.optionId} className="option-label">
+
+              <p className="question-content">{question.content}</p>
+
+              <div className="options-list">
+                {(question.options || []).map((option) => (
+                  <label key={option.optionId} className="option-item">
                     <input
                       type="radio"
-                      name={`question-${question.questionId}`}
-                      value={option.optionId}
+                      name={question.questionId}
                       checked={answers[question.questionId] === option.optionId}
                       onChange={() => handleAnswerChange(question.questionId, option.optionId)}
                       disabled={submitting}
@@ -280,21 +308,18 @@ export default function QuizTakingPage() {
                     <span className="option-text">{option.content}</span>
                   </label>
                 ))}
+                {(!question.options || question.options.length === 0) && (
+                  <p className="quiz-empty-option">Câu hỏi này chưa có đáp án lựa chọn.</p>
+                )}
               </div>
-            </div>
+            </article>
           );
         })}
       </div>
 
-      {/* Phân trang cụm 5 câu */}
       <div className="quiz-pagination">
-        <button
-          type="button"
-          className="page-btn"
-          onClick={() => goToPage(currentPage - 1)}
-          disabled={currentPage === 0}
-        >
-          ← Trước
+        <button type="button" className="page-btn" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 0}>
+          Trước
         </button>
         <span className="page-indicator">
           Trang {currentPage + 1} / {totalPages}
@@ -305,49 +330,35 @@ export default function QuizTakingPage() {
           onClick={() => goToPage(currentPage + 1)}
           disabled={currentPage >= totalPages - 1}
         >
-          Sau →
+          Sau
         </button>
       </div>
 
       <div className="quiz-actions">
-        <button
-          className="submit-btn"
-          onClick={handleSubmit}
-          disabled={submitting}
-        >
+        <button className="submit-btn" type="button" onClick={handleSubmit} disabled={submitting}>
           {submitting ? "Đang nộp bài..." : "Nộp bài"}
         </button>
       </div>
 
-      {/* Popup skill của câu hỏi */}
       {activeSkillQuestion && (
-        <div
-          className="skill-modal-overlay"
-          onClick={() => setActiveSkillQuestion(null)}
-        >
-          <div className="skill-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="skill-modal-overlay" onClick={() => setActiveSkillQuestion(null)}>
+          <div className="skill-modal" onClick={(event) => event.stopPropagation()}>
             <div className="skill-modal-header">
-              <h3>Kỹ năng liên quan</h3>
-              <button
-                type="button"
-                className="skill-modal-close"
-                onClick={() => setActiveSkillQuestion(null)}
-              >
-                ✕
+              <h3>Kỹ năng của câu hỏi</h3>
+              <button type="button" onClick={() => setActiveSkillQuestion(null)}>
+                Đóng
               </button>
             </div>
             <ul className="skill-list">
               {(activeSkillQuestion.skills || []).map((skill) => (
                 <li key={skill.skillId} className="skill-item">
-                  <span className="skill-name">
-                    {skill.name || skill.skillId}
-                    {skill.primary && <span className="skill-primary-badge">Chính</span>}
-                  </span>
-                  <span className="skill-weight">Trọng số: {skill.weight}</span>
+                  <span>{skill.name || skill.skillId}</span>
+                  {skill.primary && <span className="skill-primary-badge">Chính</span>}
+                  <span className="skill-weight">Trọng số: {skill.weight ?? "—"}</span>
                 </li>
               ))}
               {(!activeSkillQuestion.skills || activeSkillQuestion.skills.length === 0) && (
-                <li className="skill-item skill-empty">Câu hỏi này chưa gán kỹ năng.</li>
+                <li className="skill-item skill-empty">Câu hỏi này chưa gắn kỹ năng.</li>
               )}
             </ul>
           </div>

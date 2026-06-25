@@ -24,7 +24,19 @@
 .result-card h1 {
   font-size: 2rem;
   color: #1e293b;
-  margin: 0 0 32px;
+  margin: 0 0 16px;
+}
+
+.result-meta {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 28px;
+  color: #64748b;
+}
+
+.result-meta strong {
+  color: #1e293b;
+  font-size: 1.05rem;
 }
 
 .score-section {
@@ -123,6 +135,50 @@
   background: #fef2f2;
   color: #ef4444;
   border: 1px solid #fecaca;
+}
+
+.result-skill-section {
+  border-top: 1px solid #e2e8f0;
+  margin-top: 24px;
+  padding-top: 20px;
+  text-align: left;
+}
+
+.result-skill-section h2 {
+  color: #1e293b;
+  font-size: 1.1rem;
+  margin: 0 0 12px;
+}
+
+.result-skill-list {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.result-skill-item {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr auto auto;
+  padding: 12px;
+}
+
+.result-skill-item span {
+  color: #334155;
+  font-weight: 700;
+}
+
+.result-skill-item strong {
+  color: #2563eb;
+}
+
+.result-skill-item small,
+.result-skill-empty {
+  color: #64748b;
 }
 
 .result-actions {

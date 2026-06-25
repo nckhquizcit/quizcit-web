@@ -36,7 +36,7 @@ export default function VerifyForgotPasswordForm({
       return;
     }
 
-    console.log("Đang gửi mã xác minh:", verificationCode);
+    // Backend forgot-password verification API is not available yet.
     // Đây là nơi bạn gọi API từ service của QuizCIT
     setCurrentState(3);
   };

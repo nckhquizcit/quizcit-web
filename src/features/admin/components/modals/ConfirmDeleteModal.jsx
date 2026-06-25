@@ -1,12 +1,43 @@
 import { createPortal } from "react-dom";
+import { useEffect, useState } from "react";
 import { Trash2 } from "lucide-react";
+import { getErrorMessage } from "../../../../services/apiClient";
 import "./modal.css";
 
 export default function ConfirmDeleteModal({ open, onClose, title, message, itemName, onConfirm }) {
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+
+  useEffect(() => {
+    if (open) {
+      setSubmitting(false);
+      setSubmitError("");
+    }
+  }, [open]);
+
+  const handleClose = () => {
+    if (!submitting) onClose();
+  };
+
+  const handleConfirm = async () => {
+    if (submitting) return;
+
+    try {
+      setSubmitting(true);
+      setSubmitError("");
+      await onConfirm?.();
+      onClose();
+    } catch (error) {
+      setSubmitError(getErrorMessage(error, "Không thể xóa. Vui lòng thử lại."));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (!open) return null;
 
   return createPortal(
-    <div className="modal-overlay danger" onClick={onClose}>
+    <div className="modal-overlay danger" onClick={handleClose}>
       <div className="modal-content danger-card" onClick={(e) => e.stopPropagation()}>
         <div className="danger-icon">
           <Trash2 size={48} color="#dc2626" />
@@ -14,7 +45,7 @@ export default function ConfirmDeleteModal({ open, onClose, title, message, item
 
         <div className="modal-header">
           <h2>{title}</h2>
-          <button className="close-btn" onClick={onClose}>×</button>
+          <button className="close-btn" onClick={handleClose} disabled={submitting}>×</button>
         </div>
 
         <div className="modal-body">
@@ -27,22 +58,16 @@ export default function ConfirmDeleteModal({ open, onClose, title, message, item
         </div>
 
         <div className="modal-footer danger-footer">
-          <button className="cancel-btn" onClick={onClose}>
+          {submitError && <div className="modal-inline-error">{submitError}</div>}
+          <button className="cancel-btn" onClick={handleClose} disabled={submitting}>
             Không, giữ lại
           </button>
           <button
             className="danger-btn"
-            onClick={async () => {
-              try {
-                await onConfirm();
-                onClose();
-              } catch (error) {
-                console.error("Failed to delete:", error);
-                alert("Không thể xóa. Vui lòng thử lại.");
-              }
-            }}
+            onClick={handleConfirm}
+            disabled={submitting}
           >
-            Có, xóa hẳn
+            {submitting ? "Đang xóa..." : "Có, xóa hẳn"}
           </button>
         </div>
       </div>

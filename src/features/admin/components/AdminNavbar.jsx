@@ -12,7 +12,7 @@ export default function AdminNavbar() {
       <div className="admin-user">
         <div className="admin-info">
           <span className="admin-label">Quản trị viên</span>
-          <span className="role">ADMINISTRATOR</span>
+          <span className="role">Quản trị viên</span>
         </div>
 
         <Link to="/admin/profile" className="profile-btn">

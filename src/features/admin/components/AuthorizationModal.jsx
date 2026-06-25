@@ -11,8 +11,10 @@ export default function AuthorizationModal({ isOpen, onClose, user, onSave }) {
 
   if (!isOpen || !user) return null;
 
+  const rawDisplayName = user.displayName || user.fullName || "";
+  const displayName = rawDisplayName && rawDisplayName !== user.username ? rawDisplayName : "—";
+
   const handleSave = () => {
-    console.log(`Updated role of ${user.userId || user.user_id} to ${role}`);
     onSave(role);
     onClose();
   };
@@ -24,11 +26,11 @@ export default function AuthorizationModal({ isOpen, onClose, user, onSave }) {
           <h3>Cấp quyền</h3>
         </div>
         <div className="modal-body">
-          <p><strong>User ID:</strong> {user.userId || user.user_id}</p>
-          <p><strong>Username:</strong> {user.username}</p>
-          <p><strong>Display Name:</strong> {user.username}</p>
+          <p><strong>Mã người dùng:</strong> {user.userId || user.user_id}</p>
+          <p><strong>Tên đăng nhập:</strong> {user.username}</p>
+          <p><strong>Tên hiển thị:</strong> {displayName}</p>
           <div style={{marginTop: '12px'}}>
-            <label>Role</label>
+            <label>Vai trò</label>
             <select
               value={role}
               onChange={e => setRole(e.target.value)}
@@ -39,17 +41,17 @@ export default function AuthorizationModal({ isOpen, onClose, user, onSave }) {
                 border: '1px solid #d1d5db',
               }}
             >
-              <option value="USER">USER</option>
-              <option value="ADMINISTRATOR">ADMINISTRATOR</option>
+              <option value="USER">Người dùng</option>
+              <option value="ADMINISTRATOR">Quản trị viên</option>
             </select>
           </div>
         </div>
         <div className="modal-footer">
           <button className="modal-btn primary" onClick={handleSave}>
-            Save
+            Lưu
           </button>
           <button className="modal-btn secondary" onClick={onClose}>
-            Cancel
+            Hủy
           </button>
         </div>
       </div>
