@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Award, BookOpen, Flame, Target, Trophy, Zap } from "lucide-react";
+import { Award, BookOpen, Flame, Target, Trophy, Zap, X } from "lucide-react";
 import AchievementCard from "../../components/AchievementCard/AchievementCard";
 import ProfileHeader from "../../components/ProfileHeader/ProfileHeader";
 import { getErrorMessage, getStoredUser, setStoredUser } from "../../../../services/apiClient";
@@ -9,6 +9,15 @@ import {
   updateCurrentUserProfile,
 } from "../../../../services/userService";
 import { getUserAttempts } from "../../../../services/quizService";
+import {
+  Badge,
+  Button,
+  Field,
+  Input,
+  Spinner,
+  ErrorState,
+  useToast,
+} from "../../../../components/ui";
 import "./ProfilePage.css";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -59,7 +68,7 @@ function ProfileModal({ title, children, onClose }) {
         <div className="profile-modal-header">
           <h3 id="profile-modal-title">{title}</h3>
           <button className="profile-modal-close" type="button" onClick={onClose} aria-label="Đóng">
-            ×
+            <X size={18} />
           </button>
         </div>
         {children}
@@ -69,11 +78,11 @@ function ProfileModal({ title, children, onClose }) {
 }
 
 export default function ProfilePage() {
+  const toast = useToast();
   const [profileUser, setProfileUser] = useState(() => getStoredUser());
   const [attempts, setAttempts] = useState([]);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [profileError, setProfileError] = useState("");
-  const [feedback, setFeedback] = useState(null);
   const [activeModal, setActiveModal] = useState(null);
   const [form, setForm] = useState({
     displayName: "",
@@ -249,7 +258,6 @@ export default function ProfilePage() {
   });
 
   function openNameModal() {
-    setFeedback(null);
     setFormError("");
     setForm((current) => ({
       ...current,
@@ -259,7 +267,6 @@ export default function ProfilePage() {
   }
 
   function openEmailModal() {
-    setFeedback(null);
     setFormError("");
     setForm((current) => ({
       ...current,
@@ -269,7 +276,6 @@ export default function ProfilePage() {
   }
 
   function openPasswordModal() {
-    setFeedback(null);
     setFormError("");
     setForm((current) => ({
       ...current,
@@ -288,7 +294,6 @@ export default function ProfilePage() {
   async function submitProfileUpdate(event, type) {
     event.preventDefault();
     setFormError("");
-    setFeedback(null);
 
     const displayName = form.displayName.trim();
     const email = form.email.trim();
@@ -333,7 +338,7 @@ export default function ProfilePage() {
     try {
       const updatedUser = await updateCurrentUserProfile(payload);
       setProfileUser(mergeAndStoreUser(updatedUser));
-      setFeedback({ type: "success", text: successMessage });
+      toast.success(successMessage);
       setActiveModal(null);
     } catch (error) {
       setFormError(getErrorMessage(error, "Không thể cập nhật hồ sơ."));
@@ -345,7 +350,6 @@ export default function ProfilePage() {
   async function submitPasswordUpdate(event) {
     event.preventDefault();
     setFormError("");
-    setFeedback(null);
 
     const password = form.password.trim();
     const confirmPassword = form.confirmPassword.trim();
@@ -364,7 +368,7 @@ export default function ProfilePage() {
 
     try {
       await changeCurrentUserPassword(password);
-      setFeedback({ type: "success", text: "Đã cập nhật mật khẩu." });
+      toast.success("Đã cập nhật mật khẩu.");
       setActiveModal(null);
       setForm((current) => ({ ...current, password: "", confirmPassword: "" }));
     } catch (error) {
@@ -383,21 +387,18 @@ export default function ProfilePage() {
         onOpenChangePassword={openPasswordModal}
       />
 
-      {isLoadingProfile && <p className="profile-update-message">Đang tải hồ sơ...</p>}
-
-      {profileError && (
-        <div className="profile-update-message profile-update-message--error">
-          <span>{profileError}</span>
-          <button type="button" onClick={() => window.location.reload()}>
-            Thử lại
-          </button>
+      {isLoadingProfile && (
+        <div className="profile-inline-loading">
+          <Spinner size={18} />
+          <span>Đang tải hồ sơ...</span>
         </div>
       )}
 
-      {feedback && (
-        <p className={`profile-update-message profile-update-message--${feedback.type}`}>
-          {feedback.text}
-        </p>
+      {profileError && (
+        <ErrorState
+          description={profileError}
+          onRetry={() => window.location.reload()}
+        />
       )}
 
       <section className="achievements-section">
@@ -406,7 +407,9 @@ export default function ProfilePage() {
             <h2 className="section-title">Thành tích</h2>
             <p className="section-subtitle">Theo dõi các mốc học tập của bạn</p>
           </div>
-          <span className="badge-count">{userData.achievementsCount} đã mở khóa</span>
+          <Badge variant="primary">
+            {userData.achievementsCount} đã mở khóa
+          </Badge>
         </div>
 
         <div className="achievements-grid">
@@ -418,25 +421,29 @@ export default function ProfilePage() {
 
       {activeModal === "name" && (
         <ProfileModal title="Đổi tên hiển thị" onClose={closeModal}>
-          <form className="profile-modal-content" onSubmit={(event) => submitProfileUpdate(event, "name")}>
-            <label htmlFor="profile-display-name">Tên hiển thị</label>
-            <input
-              id="profile-display-name"
-              value={form.displayName}
-              maxLength={100}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, displayName: event.target.value }))
-              }
-              autoFocus
-            />
-            {formError && <p className="profile-modal-error">{formError}</p>}
+          <form
+            className="profile-modal-content"
+            onSubmit={(event) => submitProfileUpdate(event, "name")}
+          >
+            <Field label="Tên hiển thị" htmlFor="profile-display-name" error={formError}>
+              <Input
+                id="profile-display-name"
+                value={form.displayName}
+                maxLength={100}
+                invalid={Boolean(formError)}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, displayName: event.target.value }))
+                }
+                autoFocus
+              />
+            </Field>
             <div className="profile-modal-actions">
-              <button className="profile-modal-cancel" type="button" onClick={closeModal} disabled={isSubmitting}>
+              <Button variant="ghost" type="button" onClick={closeModal} disabled={isSubmitting}>
                 Hủy
-              </button>
-              <button className="profile-modal-submit" type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
-              </button>
+              </Button>
+              <Button variant="primary" type="submit" loading={isSubmitting}>
+                Lưu thay đổi
+              </Button>
             </div>
           </form>
         </ProfileModal>
@@ -444,24 +451,30 @@ export default function ProfilePage() {
 
       {activeModal === "email" && (
         <ProfileModal title="Đổi email" onClose={closeModal}>
-          <form className="profile-modal-content" onSubmit={(event) => submitProfileUpdate(event, "email")}>
-            <label htmlFor="profile-email">Email</label>
-            <input
-              id="profile-email"
-              type="email"
-              value={form.email}
-              maxLength={100}
-              onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
-              autoFocus
-            />
-            {formError && <p className="profile-modal-error">{formError}</p>}
+          <form
+            className="profile-modal-content"
+            onSubmit={(event) => submitProfileUpdate(event, "email")}
+          >
+            <Field label="Email" htmlFor="profile-email" error={formError}>
+              <Input
+                id="profile-email"
+                type="email"
+                value={form.email}
+                maxLength={100}
+                invalid={Boolean(formError)}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, email: event.target.value }))
+                }
+                autoFocus
+              />
+            </Field>
             <div className="profile-modal-actions">
-              <button className="profile-modal-cancel" type="button" onClick={closeModal} disabled={isSubmitting}>
+              <Button variant="ghost" type="button" onClick={closeModal} disabled={isSubmitting}>
                 Hủy
-              </button>
-              <button className="profile-modal-submit" type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
-              </button>
+              </Button>
+              <Button variant="primary" type="submit" loading={isSubmitting}>
+                Lưu thay đổi
+              </Button>
             </div>
           </form>
         </ProfileModal>
@@ -470,33 +483,41 @@ export default function ProfilePage() {
       {activeModal === "password" && (
         <ProfileModal title="Đổi mật khẩu" onClose={closeModal}>
           <form className="profile-modal-content" onSubmit={submitPasswordUpdate}>
-            <label htmlFor="profile-password">Mật khẩu mới</label>
-            <input
-              id="profile-password"
-              type="password"
-              value={form.password}
-              minLength={PASSWORD_MIN_LENGTH}
-              onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
-              autoFocus
-            />
-            <label htmlFor="profile-confirm-password">Xác nhận mật khẩu</label>
-            <input
-              id="profile-confirm-password"
-              type="password"
-              value={form.confirmPassword}
-              minLength={PASSWORD_MIN_LENGTH}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, confirmPassword: event.target.value }))
-              }
-            />
-            {formError && <p className="profile-modal-error">{formError}</p>}
+            <Field label="Mật khẩu mới" htmlFor="profile-password">
+              <Input
+                id="profile-password"
+                type="password"
+                value={form.password}
+                minLength={PASSWORD_MIN_LENGTH}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, password: event.target.value }))
+                }
+                autoFocus
+              />
+            </Field>
+            <Field
+              label="Xác nhận mật khẩu"
+              htmlFor="profile-confirm-password"
+              error={formError}
+            >
+              <Input
+                id="profile-confirm-password"
+                type="password"
+                value={form.confirmPassword}
+                minLength={PASSWORD_MIN_LENGTH}
+                invalid={Boolean(formError)}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, confirmPassword: event.target.value }))
+                }
+              />
+            </Field>
             <div className="profile-modal-actions">
-              <button className="profile-modal-cancel" type="button" onClick={closeModal} disabled={isSubmitting}>
+              <Button variant="ghost" type="button" onClick={closeModal} disabled={isSubmitting}>
                 Hủy
-              </button>
-              <button className="profile-modal-submit" type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Đang lưu..." : "Đổi mật khẩu"}
-              </button>
+              </Button>
+              <Button variant="primary" type="submit" loading={isSubmitting}>
+                Đổi mật khẩu
+              </Button>
             </div>
           </form>
         </ProfileModal>

@@ -1,8 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
+import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { getAverageAbility, getAbilityHistories, getUserSkillAbilities } from "../../../../services/progressService";
 import { getSkills } from "../../../../services/skillService";
 import { getStoredUser, getErrorMessage } from "../../../../services/apiClient";
+import {
+  Card,
+  EmptyState,
+  ErrorState,
+  ProgressRing,
+  SkeletonCard,
+} from "../../../../components/ui";
+import ProgressBar from "../../../home/components/ProgressBar";
 import "./ProgressPage.css";
+
+const thetaToPercent = (theta) =>
+  Math.max(0, Math.min(100, Math.round(((Number(theta) + 3) / 6) * 100)));
 
 export default function ProgressPage() {
   const [abilities, setAbilities] = useState([]);
@@ -52,66 +64,125 @@ export default function ProgressPage() {
   );
 
   if (loading) {
-    return <div className="progress-page-state">Đang tải tiến độ...</div>;
-  }
-
-  if (error) {
     return (
-      <div className="progress-page-state">
-        <p>{error}</p>
-        <button type="button" onClick={() => window.location.reload()}>
-          Thử lại
-        </button>
+      <div className="progress-page">
+        <SkeletonCard lines={2} />
+        <SkeletonCard lines={4} />
       </div>
     );
   }
 
+  if (error) {
+    return (
+      <div className="progress-page">
+        <ErrorState
+          description={error}
+          onRetry={() => window.location.reload()}
+        />
+      </div>
+    );
+  }
+
+  const averagePercent = thetaToPercent(averageAbility);
+
   return (
     <div className="progress-page">
       <header className="progress-header">
-        <div>
+        <div className="progress-header__text">
           <p className="progress-eyebrow">Tiến độ học tập</p>
           <h1>Năng lực theo kỹ năng</h1>
+          <p className="progress-header__desc">
+            Theta được cập nhật sau mỗi bài kiểm tra bạn hoàn thành.
+          </p>
         </div>
-        <div className="progress-score">
-          <span>Theta trung bình</span>
-          <strong>{averageAbility.toFixed(2)}</strong>
+        <div className="progress-header__ring">
+          <ProgressRing
+            value={averagePercent}
+            size={130}
+            stroke={12}
+            label={averageAbility.toFixed(2)}
+            sublabel="Theta trung bình"
+          />
         </div>
       </header>
 
       {abilities.length === 0 ? (
-        <section className="progress-empty">
-          <h2>Chưa có dữ liệu năng lực</h2>
-          <p>Hoàn thành một bài quiz để hệ thống cập nhật theta theo kỹ năng.</p>
-        </section>
+        <EmptyState
+          title="Chưa có dữ liệu năng lực"
+          description="Hoàn thành một bài quiz để hệ thống cập nhật theta theo kỹ năng."
+        />
       ) : (
-        <section className="progress-grid">
-          {abilities.map((ability) => (
-            <article className="progress-card" key={ability.id || ability.skillId}>
-              <span>{skillNameById.get(ability.skillId) || ability.skillId}</span>
-              <strong>{ability.theta.toFixed(2)}</strong>
-              <small>Sai số: {ability.standardError ?? "—"}</small>
-            </article>
-          ))}
+        <section className="progress-section">
+          <h2 className="progress-section__title">Kỹ năng của bạn</h2>
+          <div className="progress-grid">
+            {abilities.map((ability) => {
+              const percent = thetaToPercent(ability.theta);
+              return (
+                <Card
+                  className="skill-progress-card"
+                  key={ability.id || ability.skillId}
+                >
+                  <div className="skill-progress-card__head">
+                    <span className="skill-progress-card__name">
+                      {skillNameById.get(ability.skillId) || ability.skillId}
+                    </span>
+                    <strong className="skill-progress-card__theta">
+                      {ability.theta.toFixed(2)}
+                    </strong>
+                  </div>
+                  <ProgressBar value={percent} />
+                  <small className="skill-progress-card__se">
+                    Sai số chuẩn: {ability.standardError ?? "—"}
+                  </small>
+                </Card>
+              );
+            })}
+          </div>
         </section>
       )}
 
-      <section className="progress-history">
-        <h2>Lịch sử cập nhật</h2>
+      <section className="progress-section">
+        <h2 className="progress-section__title">Lịch sử cập nhật</h2>
         {histories.length === 0 ? (
-          <p className="progress-muted">Chưa có lịch sử theta cho tài khoản này.</p>
+          <p className="progress-muted">
+            Chưa có lịch sử theta cho tài khoản này.
+          </p>
         ) : (
-          <div className="progress-history-list">
-            {histories.slice(0, 12).map((item) => (
-              <div className="progress-history-item" key={item.id}>
-                <span>{skillNameById.get(item.skillId) || item.skillId}</span>
-                <strong>{item.theta.toFixed(2)}</strong>
-                <small>
-                  Thay đổi {item.delta.toFixed(2)} {item.createdAt ? `- ${item.createdAt}` : ""}
-                </small>
-              </div>
-            ))}
-          </div>
+          <Card padding="none" className="progress-history-card">
+            {histories.slice(0, 12).map((item) => {
+              const delta = Number(item.delta || 0);
+              const trend =
+                delta > 0 ? "up" : delta < 0 ? "down" : "flat";
+              const TrendIcon =
+                trend === "up"
+                  ? TrendingUp
+                  : trend === "down"
+                    ? TrendingDown
+                    : Minus;
+              return (
+                <div className="progress-history-row" key={item.id}>
+                  <span className="progress-history-row__name">
+                    {skillNameById.get(item.skillId) || item.skillId}
+                  </span>
+                  <span className="progress-history-row__theta">
+                    {item.theta.toFixed(2)}
+                  </span>
+                  <span
+                    className={`progress-history-row__delta progress-history-row__delta--${trend}`}
+                  >
+                    <TrendIcon size={14} />
+                    {delta > 0 ? "+" : ""}
+                    {delta.toFixed(2)}
+                  </span>
+                  {item.createdAt && (
+                    <small className="progress-history-row__date">
+                      {item.createdAt}
+                    </small>
+                  )}
+                </div>
+              );
+            })}
+          </Card>
         )}
       </section>
     </div>

@@ -45,10 +45,15 @@ function AccessDeniedPage() {
 
 function ForgotPasswordUnavailablePage() {
   return (
-    <div className="page-loader">
-      <h1>Quên mật khẩu</h1>
-      <p>Chức năng đang phát triển.</p>
-      <Link to="/login">Quay lại đăng nhập</Link>
+    <div className="auth-notice-page">
+      <div className="auth-notice-card">
+        <span className="auth-notice-card__icon">!</span>
+        <h1>Quên mật khẩu</h1>
+        <p>Chức năng khôi phục mật khẩu đang được phát triển.</p>
+        <Link to="/login" className="auth-notice-card__link">
+          Quay lại đăng nhập
+        </Link>
+      </div>
     </div>
   );
 }

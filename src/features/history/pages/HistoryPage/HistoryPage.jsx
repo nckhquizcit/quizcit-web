@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { getErrorMessage, getStoredUser } from "../../../../services/apiClient";
 import { getQuizById, getUserAttempts } from "../../../../services/quizService";
 import { getSubjectById } from "../../../../services/subjectService";
+import {
+  EmptyState,
+  ErrorState,
+  SkeletonCard,
+} from "../../../../components/ui";
 import HistoryCard from "../../components/HistoryCard/HistoryCard";
 import "./HistoryPage.css";
 
@@ -82,6 +88,7 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const user = useMemo(() => getStoredUser(), []);
+  const navigate = useNavigate();
 
   useEffect(() => {
     let alive = true;
@@ -124,20 +131,37 @@ export default function HistoryPage() {
     <div className="history-page-wrapper">
       <div className="history-page-header">
         <h1 className="history-title">Lịch sử làm bài</h1>
-        <p className="history-subtitle">Xem lại các bài kiểm tra đã hoàn thành</p>
+        <p className="history-subtitle">
+          Xem lại các bài kiểm tra bạn đã hoàn thành.
+        </p>
       </div>
 
-      {loading && <div className="history-list-state">Đang tải lịch sử...</div>}
-      {error && <div className="history-list-state">{error}</div>}
-      {!loading && !error && historyData.length === 0 && (
-        <div className="history-list-state">Bạn chưa có bài làm nào. Hãy bắt đầu một bài quiz.</div>
+      {loading ? (
+        <div className="history-list">
+          <SkeletonCard lines={3} />
+          <SkeletonCard lines={3} />
+        </div>
+      ) : error ? (
+        <ErrorState
+          description={error}
+          onRetry={() => window.location.reload()}
+        />
+      ) : historyData.length === 0 ? (
+        <EmptyState
+          title="Chưa có bài làm nào"
+          description="Hãy bắt đầu một bài quiz để xem lịch sử tại đây."
+        />
+      ) : (
+        <div className="history-list">
+          {historyData.map((item) => (
+            <HistoryCard
+              key={item.id}
+              {...item}
+              onViewDetail={() => navigate(`/app/quiz/result/${item.id}`)}
+            />
+          ))}
+        </div>
       )}
-
-      <div className="history-list">
-        {historyData.map((item) => (
-          <HistoryCard key={item.id} {...item} />
-        ))}
-      </div>
     </div>
   );
 }

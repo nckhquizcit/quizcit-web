@@ -1,92 +1,92 @@
-.verify-form-container {
-  background: white;
-  padding: 3rem;
-  width: 35%;
-  min-width: 400px;
-  border-radius: 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+/* Base form styles in AuthLayout.css (.auth-form). Verify-specific below. */
+.verify-form {
+  max-width: 420px;
 }
 
-.form-title {
-  font-size: 2rem;
-  font-weight: bold;
-  margin-bottom: 0.5rem;
-}
-.form-subtitle {
-  color: #6b7280;
-  margin-bottom: 1rem;
+.verify-email {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  align-self: center;
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-700);
+  font-size: var(--fs-sm);
+  font-weight: 600;
 }
 
-.email-display {
-  background: #f0fdf4;
-  color: #166534;
-  padding: 0.75rem 1.5rem;
-  border-radius: 12px;
+.verify-otp {
   display: flex;
-  gap: 10px;
-  align-items: center;
-  width: 100%;
   justify-content: center;
+  gap: var(--space-3);
 }
-.otp-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-.otp-inputs {
-  display: flex;
-  gap: 12px;
-  margin: 1.5rem 0;
-}
-
-.otp-inputs input {
-  width: 50px;
-  height: 60px;
-  border: 2px solid #e5e7eb;
-  border-radius: 12px;
+.verify-otp input {
+  width: 48px;
+  height: 56px;
   text-align: center;
-  font-size: 1.5rem;
-  font-weight: bold;
-  background: #f9fafb;
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  color: var(--color-text);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
   outline: none;
-  transition: all 0.2s ease;
 }
-.otp-inputs input:focus {
-  border-color: #009e60;
-  scale: 1.2;
-}
-.submit-btn {
-  width: 100%;
-  background: #009e60;
-  color: white;
-  padding: 1rem;
-  border-radius: 12px;
-  font-weight: bold;
-  border: none;
-  cursor: pointer;
-  margin: 1.5rem 0;
-}
-.submit-btn:hover {
-  background-color: #007c4a;
+.verify-otp input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-100);
 }
 
-.resend-btn {
-  background: none;
-  border: 1px solid #009e60;
-  color: #009e60;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  margin-left: 10px;
-  cursor: pointer;
-}
-
-.back-link {
+.auth-notice {
   display: flex;
-  flex-direction: row;
   align-items: center;
+  gap: var(--space-2);
+  padding: 0.6rem 0.85rem;
+  border-radius: var(--radius-md);
+  background: var(--color-info-soft);
+  color: #1d4ed8;
+  font-size: var(--fs-xs);
+}
+
+.verify-resend {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  color: var(--color-text-muted);
+}
+.verify-resend__btn {
+  border: none;
+  background: transparent;
+  color: var(--color-primary-700);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.verify-resend__btn:hover {
+  text-decoration: underline;
+}
+
+.auth-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-muted);
   text-decoration: none;
-  color: #00673e;
+}
+.auth-back-link:hover {
+  color: var(--color-primary-700);
+}
+
+@media (max-width: 480px) {
+  .verify-otp {
+    gap: var(--space-2);
+  }
+  .verify-otp input {
+    width: 40px;
+    height: 48px;
+    font-size: var(--fs-lg);
+  }
 }

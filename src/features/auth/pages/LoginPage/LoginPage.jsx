@@ -4,9 +4,11 @@ import "./LoginPage.css";
 
 export default function LoginPage() {
   return (
-    <div className="login-page-container">
-      <LoginCard></LoginCard>
-      <LoginForm></LoginForm>
+    <div className="auth-split">
+      <LoginCard />
+      <div className="auth-form-panel">
+        <LoginForm />
+      </div>
     </div>
   );
 }

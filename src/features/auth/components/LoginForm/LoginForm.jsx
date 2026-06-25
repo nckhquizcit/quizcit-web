@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { LockKeyhole, User } from "lucide-react";
 import { getErrorMessage } from "../../../../services/apiClient";
 import { login } from "../../../../services/authService";
+import { Button, Field, Input } from "../../../../components/ui";
 import "./LoginForm.css";
 
 export default function LoginForm() {
@@ -38,53 +40,51 @@ export default function LoginForm() {
   };
 
   return (
-    <form className="login-form-container" onSubmit={handleLogin}>
-      <h1>Đăng nhập</h1>
-      <p className="text-gray-500">Nhập thông tin đăng nhập để tiếp tục</p>
-      {error && <p className="text-red-500">{error}</p>}
+    <form className="auth-form" onSubmit={handleLogin}>
+      <div className="auth-form__head">
+        <h1>Đăng nhập</h1>
+        <p>Nhập thông tin đăng nhập để tiếp tục</p>
+      </div>
 
-      <div className="input-container">
-        <label htmlFor="username">Tên đăng nhập</label>
-        <input
+      {error && <div className="auth-form__error">{error}</div>}
+
+      <Field label="Tên đăng nhập" htmlFor="username">
+        <Input
           id="username"
           name="username"
           type="text"
           placeholder="Nhập tên đăng nhập"
           value={formData.username}
           onChange={handleChange}
+          iconLeft={<User size={18} />}
           required
         />
-      </div>
+      </Field>
 
-      <div className="input-container">
-        <label htmlFor="password">Mật khẩu</label>
-        <input
+      <Field label="Mật khẩu" htmlFor="password">
+        <Input
           id="password"
           name="password"
           type="password"
           placeholder="Nhập mật khẩu"
           value={formData.password}
           onChange={handleChange}
+          iconLeft={<LockKeyhole size={18} />}
           required
         />
-      </div>
+      </Field>
 
-      
-      <div className="forgot-password-section">
-        <p>
-          Quên mật khẩu? <span>Chức năng đang phát triển.</span>
-        </p>
-      </div>
+      <p className="auth-form__hint">
+        Quên mật khẩu? <span>Chức năng đang phát triển.</span>
+      </p>
 
-      <button type="submit" className="login-button" disabled={loading}>
-        {loading ? "Đang xử lý..." : "Đăng nhập"}
-      </button>
+      <Button type="submit" variant="primary" fullWidth loading={loading}>
+        Đăng nhập
+      </Button>
 
-      <div className="register-section">
-        <p>
-          Chưa có tài khoản? <Link to="/register">Đăng ký</Link>
-        </p>
-      </div>
+      <p className="auth-form__switch">
+        Chưa có tài khoản? <Link to="/register">Đăng ký</Link>
+      </p>
     </form>
   );
 }

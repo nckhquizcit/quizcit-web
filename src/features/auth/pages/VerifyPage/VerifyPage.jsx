@@ -4,9 +4,11 @@ import "./VerifyPage.css";
 
 export default function VerifyPage() {
   return (
-    <div className="verify-page-container">
-      <VerifyCard></VerifyCard>
-      <VerifyForm></VerifyForm>
+    <div className="auth-split">
+      <VerifyCard />
+      <div className="auth-form-panel">
+        <VerifyForm />
+      </div>
     </div>
   );
 }

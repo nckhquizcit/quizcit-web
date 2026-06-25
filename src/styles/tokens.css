@@ -1,0 +1,83 @@
+/* QuizCit design tokens — single source of truth for color, spacing, radius, shadow, type */
+:root {
+  /* Brand — emerald, chuẩn hóa về #10b981 */
+  --color-primary-50: #ecfdf5;
+  --color-primary-100: #d1fae5;
+  --color-primary-200: #a7f3d0;
+  --color-primary-300: #6ee7b7;
+  --color-primary-400: #34d399;
+  --color-primary-500: #10b981; /* primary */
+  --color-primary-600: #059669;
+  --color-primary-700: #047857;
+  --color-primary: var(--color-primary-500);
+  --color-primary-hover: var(--color-primary-600);
+  --color-primary-soft: var(--color-primary-50);
+  --color-primary-gradient: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+
+  /* Neutral */
+  --color-text: #0f172a;
+  --color-text-muted: #64748b;
+  --color-text-subtle: #94a3b8;
+  --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1;
+  --color-surface: #ffffff;
+  --color-surface-2: #f8fafc;
+  --color-surface-3: #f1f5f9;
+  --color-overlay: rgba(15, 23, 42, 0.45);
+
+  /* Semantic */
+  --color-success: #10b981;
+  --color-success-soft: #ecfdf5;
+  --color-warning: #f59e0b;
+  --color-warning-soft: #fffbeb;
+  --color-error: #ef4444;
+  --color-error-soft: #fef2f2;
+  --color-info: #3b82f6;
+  --color-info-soft: #eff6ff;
+
+  /* Spacing scale */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.07);
+  --shadow-lg: 0 16px 40px rgba(15, 23, 42, 0.1);
+  --shadow-primary: 0 12px 24px rgba(16, 185, 129, 0.22);
+
+  /* Font size */
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.875rem;
+  --fs-base: 1rem;
+  --fs-md: 1.125rem;
+  --fs-lg: 1.25rem;
+  --fs-xl: 1.5rem;
+  --fs-2xl: 2rem;
+  --fs-3xl: 2.5rem;
+
+  /* Layout */
+  --sidebar-w: 264px;
+  --topbar-h: 64px;
+
+  /* Z-index */
+  --z-drawer: 40;
+  --z-overlay: 35;
+  --z-topbar: 30;
+  --z-toast: 60;
+
+  /* Breakpoints (reference): sm 640, md 768, lg 1024, xl 1280 */
+}

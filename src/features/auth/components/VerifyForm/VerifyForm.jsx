@@ -1,9 +1,10 @@
-import { useState, useRef } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Mail, Info, ArrowLeft } from "lucide-react";
+import { ArrowLeft, Info, Mail } from "lucide-react";
+import { Button } from "../../../../components/ui";
 import "./VerifyForm.css";
 
-export default function VerifyForm({ email = "nhhun@example.com" }) {
+export default function VerifyForm({ email = "" }) {
   const [otp, setOtp] = useState(new Array(6).fill(""));
   const inputRefs = useRef([]);
 
@@ -22,63 +23,62 @@ export default function VerifyForm({ email = "nhhun@example.com" }) {
       inputRefs.current[index - 1].focus();
     }
   };
+
   const handleVerify = (e) => {
     e.preventDefault();
-
-    const verificationCode = otp.join("");
-
-    if (verificationCode.length < 6) {
-      alert("Vui lòng nhập đủ 6 số!");
-      return;
-    }
-
-    // Backend verification API is not available yet.
-    // Đây là nơi bạn gọi API từ service của QuizCIT
+    // Backend verification API chưa sẵn sàng — màn hình demo.
   };
+
   return (
-    <form className="verify-form-container" onSubmit={handleVerify}>
-      <h2 className="form-title">Xác minh tài khoản</h2>
-      <p className="form-subtitle">Mã xác minh đã được gửi đến</p>
-
-      <div className="email-display">
-        <Mail size={18} />
-        <span>{email}</span>
+    <form className="auth-form verify-form" onSubmit={handleVerify}>
+      <div className="auth-form__head">
+        <h1>Xác minh tài khoản</h1>
+        <p>Nhập mã 6 số được gửi đến email của bạn</p>
       </div>
 
-      <div className="otp-section">
-        <p>Nhập 6 số mã xác minh</p>
-        <div className="otp-inputs">
-          {otp.map((data, index) => (
-            <input
-              key={index}
-              type="text"
-              maxLength="1"
-              ref={(el) => (inputRefs.current[index] = el)}
-              value={data}
-              onChange={(e) => handleChange(e.target, index)}
-              onKeyDown={(e) => handleKeyDown(e, index)}
-            />
-          ))}
+      {email && (
+        <div className="verify-email">
+          <Mail size={16} />
+          <span>{email}</span>
         </div>
+      )}
+
+      <div className="verify-otp">
+        {otp.map((data, index) => (
+          <input
+            key={index}
+            type="text"
+            inputMode="numeric"
+            maxLength="1"
+            ref={(el) => (inputRefs.current[index] = el)}
+            value={data}
+            onChange={(e) => handleChange(e.target, index)}
+            onKeyDown={(e) => handleKeyDown(e, index)}
+          />
+        ))}
       </div>
 
-      <button type="submit" className="submit-btn">
-        Xác minh tài khoản
-      </button>
+      <div className="auth-notice">
+        <Info size={15} />
+        <span>Chức năng xác minh đang được phát triển.</span>
+      </div>
 
-      <div className="resend-group">
+      <Button type="submit" variant="primary" fullWidth>
+        Xác minh tài khoản
+      </Button>
+
+      <div className="verify-resend">
         <span>Không nhận được mã?</span>
-        <button type="button" className="resend-btn">
+        <button type="button" className="verify-resend__btn">
           Gửi lại mã
         </button>
       </div>
 
-      <div className="form-footer">
-        <Link to="/login" className="back-link">
-          <ArrowLeft size={18} />
-          <span>Quay lại đăng nhập</span>
+      <p className="auth-form__switch">
+        <Link to="/login" className="auth-back-link">
+          <ArrowLeft size={16} /> Quay lại đăng nhập
         </Link>
-      </div>
+      </p>
     </form>
   );
 }

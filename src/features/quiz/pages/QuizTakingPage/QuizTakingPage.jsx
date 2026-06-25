@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { AlertCircle, Clock, Flag, X } from "lucide-react";
 import {
   clearQuizDraft,
   getQuestionsByQuiz,
@@ -10,6 +11,7 @@ import {
   submitAttempt,
 } from "../../../../services/quizService";
 import { getErrorMessage, getStoredUser } from "../../../../services/apiClient";
+import { Button, ErrorState, Spinner } from "../../../../components/ui";
 import "./QuizTakingPage.css";
 
 const PAGE_SIZE = 5;
@@ -212,153 +214,283 @@ export default function QuizTakingPage() {
   const timerLabel = hasTimeLimit ? formatTime(timeLeft) : "Không giới hạn thời gian";
 
   if (loading) {
-    return <div className="quiz-loading">Đang tải đề thi...</div>;
+    return (
+      <div className="quiz-loading">
+        <Spinner size={32} />
+        <p>Đang tải đề thi...</p>
+      </div>
+    );
   }
 
   if (error && !quiz) {
     return (
-      <div className="quiz-error">
-        <p>{error}</p>
-        <button type="button" onClick={() => navigate("/app/subjects")}>
-          Quay lại danh sách môn học
-        </button>
+      <div className="quiz-taking-page">
+        <ErrorState
+          title="Không thể bắt đầu bài kiểm tra"
+          description={error}
+          onRetry={() => navigate("/app/subjects")}
+          retryLabel="Quay lại danh sách môn học"
+        />
       </div>
     );
   }
 
   if (!quiz || !attempt) {
-    return <div className="quiz-error">Không tìm thấy đề thi</div>;
+    return (
+      <div className="quiz-taking-page">
+        <ErrorState
+          title="Không tìm thấy đề thi"
+          description="Đề thi này không tồn tại hoặc đã bị gỡ."
+          onRetry={() => navigate("/app/subjects")}
+          retryLabel="Quay lại danh sách môn học"
+        />
+      </div>
+    );
   }
+
+  const answeredCount = Object.keys(answers).length;
+  const answeredPercent = questions.length
+    ? Math.round((answeredCount / questions.length) * 100)
+    : 0;
 
   return (
     <div className="quiz-taking-page">
-      <div className="quiz-header">
-        <div>
+      <header className="quiz-header">
+        <div className="quiz-header__info">
           <h1>{quiz.name}</h1>
           <div className="quiz-meta">
             <span>{quiz.totalQuestion || questions.length} câu hỏi</span>
-            <span>-</span>
+            <span className="quiz-meta__dot" />
             <span>{timeLimitLabel}</span>
           </div>
         </div>
-        <div className={`quiz-timer ${hasTimeLimit && timeLeft < 60 ? "time-warning" : ""}`}>{timerLabel}</div>
-      </div>
+        <div
+          className={`quiz-timer ${
+            hasTimeLimit && timeLeft < 60 ? "time-warning" : ""
+          } ${hasTimeLimit ? "" : "quiz-timer--unlimited"}`}
+        >
+          <Clock size={18} />
+          <span>{timerLabel}</span>
+        </div>
+      </header>
 
-      {error && <div className="quiz-error inline-error">{error}</div>}
+      {error && (
+        <div className="quiz-inline-error">
+          <AlertCircle size={16} />
+          <span>{error}</span>
+        </div>
+      )}
 
       <div className="quiz-progress">
-        Đã trả lời: {Object.keys(answers).length} / {questions.length}
+        <div className="quiz-progress__head">
+          <span>Tiến độ làm bài</span>
+          <strong>
+            {answeredCount}/{questions.length} câu
+          </strong>
+        </div>
+        <div className="quiz-progress__track">
+          <div
+            className="quiz-progress__fill"
+            style={{ width: `${answeredPercent}%` }}
+          />
+        </div>
       </div>
 
-      <div className="quiz-nav">
-        {questions.map((question, index) => {
-          const answered = answers[question.questionId] != null;
-          const flagged = flaggedQuestionIds.has(question.questionId);
-          const isCurrentPage = Math.floor(index / PAGE_SIZE) === currentPage;
-          const classes = ["quiz-nav-item", answered ? "answered" : "", flagged ? "flagged" : "", isCurrentPage ? "in-current-page" : ""]
-            .filter(Boolean)
-            .join(" ");
+      <div className="quiz-layout">
+        <div className="quiz-main">
+          <div className="quiz-questions">
+            {visibleQuestions.map((question) => {
+              const questionIndex = questions.findIndex(
+                (item) => item.questionId === question.questionId
+              );
+              const flagged = flaggedQuestionIds.has(question.questionId);
+              const hasSkills =
+                Array.isArray(question.skills) && question.skills.length > 0;
 
-          return (
-            <button key={question.questionId} type="button" className={classes} onClick={() => goToQuestion(index)}>
-              {index + 1}
-              {flagged && <span className="quiz-nav-flag">!</span>}
-            </button>
-          );
-        })}
-      </div>
+              return (
+                <article
+                  key={question.questionId}
+                  className={`quiz-question-card ${flagged ? "is-flagged" : ""}`}
+                >
+                  <div className="question-top">
+                    <div className="question-number">Câu {questionIndex + 1}</div>
+                    <div className="question-actions">
+                      <button
+                        type="button"
+                        className={`flag-btn ${flagged ? "flag-btn--active" : ""}`}
+                        onClick={() => toggleFlag(question.questionId)}
+                      >
+                        <Flag size={14} />
+                        {flagged ? "Bỏ đánh dấu" : "Đánh dấu"}
+                      </button>
+                      <button
+                        type="button"
+                        className="skill-btn"
+                        disabled={!hasSkills}
+                        onClick={() => setActiveSkillQuestion(question)}
+                      >
+                        {hasSkills
+                          ? `${question.skills.length} kỹ năng`
+                          : "Chưa gắn kỹ năng"}
+                      </button>
+                    </div>
+                  </div>
 
-      <div className="quiz-questions">
-        {visibleQuestions.map((question) => {
-          const questionIndex = questions.findIndex((item) => item.questionId === question.questionId);
-          const flagged = flaggedQuestionIds.has(question.questionId);
-          const hasSkills = Array.isArray(question.skills) && question.skills.length > 0;
+                  <p className="question-content">{question.content}</p>
 
-          return (
-            <article key={question.questionId} className={`quiz-question-card ${flagged ? "is-flagged" : ""}`}>
-              <div className="question-top">
-                <div className="question-number">Câu {questionIndex + 1}</div>
-                <div className="question-actions">
-                  <button type="button" className="flag-btn" onClick={() => toggleFlag(question.questionId)}>
-                    {flagged ? "Bỏ đánh dấu" : "Đánh dấu"}
-                  </button>
+                  <div className="options-list">
+                    {(question.options || []).map((option, optIndex) => {
+                      const selected =
+                        answers[question.questionId] === option.optionId;
+                      return (
+                        <label
+                          key={option.optionId}
+                          className={`option-item ${selected ? "is-selected" : ""}`}
+                        >
+                          <input
+                            type="radio"
+                            name={question.questionId}
+                            checked={selected}
+                            onChange={() =>
+                              handleAnswerChange(
+                                question.questionId,
+                                option.optionId
+                              )
+                            }
+                            disabled={submitting}
+                          />
+                          <span className="option-marker">
+                            {String.fromCharCode(65 + optIndex)}
+                          </span>
+                          <span className="option-text">{option.content}</span>
+                        </label>
+                      );
+                    })}
+                    {(!question.options ||
+                      question.options.length === 0) && (
+                      <p className="quiz-empty-option">
+                        Câu hỏi này chưa có đáp án lựa chọn.
+                      </p>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+
+          <div className="quiz-pagination">
+            <Button
+              variant="ghost"
+              onClick={() => goToPage(currentPage - 1)}
+              disabled={currentPage === 0}
+            >
+              Trước
+            </Button>
+            <span className="page-indicator">
+              Trang {currentPage + 1} / {totalPages}
+            </span>
+            <Button
+              variant="ghost"
+              onClick={() => goToPage(currentPage + 1)}
+              disabled={currentPage >= totalPages - 1}
+            >
+              Sau
+            </Button>
+          </div>
+        </div>
+
+        <aside className="quiz-sidebar">
+          <div className="quiz-sidebar__card">
+            <p className="quiz-sidebar__title">Danh sách câu hỏi</p>
+            <div className="quiz-nav">
+              {questions.map((question, index) => {
+                const answered = answers[question.questionId] != null;
+                const flagged = flaggedQuestionIds.has(question.questionId);
+                const isCurrentPage =
+                  Math.floor(index / PAGE_SIZE) === currentPage;
+                const classes = [
+                  "quiz-nav-item",
+                  answered ? "answered" : "",
+                  flagged ? "flagged" : "",
+                  isCurrentPage ? "in-current-page" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ");
+
+                return (
                   <button
+                    key={question.questionId}
                     type="button"
-                    className="skill-btn"
-                    disabled={!hasSkills}
-                    onClick={() => setActiveSkillQuestion(question)}
+                    className={classes}
+                    onClick={() => goToQuestion(index)}
                   >
-                    {hasSkills ? `${question.skills.length} kỹ năng` : "Chưa gắn kỹ năng"}
+                    {index + 1}
+                    {flagged && <span className="quiz-nav-flag" />}
                   </button>
-                </div>
-              </div>
+                );
+              })}
+            </div>
 
-              <p className="question-content">{question.content}</p>
+            <div className="quiz-nav-legend">
+              <span>
+                <i className="legend-dot legend-dot--answered" /> Đã trả lời
+              </span>
+              <span>
+                <i className="legend-dot legend-dot--flagged" /> Đánh dấu
+              </span>
+            </div>
 
-              <div className="options-list">
-                {(question.options || []).map((option) => (
-                  <label key={option.optionId} className="option-item">
-                    <input
-                      type="radio"
-                      name={question.questionId}
-                      checked={answers[question.questionId] === option.optionId}
-                      onChange={() => handleAnswerChange(question.questionId, option.optionId)}
-                      disabled={submitting}
-                    />
-                    <span className="option-text">{option.content}</span>
-                  </label>
-                ))}
-                {(!question.options || question.options.length === 0) && (
-                  <p className="quiz-empty-option">Câu hỏi này chưa có đáp án lựa chọn.</p>
-                )}
-              </div>
-            </article>
-          );
-        })}
-      </div>
-
-      <div className="quiz-pagination">
-        <button type="button" className="page-btn" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 0}>
-          Trước
-        </button>
-        <span className="page-indicator">
-          Trang {currentPage + 1} / {totalPages}
-        </span>
-        <button
-          type="button"
-          className="page-btn"
-          onClick={() => goToPage(currentPage + 1)}
-          disabled={currentPage >= totalPages - 1}
-        >
-          Sau
-        </button>
-      </div>
-
-      <div className="quiz-actions">
-        <button className="submit-btn" type="button" onClick={handleSubmit} disabled={submitting}>
-          {submitting ? "Đang nộp bài..." : "Nộp bài"}
-        </button>
+            <Button
+              variant="primary"
+              fullWidth
+              loading={submitting}
+              onClick={handleSubmit}
+            >
+              {submitting ? "Đang nộp bài..." : "Nộp bài"}
+            </Button>
+          </div>
+        </aside>
       </div>
 
       {activeSkillQuestion && (
-        <div className="skill-modal-overlay" onClick={() => setActiveSkillQuestion(null)}>
-          <div className="skill-modal" onClick={(event) => event.stopPropagation()}>
+        <div
+          className="skill-modal-overlay"
+          onClick={() => setActiveSkillQuestion(null)}
+        >
+          <div
+            className="skill-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="skill-modal-header">
               <h3>Kỹ năng của câu hỏi</h3>
-              <button type="button" onClick={() => setActiveSkillQuestion(null)}>
-                Đóng
+              <button
+                type="button"
+                className="skill-modal-close"
+                onClick={() => setActiveSkillQuestion(null)}
+                aria-label="Đóng"
+              >
+                <X size={18} />
               </button>
             </div>
             <ul className="skill-list">
               {(activeSkillQuestion.skills || []).map((skill) => (
                 <li key={skill.skillId} className="skill-item">
-                  <span>{skill.name || skill.skillId}</span>
-                  {skill.primary && <span className="skill-primary-badge">Chính</span>}
-                  <span className="skill-weight">Trọng số: {skill.weight ?? "—"}</span>
+                  <span className="skill-item__name">
+                    {skill.name || skill.skillId}
+                  </span>
+                  {skill.primary && (
+                    <span className="skill-primary-badge">Chính</span>
+                  )}
+                  <span className="skill-weight">
+                    Trọng số: {skill.weight ?? "—"}
+                  </span>
                 </li>
               ))}
-              {(!activeSkillQuestion.skills || activeSkillQuestion.skills.length === 0) && (
-                <li className="skill-item skill-empty">Câu hỏi này chưa gắn kỹ năng.</li>
+              {(!activeSkillQuestion.skills ||
+                activeSkillQuestion.skills.length === 0) && (
+                <li className="skill-item skill-empty">
+                  Câu hỏi này chưa gắn kỹ năng.
+                </li>
               )}
             </ul>
           </div>

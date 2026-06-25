@@ -1,111 +1,79 @@
-import { useMemo, useState } from 'react';
-import { useEffect } from "react";
-import { BookOpen, Search, Sparkles, Target } from 'lucide-react';
-import { getChaptersBySubject, getSubjects } from "../../../../services/contentService";
-import SubjectCard from '../../components/SubjectCard';
-import './SubjectsPage.css';
-
-const FILTER_OPTIONS = [
-  { id: 'all', label: 'Tất cả' },
-  { id: 'priority', label: 'Ưu tiên AI' },
-  { id: 'in-progress', label: 'Đang học' },
-  { id: 'almost-done', label: 'Gần hoàn thành' },
-];
-
-function getFilteredSubjects(subjects, activeFilter, searchTerm) {
-  const normalizedSearch = searchTerm.trim().toLowerCase();
-
-  return subjects.filter((subject) => {
-    const matchesSearch =
-      normalizedSearch.length === 0 ||
-      subject.name.toLowerCase().includes(normalizedSearch) ||
-      subject.course_code.toLowerCase().includes(normalizedSearch) ||
-      subject.category.toLowerCase().includes(normalizedSearch);
-
-    if (!matchesSearch) {
-      return false;
-    }
-
-    switch (activeFilter) {
-      case 'priority':
-        return subject.progress < 50;
-      case 'in-progress':
-        return subject.progress >= 50 && subject.progress < 80;
-      case 'almost-done':
-        return subject.progress >= 80;
-      default:
-        return true;
-    }
-  });
-}
+import { useEffect, useMemo, useState } from "react";
+import { BookOpen, Layers3, Search } from "lucide-react";
+import {
+  getChaptersBySubject,
+  getSubjects,
+} from "../../../../services/contentService";
+import {
+  EmptyState,
+  ErrorState,
+  SkeletonCard,
+} from "../../../../components/ui";
+import { getErrorMessage } from "../../../../services/apiClient";
+import SubjectCard from "../../components/SubjectCard";
+import "./SubjectsPage.css";
 
 export default function SubjectsPage() {
-  const [activeFilter, setActiveFilter] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [subjectCollection, setSubjectCollection] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const loadSubjects = async () => {
-      const subjects = (await getSubjects()) || [];
-      const withChapters = await Promise.all(
-        subjects.map(async (subject) => {
-          const chapters = (await getChaptersBySubject(subject.subjectId)) || [];
-          return {
-            ...subject,
-            chapterCount: chapters.length,
-            chapterPreview: chapters.slice(0, 3).map((chapter) => ({
-              chapter_id: chapter.chapterId,
-              name: chapter.name,
-            })),
-          };
-        }),
-      );
+    let alive = true;
 
-      setSubjectCollection(
-        withChapters.map((subject) => ({
-          ...subject,
-          subject_id: subject.subjectId,
-          course_code: subject.courseCode,
-          accent: "blue",
-          status: "Đang học",
-          weeklyGoal: "2 chương/tuần",
-          category: "Nền tảng",
-          progress: 0,
-          completedChapters: 0,
-          nextChapter: subject.chapterPreview[0] || null,
-          focus: "Tiếp tục học nội dung lý thuyết theo từng chương.",
-        })),
-      );
+    const loadSubjects = async () => {
+      try {
+        setLoading(true);
+        setError("");
+        const subjects = (await getSubjects()) || [];
+        const withChapters = await Promise.all(
+          subjects.map(async (subject) => {
+            const chapters =
+              (await getChaptersBySubject(subject.subjectId)) || [];
+            return {
+              ...subject,
+              subject_id: subject.subjectId,
+              course_code: subject.courseCode,
+              chapterCount: chapters.length,
+              chapterPreview: chapters.slice(0, 3).map((chapter) => ({
+                chapter_id: chapter.chapterId,
+                name: chapter.name,
+              })),
+            };
+          })
+        );
+        if (alive) setSubjectCollection(withChapters);
+      } catch (loadError) {
+        if (alive)
+          setError(
+            getErrorMessage(loadError, "Không thể tải danh sách môn học.")
+          );
+      } finally {
+        if (alive) setLoading(false);
+      }
     };
+
     loadSubjects();
+    return () => {
+      alive = false;
+    };
   }, []);
 
-  const filteredSubjects = useMemo(
-    () => getFilteredSubjects(subjectCollection, activeFilter, searchTerm),
-    [activeFilter, searchTerm, subjectCollection]
+  const filteredSubjects = useMemo(() => {
+    const normalized = searchTerm.trim().toLowerCase();
+    if (!normalized) return subjectCollection;
+    return subjectCollection.filter(
+      (subject) =>
+        subject.name.toLowerCase().includes(normalized) ||
+        (subject.course_code || "").toLowerCase().includes(normalized)
+    );
+  }, [searchTerm, subjectCollection]);
+
+  const totalChapters = useMemo(
+    () => subjectCollection.reduce((sum, s) => sum + (s.chapterCount || 0), 0),
+    [subjectCollection]
   );
-
-  const summary = useMemo(() => {
-    const totalSubjects = subjectCollection.length;
-    const totalProgress = subjectCollection.reduce(
-      (sum, subject) => sum + subject.progress,
-      0
-    );
-    const prioritySubjects = subjectCollection.filter(
-      (subject) => subject.isPriority
-    ).length;
-    const completedChapters = subjectCollection.reduce(
-      (sum, subject) => sum + subject.completedChapters,
-      0
-    );
-
-    return {
-      totalSubjects,
-      averageProgress: totalSubjects ? Math.round(totalProgress / totalSubjects) : 0,
-      prioritySubjects,
-      completedChapters,
-    };
-  }, [subjectCollection]);
 
   return (
     <section className="subjects-page">
@@ -114,101 +82,73 @@ export default function SubjectsPage() {
           <p className="subjects-page__eyebrow">Không gian học tập</p>
           <h1>Môn học</h1>
           <p className="subjects-page__description">
-            Theo dõi các môn đang học, mức độ hoàn thành từng học phần và đề
-            xuất ưu tiên ôn tập phù hợp với tiến độ của bạn.
+            Chọn môn học để xem lý thuyết theo từng chương và làm quiz ôn tập.
           </p>
         </div>
-
-        <div className="subjects-page__hero-card">
-          <div className="subjects-page__hero-icon">
-            <Sparkles size={20} />
+        <div className="subjects-page__stats">
+          <div className="subjects-stat">
+            <span className="subjects-stat__icon">
+              <BookOpen size={18} />
+            </span>
+            <div>
+              <strong>{subjectCollection.length}</strong>
+              <p>Môn học</p>
+            </div>
           </div>
-          <div>
-            <h2>Khuyến nghị hôm nay</h2>
-            <p>
-              Ưu tiên mở lại các môn dưới 50% tiến độ để giữ mạch học và tránh
-              quên kiến thức nền.
-            </p>
+          <div className="subjects-stat">
+            <span className="subjects-stat__icon">
+              <Layers3 size={18} />
+            </span>
+            <div>
+              <strong>{totalChapters}</strong>
+              <p>Chương</p>
+            </div>
           </div>
         </div>
       </header>
 
-      <section className="subjects-page__summary-grid">
-        <article className="subjects-summary-card subjects-summary-card--highlight">
-          <div className="subjects-summary-card__icon">
-            <BookOpen size={20} />
-          </div>
-          <div>
-            <p>Tổng số môn học</p>
-            <h2>{summary.totalSubjects}</h2>
-            <span>Danh sách môn hiện có trong lộ trình học tập của bạn.</span>
-          </div>
-        </article>
-
-        <article className="subjects-summary-card">
-          <div className="subjects-summary-card__icon subjects-summary-card__icon--soft">
-            <Target size={20} />
-          </div>
-          <div>
-            <p>Tiến độ trung bình</p>
-            <h2>{summary.averageProgress}%</h2>
-            <span>{summary.completedChapters} chương đã được hoàn thành.</span>
-          </div>
-        </article>
-
-        <article className="subjects-summary-card">
-          <div className="subjects-summary-card__icon subjects-summary-card__icon--soft">
-            <Sparkles size={20} />
-          </div>
-          <div>
-            <p>Môn cần ưu tiên</p>
-            <h2>{summary.prioritySubjects}</h2>
-            <span>Được AI gợi ý cần tập trung ôn tập trong tuần này.</span>
-          </div>
-        </article>
-      </section>
-
-      <section className="subjects-toolbar">
+      <div className="subjects-toolbar">
         <div className="subjects-toolbar__search">
           <Search size={18} />
           <input
             type="text"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Tìm theo tên môn, mã môn hoặc nhóm kiến thức"
+            placeholder="Tìm theo tên môn hoặc mã môn"
           />
         </div>
+      </div>
 
-        <div className="subjects-toolbar__filters">
-          {FILTER_OPTIONS.map((filter) => (
-            <button
-              key={filter.id}
-              type="button"
-              className={`subjects-filter-chip ${
-                activeFilter === filter.id ? 'subjects-filter-chip--active' : ''
-              }`}
-              onClick={() => setActiveFilter(filter.id)}
-            >
-              {filter.label}
-            </button>
+      {loading ? (
+        <div className="subjects-page__grid">
+          <SkeletonCard lines={4} />
+          <SkeletonCard lines={4} />
+          <SkeletonCard lines={4} />
+        </div>
+      ) : error ? (
+        <ErrorState
+          description={error}
+          onRetry={() => window.location.reload()}
+        />
+      ) : filteredSubjects.length === 0 ? (
+        <EmptyState
+          title={
+            searchTerm
+              ? "Không tìm thấy môn học phù hợp"
+              : "Chưa có môn học nào"
+          }
+          description={
+            searchTerm
+              ? "Hãy thử từ khóa khác để xem danh sách môn học."
+              : "Hệ thống chưa có môn học để hiển thị."
+          }
+        />
+      ) : (
+        <section className="subjects-page__grid">
+          {filteredSubjects.map((subject) => (
+            <SubjectCard key={subject.subject_id} subject={subject} />
           ))}
-        </div>
-      </section>
-
-      <section className="subjects-page__grid">
-        {filteredSubjects.map((subject) => (
-          <SubjectCard key={subject.subject_id} subject={subject} />
-        ))}
-      </section>
-
-      {filteredSubjects.length === 0 && (
-        <div className="subjects-page__empty-state">
-          <h2>Không tìm thấy môn học phù hợp</h2>
-          <p>
-            Hãy thử từ khóa khác hoặc chuyển sang bộ lọc khác để xem toàn bộ
-            danh sách môn học.
-          </p>
-        </div>
+        </section>
       )}
     </section>
   );

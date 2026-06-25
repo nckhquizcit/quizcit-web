@@ -1,14 +1,26 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, BookOpen, Brain, Sparkles, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import ProgressBar from "../../components/ProgressBar";
+import {
+  Button,
+  Card,
+  Badge,
+  ProgressRing,
+  EmptyState,
+  ErrorState,
+  SkeletonCard,
+} from "../../../../components/ui";
 import { getChaptersBySubject } from "../../../../services/chapterService";
 import { getSubjects } from "../../../../services/subjectService";
-import { getAverageAbility, getUserSkillAbilities } from "../../../../services/progressService";
+import {
+  getAverageAbility,
+  getUserSkillAbilities,
+} from "../../../../services/progressService";
 import { getErrorMessage, getStoredUser } from "../../../../services/apiClient";
 import "./HomePage.css";
 
-const thetaToProgress = (theta) => Math.max(0, Math.min(100, Math.round(((theta + 3) / 6) * 100)));
+const thetaToProgress = (theta) =>
+  Math.max(0, Math.min(100, Math.round(((theta + 3) / 6) * 100)));
 
 export default function HomePage() {
   const [subjects, setSubjects] = useState([]);
@@ -29,7 +41,9 @@ export default function HomePage() {
         setError("");
         const subjectData = (await getSubjects()) || [];
         const chaptersData = (
-          await Promise.all(subjectData.map((subject) => getChaptersBySubject(subject.subjectId)))
+          await Promise.all(
+            subjectData.map((subject) => getChaptersBySubject(subject.subjectId))
+          )
         ).flat();
 
         if (!alive) return;
@@ -42,11 +56,20 @@ export default function HomePage() {
             getAverageAbility(user.userId),
           ]);
           if (!alive) return;
-          setSkillCount(abilitiesResult.status === "fulfilled" ? abilitiesResult.value.length : 0);
-          setAverageTheta(averageResult.status === "fulfilled" ? averageResult.value : 0);
+          setSkillCount(
+            abilitiesResult.status === "fulfilled"
+              ? abilitiesResult.value.length
+              : 0
+          );
+          setAverageTheta(
+            averageResult.status === "fulfilled" ? averageResult.value : 0
+          );
         }
       } catch (loadError) {
-        if (alive) setError(getErrorMessage(loadError, "Không thể tải dữ liệu trang chủ."));
+        if (alive)
+          setError(
+            getErrorMessage(loadError, "Không thể tải dữ liệu trang chủ.")
+          );
       } finally {
         if (alive) setLoading(false);
       }
@@ -60,7 +83,9 @@ export default function HomePage() {
 
   const overallProgress = skillCount > 0 ? thetaToProgress(averageTheta) : 0;
   const recommendations = subjects.slice(0, 2).map((subject) => {
-    const subjectChapters = chapters.filter((chapter) => chapter.subjectId === subject.subjectId);
+    const subjectChapters = chapters.filter(
+      (chapter) => chapter.subjectId === subject.subjectId
+    );
     return {
       subject,
       chapter: subjectChapters[0] || null,
@@ -72,18 +97,25 @@ export default function HomePage() {
   });
 
   if (loading) {
-    return <div className="home-page">Đang tải trang chủ...</div>;
+    return (
+      <div className="home-page">
+        <div className="home-summary-grid">
+          <SkeletonCard lines={2} />
+          <SkeletonCard lines={2} />
+          <SkeletonCard lines={2} />
+        </div>
+        <SkeletonCard lines={3} />
+      </div>
+    );
   }
 
   if (error) {
     return (
       <div className="home-page">
-        <section className="ai-card">
-          <h2>{error}</h2>
-          <button type="button" onClick={() => window.location.reload()}>
-            Thử lại
-          </button>
-        </section>
+        <ErrorState
+          description={error}
+          onRetry={() => window.location.reload()}
+        />
       </div>
     );
   }
@@ -91,54 +123,73 @@ export default function HomePage() {
   return (
     <div className="home-page">
       <section className="home-hero">
-        <div>
-          <p className="home-hero__eyebrow">Học viên QuizCit</p>
-          <h1>Chào, {user?.displayName || user?.username || "bạn"}.</h1>
+        <div className="home-hero__text">
+          <p className="home-hero__eyebrow">Học viên QuizCIT</p>
+          <h1>Chào, {user?.displayName || user?.username || "bạn"} 👋</h1>
           <p className="home-hero__description">
-            Chọn môn học, làm quiz và theo dõi năng lực theo kỹ năng sau mỗi lần nộp bài.
+            Chọn môn học, làm quiz và theo dõi năng lực theo kỹ năng sau mỗi lần
+            nộp bài.
           </p>
+          <Button
+            variant="primary"
+            size="lg"
+            iconRight={<ArrowRight size={18} />}
+            onClick={() => navigate("/app/subjects")}
+          >
+            Học tiếp
+          </Button>
         </div>
-        <button type="button" className="home-hero__badge" onClick={() => navigate("/app/subjects")}>
-          Học tiếp <ArrowRight size={16} />
-        </button>
+        <div className="home-hero__ring">
+          <ProgressRing
+            value={overallProgress}
+            size={150}
+            stroke={12}
+            sublabel="Tiến độ năng lực"
+          />
+        </div>
       </section>
 
       <section className="home-summary-grid">
-        <article className="recommendation-card">
-          <div className="recommendation-card__content">
-            <BookOpen size={24} />
+        <Card className="stat-card">
+          <span className="stat-card__icon stat-card__icon--green">
+            <BookOpen size={22} />
+          </span>
+          <div className="stat-card__body">
             <h3>{subjects.length}</h3>
             <p>Môn học</p>
           </div>
-        </article>
-        <article className="recommendation-card">
-          <div className="recommendation-card__content">
-            <Brain size={24} />
+        </Card>
+        <Card className="stat-card">
+          <span className="stat-card__icon stat-card__icon--blue">
+            <Brain size={22} />
+          </span>
+          <div className="stat-card__body">
             <h3>{skillCount}</h3>
             <p>Kỹ năng đã có theta</p>
           </div>
-        </article>
-        <article className="recommendation-card">
-          <div className="recommendation-card__content">
-            <TrendingUp size={24} />
+        </Card>
+        <Card className="stat-card">
+          <span className="stat-card__icon stat-card__icon--amber">
+            <TrendingUp size={22} />
+          </span>
+          <div className="stat-card__body">
             <h3>{overallProgress}%</h3>
-              <p>Tiến độ năng lực</p>
-            <ProgressBar value={overallProgress} />
+            <p>Tiến độ năng lực</p>
           </div>
-        </article>
+        </Card>
       </section>
 
-      <article className={`ai-card ${skillCount === 0 ? "ai-card--high" : ""}`}>
+      <Card padding="lg" className="ai-card">
         <div className="ai-card__header">
-          <div className="ai-card__icon">
+          <span className="ai-card__icon">
             <Sparkles size={20} />
-          </div>
-          <div>
+          </span>
+          <div className="ai-card__heading">
             <div className="ai-card__title-row">
               <h2>Gợi ý học tập</h2>
-              {skillCount === 0 && <span className="ai-card__chip">Cần dữ liệu quiz</span>}
+              {skillCount === 0 && <Badge variant="warning">Cần dữ liệu quiz</Badge>}
             </div>
-            <p>
+            <p className="ai-card__desc">
               {skillCount === 0
                 ? "Hãy làm một bài quiz để hệ thống cập nhật theta và lịch sử năng lực."
                 : `Theta trung bình hiện tại: ${averageTheta.toFixed(2)}.`}
@@ -148,49 +199,88 @@ export default function HomePage() {
 
         <div className="ai-card__list">
           {recommendations.map((item) => (
-            <article className="recommendation-card" key={item.subject.subjectId}>
-              <div className="recommendation-card__content">
-                <div className="recommendation-card__subject-row">
-                  <h3>{item.subject.name}</h3>
-                  <span>{item.subject.courseCode}</span>
-                </div>
-                <p className="recommendation-card__reason">{item.reason}</p>
-                {item.chapter && (
-                  <button
-                    type="button"
-                    className="home-hero__badge"
-                    onClick={() => navigate(`/app/subjects/${item.subject.subjectId}`)}
-                  >
-                    {item.chapter.name} <ArrowRight size={14} />
-                  </button>
-                )}
+            <Card
+              key={item.subject.subjectId}
+              padding="md"
+              className="reco-card"
+            >
+              <div className="reco-card__top">
+                <h3>{item.subject.name}</h3>
+                <Badge variant="primary">{item.subject.courseCode}</Badge>
               </div>
-            </article>
+              <p className="reco-card__reason">{item.reason}</p>
+              {item.chapter && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  iconRight={<ArrowRight size={14} />}
+                  onClick={() =>
+                    navigate(`/app/subjects/${item.subject.subjectId}`)
+                  }
+                >
+                  {item.chapter.name}
+                </Button>
+              )}
+            </Card>
           ))}
         </div>
-      </article>
+      </Card>
 
       <section className="subjects-section">
         <div className="subjects-section__header">
           <div>
             <h2>Môn học của hệ thống</h2>
-            <p className="subjects-section__helper">Chọn môn học để tiếp tục lộ trình ôn tập của bạn.</p>
+            <p className="subjects-section__helper">
+              Chọn môn học để tiếp tục lộ trình ôn tập của bạn.
+            </p>
           </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            iconRight={<ArrowRight size={14} />}
+            onClick={() => navigate("/app/subjects")}
+          >
+            Xem tất cả
+          </Button>
         </div>
-        <div className="subjects-grid">
-          {subjects.map((subject) => (
-            <article className="recommendation-card" key={subject.subjectId}>
-              <div className="recommendation-card__content">
+
+        {subjects.length === 0 ? (
+          <EmptyState
+            title="Chưa có môn học nào"
+            description="Hệ thống chưa có môn học để hiển thị."
+          />
+        ) : (
+          <div className="subjects-grid">
+            {subjects.map((subject) => (
+              <Card
+                key={subject.subjectId}
+                interactive
+                className="home-subject-card"
+                onClick={() =>
+                  navigate(`/app/subjects/${subject.subjectId}`)
+                }
+              >
+                <div className="home-subject-card__head">
+                  <span className="home-subject-card__icon">
+                    <BookOpen size={20} />
+                  </span>
+                  {subject.courseCode && (
+                    <Badge variant="neutral" size="sm">
+                      {subject.courseCode}
+                    </Badge>
+                  )}
+                </div>
                 <h3>{subject.name}</h3>
-                <p>{subject.description || subject.courseCode}</p>
-                <button type="button" className="home-hero__badge" onClick={() => navigate(`/app/subjects/${subject.subjectId}`)}>
+                <p className="home-subject-card__desc">
+                  {subject.description || "Chưa có mô tả cho môn học này."}
+                </p>
+                <span className="home-subject-card__link">
                   Xem chi tiết <ArrowRight size={14} />
-                </button>
-              </div>
-            </article>
-          ))}
-          {subjects.length === 0 && <p className="subjects-section__helper">Chưa có môn học nào.</p>}
-        </div>
+                </span>
+              </Card>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );
