@@ -1,113 +1,83 @@
-import { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
-import "./modal.css";
+import { useEffect, useState } from "react";
+import Modal from "../ui/Modal";
+import FormModalLayout from "../ui/FormModalLayout";
+import { getErrorMessage } from "../../../../services/apiClient";
+import { updateQuiz } from "../../services/quizService";
 
-export default function EditQuizModal({ open, onClose, quiz, onSubmit }) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [timeLimit, setTimeLimit] = useState(60);
-  const [passingScore, setPassingScore] = useState(50);
-  const [isLoading, setIsLoading] = useState(false);
+const getQuizId = (quiz) => String(quiz?.quizId ?? quiz?.id ?? "");
+
+export default function EditQuizModal({ open, quiz, onClose, onUpdated }) {
+  const [name, setName] = useState("");
+  const [duration, setDuration] = useState(30);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    if (quiz) {
-      setTitle(quiz.title || "");
-      setDescription(quiz.description || "");
-      setTimeLimit(quiz.timeLimit || 60);
-      setPassingScore(quiz.passingScore || 50);
+    if (open && quiz) {
+      setName(quiz.name || "");
+      setDuration(quiz.durationMinutes || quiz.duration || 30);
+      setError("");
     }
-  }, [quiz]);
+  }, [open, quiz]);
 
-  if (!open || !quiz) return null;
+  const handleSubmit = async () => {
+    if (isSubmitting || !quiz) return;
+    if (!name.trim()) {
+      setError("Vui lòng nhập tên đề thi.");
+      return;
+    }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    
     try {
-      await onSubmit({ title, description, timeLimit, passingScore });
-      handleClose();
-    } catch (error) {
-      console.error("Failed to update quiz:", error);
-      alert("Không thể cập nhật đề thi. Vui lòng thử lại.");
+      setIsSubmitting(true);
+      setError("");
+      const updated = await updateQuiz(getQuizId(quiz), {
+        name: name.trim(),
+        duration: Number(duration),
+        chapterId: quiz.chapterId,
+      });
+      onUpdated?.({ ...quiz, ...updated, name: name.trim(), duration: Number(duration) });
+      onClose?.();
+    } catch (updateError) {
+      setError(getErrorMessage(updateError, "Không thể cập nhật đề thi."));
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  const handleClose = () => {
-    setTitle("");
-    setDescription("");
-    setTimeLimit(60);
-    setPassingScore(50);
-    onClose();
-  };
-
-  return createPortal(
-    <div className="modal-overlay" onClick={handleClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>Chỉnh sửa đề thi</h2>
-          <button className="close-btn" onClick={handleClose}>×</button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="modal-body">
-          <div className="form-group">
-            <label>Tên đề thi *</label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Nhập tên đề thi"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Mô tả</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Mô tả về đề thi"
-              rows="4"
-            />
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label>Thời gian làm bài (phút)</label>
-              <input
-                type="number"
-                value={timeLimit}
-                onChange={(e) => setTimeLimit(parseInt(e.target.value))}
-                min="1"
-                max="300"
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Điểm đạt (%)</label>
-              <input
-                type="number"
-                value={passingScore}
-                onChange={(e) => setPassingScore(parseInt(e.target.value))}
-                min="0"
-                max="100"
-              />
-            </div>
-          </div>
-
-          <div className="modal-footer">
-            <button type="button" className="cancel-btn" onClick={handleClose}>
+  return (
+    <Modal open={open} onClose={onClose} containerClassName="quiz-modal">
+      <FormModalLayout
+        title="Cập nhật đề thi"
+        subtitle="Chỉnh sửa tên và thời gian làm bài"
+        infoBox="Không thể chỉnh sửa danh sách câu hỏi của đề thi đã tạo. Nếu cần đổi câu hỏi, hãy tạo đề thi mới."
+        actions={
+          <>
+            <button className="cancel-btn" onClick={onClose} disabled={isSubmitting}>
               Hủy
             </button>
-            <button type="submit" className="submit-btn" disabled={isLoading}>
-              {isLoading ? "Đang lưu..." : "Lưu thay đổi"}
+            <button className="add-btn" onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
             </button>
-          </div>
-        </form>
-      </div>
-    </div>,
-    document.body
+          </>
+        }
+      >
+        {error && <div className="modal-inline-error">{error}</div>}
+
+        <label className="quiz-field">
+          <span>Tên đề thi</span>
+          <input value={name} onChange={(event) => setName(event.target.value)} />
+        </label>
+
+        <label className="quiz-field">
+          <span>Thời gian (phút)</span>
+          <input
+            type="number"
+            min="1"
+            value={duration}
+            onChange={(event) => setDuration(event.target.value)}
+          />
+        </label>
+      </FormModalLayout>
+    </Modal>
   );
 }

@@ -20,7 +20,7 @@
 /* Header */
 .quiz-header {
   position: sticky;
-  top: calc(var(--topbar-h));
+  top: var(--space-4);
   z-index: 5;
   display: flex;
   align-items: center;
@@ -278,7 +278,7 @@
 /* Sidebar */
 .quiz-sidebar {
   position: sticky;
-  top: calc(var(--topbar-h) + 96px);
+  top: calc(var(--space-4) + 96px);
 }
 .quiz-sidebar__card {
   display: flex;

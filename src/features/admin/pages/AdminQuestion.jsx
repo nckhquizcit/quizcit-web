@@ -1,25 +1,23 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Database,
-  Funnel,
-  Pencil,
-  Plus,
-  Search,
-  Trash2,
-} from "lucide-react";
+import { Database, Pencil, Plus, Trash2, Upload } from "lucide-react";
 
 import AddQuestionModal from "../components/modals/AddQuestionModal";
+import ImportQuestionsModal from "../components/modals/ImportQuestionsModal";
 import AdminPageHeader from "../components/AdminPageHeader";
 import Modal from "../components/ui/Modal";
+import DataTable from "../components/ui/DataTable";
+import RowActions from "../components/ui/RowActions";
+import ErrorState from "../../../components/ui/ErrorState/ErrorState";
+import EmptyState from "../../../components/ui/EmptyState/EmptyState";
+import { useToast } from "../../../components/ui/Toast/Toast";
 import {
   createQuestion,
   deleteQuestion,
   getQuestionsByChapter,
   updateQuestion,
 } from "../../../services/quizService";
+import { getErrorMessage } from "../../../services/apiClient";
 import { getChaptersBySubject, getSubjects } from "../../../services/contentService";
 
 const getSkillId = (skill) =>
@@ -185,18 +183,23 @@ function QuestionSkillsModal({ open, question, onClose }) {
 export default function AdminQuestions() {
   const { subjectId, chapterId } = useParams();
   const navigate = useNavigate();
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
+  const toast = useToast();
   const [questionRows, setQuestionRows] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [chapters, setChapters] = useState([]);
+  const [subjectFilter, setSubjectFilter] = useState("ALL");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [openAddQuestion, setOpenAddQuestion] = useState(false);
+  const [openImportQuestions, setOpenImportQuestions] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [deletingQuestion, setDeletingQuestion] = useState(null);
   const [skillPreviewQuestion, setSkillPreviewQuestion] = useState(null);
 
-  useEffect(() => {
-    const load = async () => {
+  const loadQuestionBank = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
       const subjectData = await getSubjects();
       const normalizedSubjects = (subjectData || []).map(normalizeSubject);
       const chapterGroups = await Promise.all(
@@ -221,24 +224,16 @@ export default function AdminQuestions() {
           : normalizedChapters,
       );
       setQuestionRows(questions.map((question) => enrichQuestion(question, chapterMap, subjectMap)));
-    };
-    load();
+    } catch (loadError) {
+      setError(getErrorMessage(loadError, "Không thể tải ngân hàng câu hỏi."));
+    } finally {
+      setLoading(false);
+    }
   }, [chapterId, subjectId]);
 
-  const filteredQuestions = useMemo(
-    () =>
-      questionRows.filter((question) =>
-        question.content.toLowerCase().includes(search.trim().toLowerCase()),
-      ),
-    [questionRows, search],
-  );
-
-  const totalPages = Math.max(1, Math.ceil(filteredQuestions.length / 10));
-  const safePage = Math.min(page, totalPages);
-  const startIndex = (safePage - 1) * 10;
-  const paginatedQuestions = filteredQuestions.slice(startIndex, startIndex + 10);
-  const displayStart = filteredQuestions.length ? startIndex + 1 : 0;
-  const displayEnd = startIndex + paginatedQuestions.length;
+  useEffect(() => {
+    loadQuestionBank();
+  }, [loadQuestionBank]);
 
   const selectedSubject = subjects.find((subject) => subject.subjectId === subjectId);
   const selectedChapter = chapters.find((chapter) => chapter.chapterId === chapterId);
@@ -251,10 +246,13 @@ export default function AdminQuestions() {
     [subjects],
   );
 
-  const handleSearchChange = (event) => {
-    setSearch(event.target.value);
-    setPage(1);
-  };
+  const visibleQuestions = useMemo(
+    () =>
+      subjectFilter === "ALL"
+        ? questionRows
+        : questionRows.filter((question) => question.subjectId === subjectFilter),
+    [questionRows, subjectFilter],
+  );
 
   const handleCreateQuestion = async (formValues) => {
     const created = await createQuestion({
@@ -271,7 +269,45 @@ export default function AdminQuestions() {
       ...currentRows,
     ]);
     setOpenAddQuestion(false);
-    setPage(1);
+    toast.success("Đã thêm câu hỏi mới.");
+  };
+
+  const handleImportQuestions = async (importItems = [], onProgress) => {
+    const errors = [];
+    let successCount = 0;
+
+    for (let index = 0; index < importItems.length; index += 1) {
+      const item = importItems[index];
+
+      try {
+        await createQuestion(item.payload);
+        successCount += 1;
+      } catch (importError) {
+        errors.push({
+          clientId: item.clientId,
+          index: item.index || index + 1,
+          message: getErrorMessage(importError, "Không thể lưu câu hỏi này."),
+        });
+      }
+
+      onProgress?.({
+        total: importItems.length,
+        completed: index + 1,
+        success: successCount,
+        failed: errors.length,
+      });
+    }
+
+    if (successCount > 0) {
+      await loadQuestionBank();
+      toast.success(`Đã import ${successCount} câu hỏi.`);
+    }
+
+    return {
+      successCount,
+      failureCount: errors.length,
+      errors,
+    };
   };
 
   const handleUpdateQuestion = async (formValues) => {
@@ -307,10 +343,7 @@ export default function AdminQuestions() {
       );
     });
     setEditingQuestion(null);
-  };
-
-  const handleSoftDelete = () => {
-    setDeletingQuestion(null);
+    toast.success("Đã cập nhật câu hỏi.");
   };
 
   const handleHardDelete = async () => {
@@ -319,7 +352,71 @@ export default function AdminQuestions() {
       currentRows.filter((question) => question.questionId !== deletingQuestion.questionId),
     );
     setDeletingQuestion(null);
+    toast.success("Đã xóa câu hỏi.");
   };
+
+  const columns = [
+    {
+      key: "content",
+      label: "Câu hỏi",
+      sortable: true,
+      sortValue: (row) => row.content,
+      render: (row) => (
+        <div className="bank-question-cell">
+          <strong>{row.content}</strong>
+          <div className="question-tags">
+            <span>Môn: {row.subject?.name || "-"}</span>
+            <span>Chương: {row.chapter?.name || "-"}</span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "skills",
+      label: "Kỹ năng",
+      width: 140,
+      render: (row) => (
+        <button
+          className={`skill-preview-trigger ${(row.skills || []).length === 0 ? "empty" : ""}`}
+          onClick={() => setSkillPreviewQuestion(row)}
+          type="button"
+        >
+          {(row.skills || []).length > 0 ? `${(row.skills || []).length} kỹ năng` : "Xem danh sách"}
+        </button>
+      ),
+    },
+    {
+      key: "difficultyB",
+      label: "Độ khó",
+      width: 120,
+      sortable: true,
+      sortValue: (row) => row.difficultyB ?? 0,
+      render: (row) => <span className="difficulty-pill">{getDifficultyLabel(row.difficultyB ?? 0)}</span>,
+    },
+    {
+      key: "actions",
+      label: "",
+      width: 60,
+      align: "right",
+      render: (row) => (
+        <RowActions
+          items={[
+            {
+              label: "Chỉnh sửa",
+              icon: <Pencil size={16} />,
+              onClick: () => setEditingQuestion(row),
+            },
+            {
+              label: "Xóa",
+              icon: <Trash2 size={16} />,
+              danger: true,
+              onClick: () => setDeletingQuestion(row),
+            },
+          ]}
+        />
+      ),
+    },
+  ];
 
   return (
     <>
@@ -330,6 +427,10 @@ export default function AdminQuestions() {
         icon={<Database size={22} />}
         action={
           <div className="question-bank-actions">
+            <button className="import-question-btn" onClick={() => setOpenImportQuestions(true)}>
+              <Upload size={18} />
+              Import câu hỏi
+            </button>
             <button className="add-btn" onClick={() => setOpenAddQuestion(true)}>
               <Plus size={18} />
               Thêm câu hỏi
@@ -338,102 +439,39 @@ export default function AdminQuestions() {
         }
       />
 
-      <div className="question-bank-filter">
-        <div className="bank-search">
-          <Search size={24} />
-          <input
-            value={search}
-            placeholder="Tìm kiếm câu hỏi theo nội dung..."
-            onChange={handleSearchChange}
-          />
-        </div>
-        <button className="filter-btn">
-          <Funnel size={18} />
-          Lọc
-        </button>
-      </div>
-
-      <span className="question-count">
-        Hiển thị {displayStart}-{displayEnd} / {filteredQuestions.length} câu hỏi
-      </span>
-
-      <div className="question-bank-table">
-        <table>
-          <thead>
-            <tr>
-              <th>Câu hỏi</th>
-              <th>Kỹ năng</th>
-              <th>Độ khó</th>
-              <th>Cập nhật</th>
-              <th>Hành động</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginatedQuestions.map((question, index) => (
-              <tr key={question.questionId}>
-                <td>
-                  <div className="bank-question-cell">
-                    <span className="bank-question-index">{startIndex + index + 1}</span>
-                    <div>
-                      <strong>{question.content}</strong>
-                      <div className="question-tags">
-                        <span>Môn: {question.subject?.name || "-"}</span>
-                        <span>Chương: {question.chapter?.name || "-"}</span>
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <button
-                    className={`skill-preview-trigger ${(question.skills || []).length === 0 ? "empty" : ""}`}
-                    onClick={() => setSkillPreviewQuestion(question)}
-                    type="button"
-                  >
-                    {(question.skills || []).length > 0
-                      ? `${(question.skills || []).length} kỹ năng`
-                      : "Xem danh sách"}
-                  </button>
-                </td>
-                <td>
-                  <span className="difficulty-pill">{getDifficultyLabel(question.difficultyB ?? 0)}</span>
-                </td>
-                <td>-</td>
-                <td>
-                  <div className="table-actions">
-                    <button
-                      aria-label="Chỉnh sửa câu hỏi"
-                      onClick={() => setEditingQuestion(question)}
-                    >
-                      <Pencil size={18} />
-                    </button>
-                    <button aria-label="Xóa câu hỏi" onClick={() => setDeletingQuestion(question)}>
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="question-pagination">
-        <button disabled={safePage === 1} onClick={() => setPage((value) => value - 1)}>
-          <ChevronLeft size={18} />
-        </button>
-        {Array.from({ length: totalPages }, (_, index) => (
-          <button
-            className={safePage === index + 1 ? "active" : ""}
-            onClick={() => setPage(index + 1)}
-            key={index + 1}
-          >
-            {index + 1}
-          </button>
-        ))}
-        <button disabled={safePage === totalPages} onClick={() => setPage((value) => value + 1)}>
-          <ChevronRight size={18} />
-        </button>
-      </div>
+      {error ? (
+        <ErrorState description={error} onRetry={loadQuestionBank} />
+      ) : (
+        <DataTable
+          columns={columns}
+          rows={visibleQuestions}
+          getRowKey={(row) => row.questionId}
+          loading={loading}
+          searchPlaceholder="Tìm kiếm câu hỏi theo nội dung..."
+          searchKeys={["content"]}
+          emptyState={
+            <EmptyState
+              icon={<Database size={28} />}
+              title="Chưa có câu hỏi"
+              description="Thêm hoặc import câu hỏi để bắt đầu xây dựng ngân hàng câu hỏi."
+            />
+          }
+          toolbarExtra={
+            <select
+              className="filter-select"
+              value={subjectFilter}
+              onChange={(event) => setSubjectFilter(event.target.value)}
+            >
+              <option value="ALL">Tất cả môn học</option>
+              {subjects.map((subject) => (
+                <option key={subject.subjectId} value={subject.subjectId}>
+                  {subject.name}
+                </option>
+              ))}
+            </select>
+          }
+        />
+      )}
 
       {chapterId && (
         <button
@@ -453,6 +491,15 @@ export default function AdminQuestions() {
         subjects={subjects}
         chapters={chapters}
       />
+      <ImportQuestionsModal
+        open={openImportQuestions}
+        onClose={() => setOpenImportQuestions(false)}
+        subject={selectedSubject}
+        chapter={selectedChapter}
+        onSubmit={handleImportQuestions}
+        subjects={subjects}
+        chapters={chapters}
+      />
       <AddQuestionModal
         open={Boolean(editingQuestion)}
         onClose={() => setEditingQuestion(null)}
@@ -465,7 +512,7 @@ export default function AdminQuestions() {
       <DeleteQuestionModal
         open={Boolean(deletingQuestion)}
         question={deletingQuestion}
-        onCancel={handleSoftDelete}
+        onCancel={() => setDeletingQuestion(null)}
         onConfirm={handleHardDelete}
         onClose={() => setDeletingQuestion(null)}
       />

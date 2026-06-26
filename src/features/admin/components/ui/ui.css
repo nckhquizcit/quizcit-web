@@ -25,6 +25,12 @@
   animation: fadeIn 0.2s ease;
 }
 
+.modal-container.import-questions-modal-shell {
+  width: min(1120px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+}
+
 .modal-close {
   position: absolute;
   top: 12px;

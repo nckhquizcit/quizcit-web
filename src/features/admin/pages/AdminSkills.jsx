@@ -1,72 +1,57 @@
-import { useEffect, useMemo, useState } from "react";
-import { Brain, LoaderCircle, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Brain, Pencil, Plus, Trash2 } from "lucide-react";
 
 import "../Admin.css";
 import AdminPageHeader from "../components/AdminPageHeader";
-import SearchBar from "../components/SearchBar";
+import DataTable from "../components/ui/DataTable";
+import RowActions from "../components/ui/RowActions";
 import ConfirmDeleteModal from "../components/modals/ConfirmDeleteModal";
 import SkillFormModal from "../components/modals/SkillFormModal";
+import ErrorState from "../../../components/ui/ErrorState/ErrorState";
+import EmptyState from "../../../components/ui/EmptyState/EmptyState";
+import { useToast } from "../../../components/ui/Toast/Toast";
+import { getErrorMessage } from "../../../services/apiClient";
 import { createSkill, deleteSkill, getSkills, updateSkill } from "../services/skillService";
 
 const getSkillId = (skill) => skill?.skillId ?? skill?.id ?? "";
 
 export default function AdminSkills() {
+  const toast = useToast();
   const [skills, setSkills] = useState([]);
-  const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingSkill, setEditingSkill] = useState(null);
   const [deletingSkill, setDeletingSkill] = useState(null);
 
-  const loadSkills = async ({ preserveMessage = false } = {}) => {
+  const loadSkills = useCallback(async () => {
     setIsLoading(true);
     setError("");
 
-    if (!preserveMessage) {
-      setSuccessMessage("");
-    }
-
     try {
-      const rows = (await getSkills()) || [];
-      setSkills(rows);
+      setSkills((await getSkills()) || []);
     } catch (loadError) {
-      setError(loadError?.message || "Không thể tải danh sách kỹ năng.");
+      setError(getErrorMessage(loadError, "Không thể tải danh sách kỹ năng."));
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadSkills();
-  }, []);
-
-  const filteredSkills = useMemo(() => {
-    const keyword = search.trim().toLowerCase();
-
-    if (!keyword) return skills;
-
-    return skills.filter((skill) => {
-      const name = String(skill.name || "").toLowerCase();
-      const description = String(skill.description || "").toLowerCase();
-      return name.includes(keyword) || description.includes(keyword);
-    });
-  }, [search, skills]);
+  }, [loadSkills]);
 
   const handleCreateSkill = async (payload) => {
     setIsSubmitting(true);
-    setError("");
-    setSuccessMessage("");
 
     try {
       const createdSkill = await createSkill(payload);
       setSkills((currentRows) => [createdSkill, ...currentRows]);
       setIsCreateOpen(false);
-      setSuccessMessage("Thêm kỹ năng thành công.");
+      toast.success("Thêm kỹ năng thành công.");
     } catch (createError) {
-      setError(createError?.message || "Không thể tạo kỹ năng.");
+      toast.error(getErrorMessage(createError, "Không thể tạo kỹ năng."));
       throw createError;
     } finally {
       setIsSubmitting(false);
@@ -77,8 +62,6 @@ export default function AdminSkills() {
     if (!editingSkill) return;
 
     setIsSubmitting(true);
-    setError("");
-    setSuccessMessage("");
 
     try {
       const updatedSkill = await updateSkill(getSkillId(editingSkill), payload);
@@ -88,9 +71,9 @@ export default function AdminSkills() {
         ),
       );
       setEditingSkill(null);
-      setSuccessMessage("Cập nhật kỹ năng thành công.");
+      toast.success("Cập nhật kỹ năng thành công.");
     } catch (updateError) {
-      setError(updateError?.message || "Không thể cập nhật kỹ năng.");
+      toast.error(getErrorMessage(updateError, "Không thể cập nhật kỹ năng."));
       throw updateError;
     } finally {
       setIsSubmitting(false);
@@ -100,32 +83,56 @@ export default function AdminSkills() {
   const handleDeleteSkill = async () => {
     if (!deletingSkill) return;
 
-    try {
-      const skillId = getSkillId(deletingSkill);
-      await deleteSkill(skillId);
-      setSkills((currentRows) => currentRows.filter((skill) => getSkillId(skill) !== skillId));
-      setDeletingSkill(null);
-      setSuccessMessage("Xóa kỹ năng thành công.");
-    } catch (deleteError) {
-      setError(deleteError?.message || "Không thể xóa kỹ năng.");
-      throw deleteError;
-    }
+    const skillId = getSkillId(deletingSkill);
+    await deleteSkill(skillId);
+    setSkills((currentRows) => currentRows.filter((skill) => getSkillId(skill) !== skillId));
+    setDeletingSkill(null);
+    toast.success("Xóa kỹ năng thành công.");
   };
 
-  if (isLoading) {
-    return (
-      <div className="admin-loading-state">
-        <LoaderCircle size={20} className="spin" /> Đang tải dữ liệu kỹ năng...
-      </div>
-    );
-  }
+  const columns = [
+    {
+      key: "name",
+      label: "Tên kỹ năng",
+      sortable: true,
+      render: (skill) => <strong>{skill.name}</strong>,
+    },
+    {
+      key: "description",
+      label: "Mô tả",
+      render: (skill) => skill.description?.trim() || "—",
+    },
+    {
+      key: "actions",
+      label: "",
+      width: 60,
+      align: "right",
+      render: (skill) => (
+        <RowActions
+          items={[
+            {
+              label: "Sửa",
+              icon: <Pencil size={16} />,
+              onClick: () => setEditingSkill(skill),
+            },
+            {
+              label: "Xóa",
+              icon: <Trash2 size={16} />,
+              danger: true,
+              onClick: () => setDeletingSkill(skill),
+            },
+          ]}
+        />
+      ),
+    },
+  ];
 
   return (
     <>
       <AdminPageHeader
-        breadcrumb={["Tổng quan", "Kỹ năng"]}
         title="Quản lý kỹ năng"
         subtitle="Thêm, chỉnh sửa và xóa các skill dùng trong hệ thống tiến độ học tập"
+        icon={<Brain size={22} />}
         action={
           <button className="add-btn" onClick={() => setIsCreateOpen(true)}>
             <Plus size={18} />
@@ -134,59 +141,24 @@ export default function AdminSkills() {
         }
       />
 
-      <div className="admin-section-card" style={{ marginBottom: 24 }}>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ flex: "1 1 320px" }}>
-            <SearchBar placeholder="Tìm theo tên hoặc mô tả kỹ năng..." onChange={setSearch} />
-          </div>
-          <button className="cancel-btn" onClick={() => loadSkills({ preserveMessage: true })}>
-            <RefreshCw size={16} />
-            Làm mới
-          </button>
-        </div>
-
-        {(error || successMessage) && (
-          <div style={{ marginTop: 16, color: error ? "#dc2626" : "#16a34a" }}>
-            {error || successMessage}
-          </div>
-        )}
-
-        <div style={{ marginTop: 16, color: "#64748b" }}>
-          Tổng số kỹ năng: {skills.length} • Hiển thị: {filteredSkills.length}
-        </div>
-      </div>
-
-      <div className="skill-grid">
-        {filteredSkills.map((skill) => (
-          <div key={getSkillId(skill)} className="skill-card">
-            <div className="skill-card-actions">
-              <button className="icon-btn" onClick={() => setEditingSkill(skill)}>
-                <Pencil size={16} />
-              </button>
-              <button className="icon-btn danger" onClick={() => setDeletingSkill(skill)}>
-                <Trash2 size={16} />
-              </button>
-            </div>
-
-            <div className="skill-card-icon">
-              <Brain size={22} />
-            </div>
-
-            <div className="skill-card-title">{skill.name}</div>
-            <div className="skill-card-meta">ID: {getSkillId(skill) || "Chưa có mã"}</div>
-
-            <div className="skill-card-description">
-              {skill.description?.trim() || "Chưa có mô tả cho kỹ năng này."}
-            </div>
-
-          </div>
-        ))}
-      </div>
-
-      {!filteredSkills.length && (
-        <div className="admin-section-card" style={{ color: "#64748b", textAlign: "center" }}>
-          Chưa tìm thấy kỹ năng phù hợp.
-        </div>
+      {error ? (
+        <ErrorState description={error} onRetry={loadSkills} />
+      ) : (
+        <DataTable
+          columns={columns}
+          rows={skills}
+          getRowKey={getSkillId}
+          loading={isLoading}
+          searchPlaceholder="Tìm theo tên hoặc mô tả kỹ năng..."
+          searchKeys={["name", "description"]}
+          emptyState={
+            <EmptyState
+              icon={<Brain size={28} />}
+              title="Chưa có kỹ năng"
+              description="Chưa tìm thấy kỹ năng phù hợp. Thêm kỹ năng mới để bắt đầu."
+            />
+          }
+        />
       )}
 
       <SkillFormModal

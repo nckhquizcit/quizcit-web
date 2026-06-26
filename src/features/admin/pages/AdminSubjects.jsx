@@ -8,6 +8,7 @@ import SearchBar from "../components/SearchBar";
 import AddSubjectModal from "../components/modals/AddSubjectModal";
 import EditSubjectModal from "../components/modals/EditSubjectModal";
 import ConfirmDeleteModal from "../components/modals/ConfirmDeleteModal";
+import EmptyState from "../../../components/ui/EmptyState/EmptyState";
 import { createSubject, updateSubject, deleteSubject, getChaptersBySubject, getSubjects } from "../../../services/contentService";
 import { getErrorMessage } from "../../../services/apiClient";
 
@@ -150,7 +151,11 @@ export default function AdminSubjects() {
       {loadError && <div className="admin-page-state error">{loadError}</div>}
       {actionError && <div className="admin-page-state error">{actionError}</div>}
       {!loading && !loadError && filteredSubjects.length === 0 && (
-        <div className="admin-page-state">Chưa có môn học nào.</div>
+        <EmptyState
+          icon={<BookOpen size={28} />}
+          title="Chưa có môn học"
+          description="Thêm môn học mới để bắt đầu xây dựng nội dung."
+        />
       )}
 
       {/* ===== SUBJECT GRID ===== */}

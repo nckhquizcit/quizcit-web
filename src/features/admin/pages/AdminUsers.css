@@ -180,3 +180,28 @@
   background: #fef2f2;
   color: #dc2626;
 }
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.status-badge--success {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+.status-badge--warning {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+.status-badge--error {
+  background: var(--color-error-soft);
+  color: var(--color-error);
+}
+.status-badge--muted {
+  background: var(--color-surface-3);
+  color: var(--color-text-muted);
+}
