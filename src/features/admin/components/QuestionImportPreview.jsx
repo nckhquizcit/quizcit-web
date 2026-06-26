@@ -22,6 +22,20 @@ const getSkillNames = (skills = [], skillIds = []) => {
     .join(", ");
 };
 
+const normalizeId = (value) => (value === undefined || value === null ? "" : String(value));
+
+const ensureSinglePrimarySkill = (rowSkills = []) => {
+  if (!rowSkills.length) return [];
+
+  const primaryIndex = rowSkills.findIndex((skill) => skill.primary);
+  const safePrimaryIndex = primaryIndex >= 0 ? primaryIndex : 0;
+
+  return rowSkills.map((skill, index) => ({
+    ...skill,
+    primary: index === safePrimaryIndex,
+  }));
+};
+
 export default function QuestionImportPreview({
   rows = [],
   subjects = [],
@@ -46,7 +60,45 @@ export default function QuestionImportPreview({
         const hasError = row.errors?.length > 0;
         const subjectName = getNameById(subjects, row.subjectId, "Chưa chọn môn");
         const chapterName = getNameById(chapters, row.chapterId, "Chưa chọn chương");
-        const skillNames = getSkillNames(skills, row.skillIds);
+        const rowSkills = row.skills || [];
+        const skillNames = getSkillNames(skills, rowSkills.map((skill) => skill.skillId));
+
+        const handleSkillToggle = (skill) => {
+          const skillId = normalizeId(skill.skillId || skill.id);
+          const exists = rowSkills.some((item) => normalizeId(item.skillId) === skillId);
+          const nextSkills = exists
+            ? rowSkills.filter((item) => normalizeId(item.skillId) !== skillId)
+            : [
+                ...rowSkills,
+                {
+                  skillId,
+                  name: skill.name,
+                  weight: rowSkills.length === 0 ? "1" : "0",
+                  primary: rowSkills.length === 0,
+                },
+              ];
+
+          onChangeRow?.(row.id, { skills: ensureSinglePrimarySkill(nextSkills) });
+        };
+
+        const handlePrimarySkillChange = (skillId) => {
+          onChangeRow?.(row.id, {
+            skills: rowSkills.map((skill) => ({
+              ...skill,
+              primary: normalizeId(skill.skillId) === normalizeId(skillId),
+            })),
+          });
+        };
+
+        const handleSkillWeightChange = (skillId, weight) => {
+          onChangeRow?.(row.id, {
+            skills: rowSkills.map((skill) =>
+              normalizeId(skill.skillId) === normalizeId(skillId)
+                ? { ...skill, weight }
+                : skill,
+            ),
+          });
+        };
 
         return (
           <article
@@ -148,6 +200,64 @@ export default function QuestionImportPreview({
               <span>Môn: {subjectName}</span>
               <span>Chương: {chapterName}</span>
               <span>Kỹ năng: {skillNames}</span>
+            </div>
+
+            <div className="question-import-skill-editor">
+              <div className="field-inline-header">
+                <span>Kỹ năng của câu này</span>
+                <span className="skill-hint">Tổng trọng số cần bằng 1.</span>
+              </div>
+              <div className="choice-list import-skill-choice-list">
+                {skills.map((skill) => {
+                  const skillId = normalizeId(skill.skillId || skill.id);
+                  const isSelected = rowSkills.some((item) => normalizeId(item.skillId) === skillId);
+
+                  return (
+                    <button
+                      type="button"
+                      className={isSelected ? "selected" : ""}
+                      onClick={() => handleSkillToggle(skill)}
+                      key={`${row.id}-${skillId}`}
+                      disabled={disabled}
+                    >
+                      <span />
+                      {skill.name}
+                    </button>
+                  );
+                })}
+                {!skills.length && <span>Chưa tải được danh sách kỹ năng</span>}
+              </div>
+
+              {rowSkills.length > 0 && (
+                <div className="selected-skill-list">
+                  {rowSkills.map((skill) => (
+                    <div className="selected-skill-row" key={`${row.id}-${skill.skillId}`}>
+                      <strong>{skill.name}</strong>
+                      <button
+                        className={skill.primary ? "primary-skill-btn active" : "primary-skill-btn"}
+                        type="button"
+                        onClick={() => handlePrimarySkillChange(skill.skillId)}
+                        disabled={disabled}
+                      >
+                        {skill.primary ? "Kỹ năng chính" : "Đặt làm chính"}
+                      </button>
+                      <input
+                        type="number"
+                        min="0"
+                        max="1"
+                        step="0.1"
+                        value={skill.weight}
+                        onChange={(event) => handleSkillWeightChange(skill.skillId, event.target.value)}
+                        disabled={disabled}
+                        placeholder="0 đến 1"
+                      />
+                      <button type="button" onClick={() => handleSkillToggle(skill)} disabled={disabled}>
+                        Bỏ chọn
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {(row.errors?.length > 0 || row.warnings?.length > 0) && (

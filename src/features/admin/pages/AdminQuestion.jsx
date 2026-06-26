@@ -14,6 +14,7 @@ import { useToast } from "../../../components/ui/Toast/Toast";
 import {
   createQuestion,
   deleteQuestion,
+  getQuestionById,
   getQuestionsByChapter,
   updateQuestion,
 } from "../../../services/quizService";
@@ -188,11 +189,13 @@ export default function AdminQuestions() {
   const [subjects, setSubjects] = useState([]);
   const [chapters, setChapters] = useState([]);
   const [subjectFilter, setSubjectFilter] = useState("ALL");
+  const [difficultyFilter, setDifficultyFilter] = useState("ALL");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [openAddQuestion, setOpenAddQuestion] = useState(false);
   const [openImportQuestions, setOpenImportQuestions] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
+  const [loadingEditQuestionId, setLoadingEditQuestionId] = useState("");
   const [deletingQuestion, setDeletingQuestion] = useState(null);
   const [skillPreviewQuestion, setSkillPreviewQuestion] = useState(null);
 
@@ -248,10 +251,14 @@ export default function AdminQuestions() {
 
   const visibleQuestions = useMemo(
     () =>
-      subjectFilter === "ALL"
-        ? questionRows
-        : questionRows.filter((question) => question.subjectId === subjectFilter),
-    [questionRows, subjectFilter],
+      questionRows.filter((question) => {
+        const matchesSubject = subjectFilter === "ALL" || question.subjectId === subjectFilter;
+        const matchesDifficulty =
+          difficultyFilter === "ALL" ||
+          getDifficultyLabel(question.difficultyB ?? 0) === difficultyFilter;
+        return matchesSubject && matchesDifficulty;
+      }),
+    [questionRows, subjectFilter, difficultyFilter],
   );
 
   const handleCreateQuestion = async (formValues) => {
@@ -310,7 +317,44 @@ export default function AdminQuestions() {
     };
   };
 
+  const handleStartEditQuestion = async (row) => {
+    if (!row?.questionId || loadingEditQuestionId) return;
+
+    try {
+      setLoadingEditQuestionId(row.questionId);
+      const detail = await getQuestionById(row.questionId);
+      const nextQuestion = enrichQuestion(
+        {
+          ...row,
+          ...detail,
+          subjectId: detail?.subjectId ?? row.subjectId,
+          chapterId: detail?.chapterId ?? row.chapterId,
+          options: detail?.options || [],
+          skills: detail?.skills ?? row.skills,
+        },
+        chapterMap,
+        subjectMap,
+      );
+
+      if (!nextQuestion.options?.length) {
+        toast.error("Không thể tải đáp án của câu hỏi. Vui lòng thử lại trước khi chỉnh sửa.");
+        return;
+      }
+
+      setEditingQuestion(nextQuestion);
+    } catch (detailError) {
+      toast.error(getErrorMessage(detailError, "Không thể tải chi tiết câu hỏi để chỉnh sửa."));
+    } finally {
+      setLoadingEditQuestionId("");
+    }
+  };
+
   const handleUpdateQuestion = async (formValues) => {
+    if (!editingQuestion?.options?.length) {
+      toast.error("Chưa tải đủ đáp án của câu hỏi. Không thể lưu chỉnh sửa.");
+      return;
+    }
+
     const updated = await updateQuestion(editingQuestion.questionId, {
       subjectId: formValues.subjectId,
       chapterId: formValues.chapterId,
@@ -404,7 +448,8 @@ export default function AdminQuestions() {
             {
               label: "Chỉnh sửa",
               icon: <Pencil size={16} />,
-              onClick: () => setEditingQuestion(row),
+              disabled: Boolean(loadingEditQuestionId),
+              onClick: () => handleStartEditQuestion(row),
             },
             {
               label: "Xóa",
@@ -457,18 +502,30 @@ export default function AdminQuestions() {
             />
           }
           toolbarExtra={
-            <select
-              className="filter-select"
-              value={subjectFilter}
-              onChange={(event) => setSubjectFilter(event.target.value)}
-            >
-              <option value="ALL">Tất cả môn học</option>
-              {subjects.map((subject) => (
-                <option key={subject.subjectId} value={subject.subjectId}>
-                  {subject.name}
-                </option>
-              ))}
-            </select>
+            <>
+              <select
+                className="filter-select"
+                value={subjectFilter}
+                onChange={(event) => setSubjectFilter(event.target.value)}
+              >
+                <option value="ALL">Tất cả môn học</option>
+                {subjects.map((subject) => (
+                  <option key={subject.subjectId} value={subject.subjectId}>
+                    {subject.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="filter-select"
+                value={difficultyFilter}
+                onChange={(event) => setDifficultyFilter(event.target.value)}
+              >
+                <option value="ALL">Tất cả độ khó</option>
+                <option value="Easy">Dễ</option>
+                <option value="Medium">Trung bình</option>
+                <option value="Hard">Khó</option>
+              </select>
+            </>
           }
         />
       )}

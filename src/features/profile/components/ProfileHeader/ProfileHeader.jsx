@@ -62,7 +62,9 @@ export default function ProfileHeader({
             <Zap size={16} className="icon-xp" />
             <span className="stat-label">Điểm XP</span>
           </div>
-          <span className="stat-value text-green">{user.xp}</span>
+          <span className="stat-value stat-value--muted">
+            {user.xpLabel || "Đang phát triển"}
+          </span>
         </div>
         <div className="stat-item">
           <div className="stat-label-group">

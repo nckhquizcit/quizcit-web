@@ -12,9 +12,16 @@ import {
 } from "../../../../services/quizService";
 import { getErrorMessage, getStoredUser } from "../../../../services/apiClient";
 import { Button, ErrorState, Spinner } from "../../../../components/ui";
+import {
+  clampQuizPage,
+  getPageNavigationTarget,
+  getQuestionNavigationTarget,
+  getTotalQuizPages,
+  QUIZ_PAGE_SIZE,
+} from "./QuizTakingPage.logic.js";
 import "./QuizTakingPage.css";
 
-const PAGE_SIZE = 5;
+const PAGE_SIZE = QUIZ_PAGE_SIZE;
 
 const getDurationSeconds = (quizData) => {
   const durationMinutes = Number(quizData?.duration ?? quizData?.durationMinutes);
@@ -33,6 +40,8 @@ export default function QuizTakingPage() {
   const [answers, setAnswers] = useState({});
   const [flaggedQuestionIds, setFlaggedQuestionIds] = useState(() => new Set());
   const [currentPage, setCurrentPage] = useState(0);
+  const [activeQuestionId, setActiveQuestionId] = useState(null);
+  const [pendingScrollQuestionId, setPendingScrollQuestionId] = useState(null);
   const [activeSkillQuestion, setActiveSkillQuestion] = useState(null);
   const [timeLeft, setTimeLeft] = useState(0);
   const [hasTimeLimit, setHasTimeLimit] = useState(false);
@@ -43,6 +52,7 @@ export default function QuizTakingPage() {
   const submittedRef = useRef(false);
   const timerStartedRef = useRef(false);
   const autoSubmittedRef = useRef(false);
+  const questionRefs = useRef(new Map());
 
   useEffect(() => {
     if (startedRef.current) return;
@@ -65,18 +75,34 @@ export default function QuizTakingPage() {
         const draft = loadQuizDraft(quizId, currentUser.userId);
 
         const durationSeconds = getDurationSeconds(quizData);
+        const loadedQuestions = Array.isArray(questionsData)
+          ? questionsData
+          : [];
+        const draftPage = Number(draft?.currentPage ?? 0);
+        const safeDraftPage = clampQuizPage(
+          draftPage,
+          getTotalQuizPages(loadedQuestions.length, PAGE_SIZE),
+        );
+        const initialQuestionId = getPageNavigationTarget(
+          loadedQuestions,
+          safeDraftPage,
+          PAGE_SIZE,
+        ).questionId;
 
         setQuiz(quizData);
-        setQuestions(Array.isArray(questionsData) ? questionsData : []);
+        setQuestions(loadedQuestions);
         setAttempt(attemptData);
+        setCurrentPage(safeDraftPage);
+        setActiveQuestionId(initialQuestionId);
         setHasTimeLimit(durationSeconds > 0);
         setTimeLeft(durationSeconds);
         timerStartedRef.current = durationSeconds > 0;
         autoSubmittedRef.current = false;
 
-        if (draft?.answers) {
-          setAnswers(draft.answers);
-          setCurrentPage(Number(draft.currentPage || 0));
+        if (draft) {
+          if (draft.answers) {
+            setAnswers(draft.answers);
+          }
           setFlaggedQuestionIds(new Set(draft.flaggedQuestionIds || []));
         }
       } catch (loadError) {
@@ -91,7 +117,7 @@ export default function QuizTakingPage() {
   }, [currentUser?.userId, navigate, quizId]);
 
   const totalPages = useMemo(
-    () => Math.max(1, Math.ceil(questions.length / PAGE_SIZE)),
+    () => getTotalQuizPages(questions.length, PAGE_SIZE),
     [questions.length],
   );
 
@@ -99,6 +125,51 @@ export default function QuizTakingPage() {
     const start = currentPage * PAGE_SIZE;
     return questions.slice(start, start + PAGE_SIZE);
   }, [currentPage, questions]);
+
+  const setQuestionCardRef = useCallback((questionId, element) => {
+    if (!questionId) return;
+
+    if (element) {
+      questionRefs.current.set(questionId, element);
+    } else {
+      questionRefs.current.delete(questionId);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!pendingScrollQuestionId) return undefined;
+
+    const targetIsVisible = visibleQuestions.some(
+      (question) => question.questionId === pendingScrollQuestionId,
+    );
+    if (!targetIsVisible) return undefined;
+
+    const frame = window.requestAnimationFrame(() => {
+      const target = questionRefs.current.get(pendingScrollQuestionId);
+      target?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+        inline: "nearest",
+      });
+      setPendingScrollQuestionId(null);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [pendingScrollQuestionId, visibleQuestions]);
+
+  useEffect(() => {
+    if (visibleQuestions.length === 0) {
+      if (activeQuestionId !== null) setActiveQuestionId(null);
+      return;
+    }
+
+    const activeIsVisible = visibleQuestions.some(
+      (question) => question.questionId === activeQuestionId,
+    );
+    if (!activeIsVisible) {
+      setActiveQuestionId(visibleQuestions[0].questionId);
+    }
+  }, [activeQuestionId, visibleQuestions]);
 
   useEffect(() => {
     if (!attempt || submittedRef.current || !currentUser?.userId) return;
@@ -177,6 +248,7 @@ export default function QuizTakingPage() {
   }, [answers, attempt, doSubmit, hasTimeLimit, timeLeft]);
 
   const handleAnswerChange = (questionId, optionId) => {
+    setActiveQuestionId(questionId);
     setAnswers((current) => ({ ...current, [questionId]: optionId }));
   };
 
@@ -190,11 +262,20 @@ export default function QuizTakingPage() {
   };
 
   const goToQuestion = (index) => {
-    setCurrentPage(Math.floor(index / PAGE_SIZE));
+    const target = getQuestionNavigationTarget(questions, index, PAGE_SIZE);
+    if (!target.questionId) return;
+
+    setCurrentPage(target.page);
+    setActiveQuestionId(target.questionId);
+    setPendingScrollQuestionId(target.questionId);
   };
 
   const goToPage = (page) => {
-    setCurrentPage(Math.min(Math.max(page, 0), totalPages - 1));
+    const target = getPageNavigationTarget(questions, page, PAGE_SIZE);
+
+    setCurrentPage(target.page);
+    setActiveQuestionId(target.questionId);
+    setPendingScrollQuestionId(target.questionId);
   };
 
   const handleSubmit = async () => {
@@ -310,7 +391,23 @@ export default function QuizTakingPage() {
               return (
                 <article
                   key={question.questionId}
-                  className={`quiz-question-card ${flagged ? "is-flagged" : ""}`}
+                  ref={(element) =>
+                    setQuestionCardRef(question.questionId, element)
+                  }
+                  className={[
+                    "quiz-question-card",
+                    flagged ? "is-flagged" : "",
+                    activeQuestionId === question.questionId
+                      ? "is-active"
+                      : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  tabIndex={-1}
+                  onClick={() => setActiveQuestionId(question.questionId)}
+                  onFocusCapture={() =>
+                    setActiveQuestionId(question.questionId)
+                  }
                 >
                   <div className="question-top">
                     <div className="question-number">Câu {questionIndex + 1}</div>
@@ -406,13 +503,12 @@ export default function QuizTakingPage() {
               {questions.map((question, index) => {
                 const answered = answers[question.questionId] != null;
                 const flagged = flaggedQuestionIds.has(question.questionId);
-                const isCurrentPage =
-                  Math.floor(index / PAGE_SIZE) === currentPage;
+                const isActive = activeQuestionId === question.questionId;
                 const classes = [
                   "quiz-nav-item",
                   answered ? "answered" : "",
                   flagged ? "flagged" : "",
-                  isCurrentPage ? "in-current-page" : "",
+                  isActive ? "is-active" : "",
                 ]
                   .filter(Boolean)
                   .join(" ");
@@ -423,6 +519,8 @@ export default function QuizTakingPage() {
                     type="button"
                     className={classes}
                     onClick={() => goToQuestion(index)}
+                    aria-current={isActive ? "true" : undefined}
+                    aria-label={`Đi tới câu ${index + 1}`}
                   >
                     {index + 1}
                     {flagged && <span className="quiz-nav-flag" />}
@@ -476,7 +574,7 @@ export default function QuizTakingPage() {
               {(activeSkillQuestion.skills || []).map((skill) => (
                 <li key={skill.skillId} className="skill-item">
                   <span className="skill-item__name">
-                    {skill.name || skill.skillId}
+                    {skill.name || "Kỹ năng chưa đặt tên"}
                   </span>
                   {skill.primary && (
                     <span className="skill-primary-badge">Chính</span>

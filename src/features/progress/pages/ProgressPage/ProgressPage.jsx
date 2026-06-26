@@ -16,6 +16,14 @@ import "./ProgressPage.css";
 const thetaToPercent = (theta) =>
   Math.max(0, Math.min(100, Math.round(((Number(theta) + 3) / 6) * 100)));
 
+const getSkillDisplayName = (skillNameById, skillId) =>
+  skillNameById.get(skillId) || "Kỹ năng chưa đặt tên";
+
+const hasRealStandardError = (value) => {
+  const numericValue = Number(value);
+  return value !== null && value !== undefined && Number.isFinite(numericValue) && numericValue !== 0;
+};
+
 export default function ProgressPage() {
   const [abilities, setAbilities] = useState([]);
   const [histories, setHistories] = useState([]);
@@ -124,16 +132,18 @@ export default function ProgressPage() {
                 >
                   <div className="skill-progress-card__head">
                     <span className="skill-progress-card__name">
-                      {skillNameById.get(ability.skillId) || ability.skillId}
+                      {getSkillDisplayName(skillNameById, ability.skillId)}
                     </span>
                     <strong className="skill-progress-card__theta">
                       {ability.theta.toFixed(2)}
                     </strong>
                   </div>
                   <ProgressBar value={percent} />
-                  <small className="skill-progress-card__se">
-                    Sai số chuẩn: {ability.standardError ?? "—"}
-                  </small>
+                  {hasRealStandardError(ability.standardError) && (
+                    <small className="skill-progress-card__se">
+                      Sai số chuẩn: {Number(ability.standardError).toFixed(2)}
+                    </small>
+                  )}
                 </Card>
               );
             })}
@@ -162,7 +172,7 @@ export default function ProgressPage() {
               return (
                 <div className="progress-history-row" key={item.id}>
                   <span className="progress-history-row__name">
-                    {skillNameById.get(item.skillId) || item.skillId}
+                    {getSkillDisplayName(skillNameById, item.skillId)}
                   </span>
                   <span className="progress-history-row__theta">
                     {item.theta.toFixed(2)}

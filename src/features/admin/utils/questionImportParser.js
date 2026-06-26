@@ -1,4 +1,5 @@
 export const IMPORT_OPTION_KEYS = ["A", "B", "C", "D"];
+export const SKILL_WEIGHT_SUM_TOLERANCE = 0.000001;
 
 const DIFFICULTY_LABELS = {
   "-1": "Easy",
@@ -21,7 +22,14 @@ const CSV_COLUMN_ALIASES = {
   correctKey: ["correct", "correctanswer", "correctoption", "dapan", "dapandung", "answer"],
   explanation: ["explanation", "explain", "giaithich", "loigiai"],
   difficulty: ["difficulty", "dokho"],
+  subjectId: ["subjectid", "subject", "monhoc", "mon", "tenmonhoc"],
+  chapterId: ["chapterid", "chapter", "chuong", "tenchuong"],
+  skills: ["skills", "skill", "skillids", "kynang", "dskynang"],
+  weights: ["weights", "weight", "skillweights", "trongso", "trongsokynang"],
+  primarySkill: ["primaryskill", "mainskill", "kynangchinh", "skillchinh"],
 };
+
+const YES_VALUES = new Set(["1", "true", "yes", "y", "x", "main", "primary", "chinh"]);
 
 const stripDiacritics = (value = "") =>
   String(value)
@@ -30,15 +38,17 @@ const stripDiacritics = (value = "") =>
     .replace(/đ/g, "d")
     .replace(/Đ/g, "D");
 
-const compactKey = (value = "") =>
+export const compactImportKey = (value = "") =>
   stripDiacritics(value)
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
 
 const normalizeText = (value = "") => String(value ?? "").replace(/\s+/g, " ").trim();
 
+const normalizeId = (value) => (value === undefined || value === null ? "" : String(value));
+
 export const normalizeImportDifficulty = (value, fallback = "Medium") => {
-  const normalizedKey = compactKey(value);
+  const normalizedKey = compactImportKey(value);
   return DIFFICULTY_LABELS[normalizedKey] || fallback;
 };
 
@@ -47,6 +57,12 @@ export const createEmptyImportOptions = () =>
     key,
     content: "",
   }));
+
+const splitListCell = (value = "") =>
+  String(value || "")
+    .split(/[;|\n]+/)
+    .map((item) => normalizeText(item))
+    .filter(Boolean);
 
 const normalizeOptionList = (options = []) => {
   const byKey = new Map(
@@ -82,6 +98,49 @@ const getSingleCorrectKey = (value = "") => {
   };
 };
 
+export const normalizeImportSkills = (skills = []) =>
+  (skills || [])
+    .map((skill, index) => ({
+      skillId: normalizeId(skill?.skillId ?? skill?.id),
+      name: normalizeText(skill?.name ?? skill?.skillName ?? skill?.label ?? skill?.skillId ?? skill?.id),
+      weight:
+        skill?.weight === undefined || skill?.weight === null
+          ? ""
+          : String(skill.weight),
+      primary: Boolean(skill?.primary ?? skill?.isPrimary ?? index === 0),
+    }))
+    .filter((skill) => skill.skillId || skill.name);
+
+function parseCsvSkills(skillValue = "", weightValue = "", primaryValue = "") {
+  const skillTokens = splitListCell(skillValue);
+  const weightTokens = splitListCell(weightValue);
+  const primaryTokens = splitListCell(primaryValue);
+
+  if (!skillTokens.length) return [];
+
+  const hasPerSkillPrimary = primaryTokens.length === skillTokens.length;
+  const primaryKey = compactImportKey(primaryValue);
+  const primaryIndex = Number.parseInt(primaryValue, 10);
+
+  return skillTokens.map((skillToken, index) => {
+    const tokenKey = compactImportKey(skillToken);
+    const perSkillPrimary = hasPerSkillPrimary
+      ? YES_VALUES.has(compactImportKey(primaryTokens[index]))
+      : false;
+    const explicitPrimary =
+      perSkillPrimary ||
+      primaryKey === tokenKey ||
+      (Number.isInteger(primaryIndex) && primaryIndex === index + 1);
+
+    return {
+      skillId: skillToken,
+      name: skillToken,
+      weight: weightTokens[index] ?? "",
+      primary: explicitPrimary || (!primaryValue && index === 0),
+    };
+  });
+}
+
 export function validateQuestionImportRow(row, { requireSubject = true, requireChapter = true } = {}) {
   const errors = [];
   const warnings = [];
@@ -89,6 +148,7 @@ export function validateQuestionImportRow(row, { requireSubject = true, requireC
   const options = normalizeOptionList(row?.options);
   const filledOptions = options.filter((option) => option.content);
   const correctKey = String(row?.correctKey || "").toUpperCase();
+  const skills = normalizeImportSkills(row?.skills);
 
   if (!content) {
     errors.push("Thiếu nội dung câu hỏi.");
@@ -116,8 +176,41 @@ export function validateQuestionImportRow(row, { requireSubject = true, requireC
     errors.push("Chưa chọn chương.");
   }
 
+  if (skills.length > 0) {
+    const skillIds = new Set();
+    const primaryCount = skills.filter((skill) => skill.primary).length;
+    let weightSum = 0;
+
+    if (primaryCount !== 1) {
+      errors.push("Mỗi câu cần đúng một kỹ năng chính.");
+    }
+
+    skills.forEach((skill) => {
+      const skillKey = normalizeId(skill.skillId);
+      const weight = Number(skill.weight);
+
+      if (!skillKey) {
+        errors.push(`Không map được kỹ năng "${skill.name || "không rõ"}".`);
+      } else if (skillIds.has(skillKey)) {
+        errors.push(`Kỹ năng "${skill.name || skill.skillId}" bị chọn lặp.`);
+      } else {
+        skillIds.add(skillKey);
+      }
+
+      if (skill.weight === "" || !Number.isFinite(weight) || weight < 0) {
+        errors.push(`Trọng số của kỹ năng "${skill.name || skill.skillId}" phải là số không âm.`);
+      } else {
+        weightSum += weight;
+      }
+    });
+
+    if (Math.abs(weightSum - 1) > SKILL_WEIGHT_SUM_TOLERANCE) {
+      errors.push("Tổng trọng số kỹ năng của mỗi câu phải bằng 1.");
+    }
+  }
+
   return {
-    errors,
+    errors: [...new Set([...(row?.mappingErrors || []), ...errors])],
     warnings,
   };
 }
@@ -131,9 +224,10 @@ export function createQuestionImportRow(partial = {}, index = 0) {
     correctKey: correctResult.correctKey,
     explanation: normalizeText(partial.explanation),
     difficulty: normalizeImportDifficulty(partial.difficulty, "Medium"),
-    subjectId: partial.subjectId || "",
-    chapterId: partial.chapterId || "",
-    skillIds: Array.isArray(partial.skillIds) ? partial.skillIds : [],
+    subjectId: normalizeText(partial.subjectId),
+    chapterId: normalizeText(partial.chapterId),
+    skills: normalizeImportSkills(partial.skills),
+    mappingErrors: partial.mappingErrors || [],
     sourceLine: partial.sourceLine || index + 1,
   };
   const validation = validateQuestionImportRow(row, {
@@ -301,10 +395,10 @@ function parseCsvTable(input = "") {
 }
 
 const getCsvColumnKey = (headerCell) => {
-  const normalizedHeader = compactKey(headerCell);
+  const normalizedHeader = compactImportKey(headerCell);
 
   return Object.entries(CSV_COLUMN_ALIASES).find(([, aliases]) =>
-    aliases.map(compactKey).includes(normalizedHeader),
+    aliases.map(compactImportKey).includes(normalizedHeader),
   )?.[0];
 };
 
@@ -326,6 +420,16 @@ const getCsvValue = (row, headerMap, columnKey, fallbackIndex) => {
   return row[index] ?? "";
 };
 
+export function detectCsvImport(input = "") {
+  const table = parseCsvTable(input);
+  if (!table.length) return false;
+  if (hasCsvHeader(table[0])) return true;
+  return table.some((row) => row.length >= 6) || String(input).split(/\r?\n/).some((line) => {
+    const commaCount = (line.match(/,/g) || []).length;
+    return commaCount >= 5;
+  });
+}
+
 export function parseQuestionsFromCsv(input = "") {
   const table = parseCsvTable(input);
   if (!table.length) return [];
@@ -345,6 +449,13 @@ export function parseQuestionsFromCsv(input = "") {
         correctKey: getCsvValue(row, headerMap, "correctKey", 5),
         explanation: getCsvValue(row, headerMap, "explanation", 6),
         difficulty: getCsvValue(row, headerMap, "difficulty", 7),
+        subjectId: getCsvValue(row, headerMap, "subjectId", 8),
+        chapterId: getCsvValue(row, headerMap, "chapterId", 9),
+        skills: parseCsvSkills(
+          getCsvValue(row, headerMap, "skills", 10),
+          getCsvValue(row, headerMap, "weights", 11),
+          getCsvValue(row, headerMap, "primarySkill", 12),
+        ),
         sourceLine: firstRowHasHeader ? index + 2 : index + 1,
       },
       index,
@@ -353,7 +464,9 @@ export function parseQuestionsFromCsv(input = "") {
 }
 
 export function parseQuestionImport(input = "", sourceType = "text") {
-  if (sourceType === "csv") {
+  const effectiveSourceType = sourceType === "auto" ? (detectCsvImport(input) ? "csv" : "text") : sourceType;
+
+  if (effectiveSourceType === "csv") {
     return parseQuestionsFromCsv(input);
   }
 

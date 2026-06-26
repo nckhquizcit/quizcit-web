@@ -110,7 +110,7 @@ export default function HistoryPage() {
             questionCount: attempt.totalQuestion,
             score: Math.round(attempt.rawScore || 0),
             totalQuestions: attempt.totalQuestion,
-            powerIndex: Math.round((attempt.overallTheta || 0) * 100),
+            estimatedAbility: Number(attempt.overallTheta || 0),
             percentage: attempt.percentage,
           })),
         );

@@ -91,8 +91,8 @@ export default function HomePage() {
       chapter: subjectChapters[0] || null,
       reason:
         skillCount > 0
-          ? "Tiếp tục luyện tập để cải thiện theta theo kỹ năng."
-          : "Hoàn thành quiz đầu tiên để hệ thống bắt đầu đo tiến độ.",
+          ? "Tiếp tục luyện tập để cải thiện năng lực theo kỹ năng."
+          : "Hoàn thành quiz đầu tiên để hệ thống bắt đầu ước tính năng lực.",
     };
   });
 
@@ -144,7 +144,8 @@ export default function HomePage() {
             value={overallProgress}
             size={150}
             stroke={12}
-            sublabel="Tiến độ năng lực"
+            label={skillCount > 0 ? averageTheta.toFixed(2) : "—"}
+            sublabel="Mức năng lực ước tính"
           />
         </div>
       </section>
@@ -173,8 +174,8 @@ export default function HomePage() {
             <TrendingUp size={22} />
           </span>
           <div className="stat-card__body">
-            <h3>{overallProgress}%</h3>
-            <p>Tiến độ năng lực</p>
+            <h3>{skillCount > 0 ? averageTheta.toFixed(2) : "—"}</h3>
+            <p>Mức năng lực ước tính</p>
           </div>
         </Card>
       </section>

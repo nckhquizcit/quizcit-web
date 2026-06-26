@@ -15,9 +15,9 @@ D. Quản lý tài khoản
 Đáp án: B
 Độ khó: Easy`;
 
-export const QUESTION_IMPORT_CSV_TEMPLATE = `Câu hỏi,A,B,C,D,Đáp án,Giải thích,Độ khó
-"HTML là viết tắt của gì?","Hyper Text Markup Language","High Text Machine Language","Hyper Tool Multi Language","Home Tool Markup Language","A","HTML là ngôn ngữ đánh dấu siêu văn bản.","Medium"
-"CSS dùng để làm gì?","Tạo database","Tạo giao diện và định dạng trang web","Chạy server","Quản lý tài khoản","B","","Easy"`;
+export const QUESTION_IMPORT_CSV_TEMPLATE = `Câu hỏi,A,B,C,D,Đáp án,Giải thích,Độ khó,Môn học,Chương,Kỹ năng,Trọng số,Kỹ năng chính
+"HTML là viết tắt của gì?","Hyper Text Markup Language","High Text Machine Language","Hyper Tool Multi Language","Home Tool Markup Language","A","HTML là ngôn ngữ đánh dấu siêu văn bản.","Medium","Nhập tên hoặc ID môn học","Nhập tên hoặc ID chương","Nhập tên hoặc ID kỹ năng","1","Nhập kỹ năng chính"
+"CSS dùng để làm gì?","Tạo database","Tạo giao diện và định dạng trang web","Chạy server","Quản lý tài khoản","B","","Easy","","","Tên kỹ năng 1; Tên kỹ năng 2","0.7; 0.3","Tên kỹ năng 1"`;
 
 export function downloadQuestionImportTemplate(type = "csv") {
   const isTextTemplate = type === "txt";

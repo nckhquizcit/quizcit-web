@@ -119,6 +119,10 @@
   font-size: var(--fs-xl);
   font-weight: 800;
 }
+.stat-value--muted {
+  color: var(--color-text-muted);
+  font-size: var(--fs-sm);
+}
 .text-green {
   color: var(--color-primary-700);
 }

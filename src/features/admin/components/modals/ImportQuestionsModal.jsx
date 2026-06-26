@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Download, FileText, FileUp, Search, Upload } from "lucide-react";
+import { Download, FileText, FileUp, Upload } from "lucide-react";
 
 import QuestionImportPreview from "../QuestionImportPreview";
 import Modal from "../ui/Modal";
@@ -7,6 +7,8 @@ import { getSkills } from "../../services/skillService";
 import { getErrorMessage } from "../../../../services/apiClient";
 import { getChaptersBySubject } from "../../../../services/contentService";
 import {
+  compactImportKey,
+  detectCsvImport,
   parseQuestionImport,
   validateQuestionImportRow,
 } from "../../utils/questionImportParser";
@@ -25,6 +27,8 @@ const getChapterSubjectId = (chapter) =>
 
 const getSkillId = (skill) => skill?.skillId ?? skill?.id;
 
+const getSkillName = (skill) => skill?.name || skill?.skillName || "Kỹ năng chưa đặt tên";
+
 const normalizeSubject = (subject) => ({
   ...subject,
   subjectId: normalizeId(getSubjectId(subject)),
@@ -39,8 +43,40 @@ const normalizeChapter = (chapter, fallbackSubjectId = "") => ({
 const normalizeSkill = (skill) => ({
   ...skill,
   skillId: normalizeId(getSkillId(skill)),
-  name: skill?.name || skill?.skillName || "Kỹ năng chưa đặt tên",
+  name: getSkillName(skill),
 });
+
+const formatWeight = (value) => {
+  const numberValue = Number(value);
+  if (!Number.isFinite(numberValue)) return "";
+  return String(Number(numberValue.toFixed(6)));
+};
+
+const equalSkillWeight = (count) => (count > 0 ? formatWeight(1 / count) : "");
+
+const ensureSinglePrimarySkill = (skills = []) => {
+  if (!skills.length) return [];
+
+  const primaryIndex = skills.findIndex((skill) => skill.primary);
+  const safePrimaryIndex = primaryIndex >= 0 ? primaryIndex : 0;
+
+  return skills.map((skill, index) => ({
+    ...skill,
+    primary: index === safePrimaryIndex,
+  }));
+};
+
+const findByIdOrName = (items = [], ref = "", idKey) => {
+  const normalizedRef = normalizeId(ref).trim();
+  const compactRef = compactImportKey(normalizedRef);
+
+  if (!normalizedRef) return null;
+
+  return (
+    items.find((item) => normalizeId(item[idKey]) === normalizedRef || normalizeId(item.id) === normalizedRef) ||
+    items.find((item) => compactImportKey(item.name) === compactRef || compactImportKey(item.skillName) === compactRef)
+  );
+};
 
 const getDifficultyValue = (difficulty) => {
   if (difficulty === "Easy") return -1;
@@ -58,19 +94,17 @@ const toImportPayload = (row) => ({
   chapterId: row.chapterId,
   content: row.content.trim(),
   explanation: row.explanation?.trim() || "",
-  difficulty: row.difficulty,
   difficultyB: getDifficultyValue(row.difficulty),
-  skills: (row.skillIds || []).map((skillId, index) => ({
-    skillId,
-    weight: index === 0 ? 1 : 0,
-    primary: index === 0,
+  skills: (row.skills || []).map((skill) => ({
+    skillId: skill.skillId,
+    weight: Number(skill.weight),
+    primary: Boolean(skill.primary),
   })),
   options: (row.options || [])
     .filter((option) => option.content?.trim())
     .map((option) => ({
       content: option.content.trim(),
       corrected: row.correctKey === option.key,
-      isCorrect: row.correctKey === option.key,
     })),
 });
 
@@ -88,10 +122,9 @@ export default function ImportQuestionsModal({
     () => chapters.map((item) => normalizeChapter(item, normalizeId(getSubjectId(subject)))),
     [chapters, subject],
   );
-
   const [activeTab, setActiveTab] = useState("text");
   const [sourceText, setSourceText] = useState("");
-  const [sourceType, setSourceType] = useState("text");
+  const [sourceType, setSourceType] = useState("auto");
   const [sourceName, setSourceName] = useState("");
   const [rows, setRows] = useState([]);
   const [parseMessage, setParseMessage] = useState("");
@@ -103,19 +136,91 @@ export default function ImportQuestionsModal({
   const [defaultSubjectId, setDefaultSubjectId] = useState("");
   const [defaultChapterId, setDefaultChapterId] = useState("");
   const [defaultDifficulty, setDefaultDifficulty] = useState("Medium");
-  const [defaultSkillIds, setDefaultSkillIds] = useState([]);
   const [availableChapters, setAvailableChapters] = useState([]);
   const [availableSkills, setAvailableSkills] = useState([]);
-  const [skillSearch, setSkillSearch] = useState("");
   const [loadingChapters, setLoadingChapters] = useState(false);
-  const [loadingSkills, setLoadingSkills] = useState(false);
 
-  const filteredSkills = useMemo(() => {
-    const keyword = skillSearch.trim().toLowerCase();
-    if (!keyword) return availableSkills;
+  const allPreviewChapters = useMemo(() => {
+    const byId = new Map();
+    [...normalizedInitialChapters, ...availableChapters].forEach((item) => {
+      if (item?.chapterId) {
+        byId.set(item.chapterId, item);
+      }
+    });
+    return [...byId.values()];
+  }, [availableChapters, normalizedInitialChapters]);
 
-    return availableSkills.filter((item) => item.name?.toLowerCase().includes(keyword));
-  }, [availableSkills, skillSearch]);
+  const resolveImportedRow = useCallback((row) => {
+    const mappingErrors = [];
+    let subjectId = defaultSubjectId;
+    let chapterId = defaultChapterId;
+
+    if (row.subjectId) {
+      const matchedSubject = findByIdOrName(normalizedSubjects, row.subjectId, "subjectId");
+      if (matchedSubject) {
+        subjectId = matchedSubject.subjectId;
+      } else {
+        mappingErrors.push(`Không map được môn học "${row.subjectId}".`);
+        subjectId = "";
+      }
+    }
+
+    if (row.chapterId) {
+      const chapterCandidates = subjectId
+        ? allPreviewChapters.filter((item) => item.subjectId === subjectId)
+        : allPreviewChapters;
+      const matchedChapter =
+        findByIdOrName(chapterCandidates, row.chapterId, "chapterId") ||
+        findByIdOrName(allPreviewChapters, row.chapterId, "chapterId");
+
+      if (matchedChapter && (!subjectId || matchedChapter.subjectId === subjectId)) {
+        chapterId = matchedChapter.chapterId;
+      } else {
+        mappingErrors.push(`Không map được chương "${row.chapterId}".`);
+        chapterId = "";
+      }
+    }
+
+    const selectedChapter = allPreviewChapters.find((item) => item.chapterId === chapterId);
+    if (subjectId && selectedChapter && selectedChapter.subjectId !== subjectId) {
+      mappingErrors.push("Chương đã chọn không thuộc môn học của dòng này.");
+    }
+
+    const sourceSkills = row.skills || [];
+    const equalWeight = equalSkillWeight(sourceSkills.length);
+    const hasPrimary = sourceSkills.some((skill) => skill.primary);
+    const resolvedSkills = sourceSkills.map((skill, index) => {
+      const matchedSkill = findByIdOrName(availableSkills, skill.skillId || skill.name, "skillId");
+
+      if (!matchedSkill) {
+        mappingErrors.push(`Không map được kỹ năng "${skill.name || skill.skillId || "không rõ"}".`);
+      }
+
+      return {
+        skillId: matchedSkill?.skillId || "",
+        name: matchedSkill?.name || skill.name || skill.skillId || "Kỹ năng không rõ",
+        weight: skill.weight === "" || skill.weight === undefined ? equalWeight : String(skill.weight),
+        primary: hasPrimary ? Boolean(skill.primary) : index === 0,
+      };
+    });
+
+    return {
+      ...row,
+      subjectId,
+      chapterId,
+      difficulty: row.difficulty || defaultDifficulty,
+      skills: ensureSinglePrimarySkill(resolvedSkills),
+      mappingErrors,
+      serverError: "",
+    };
+  }, [
+    allPreviewChapters,
+    availableSkills,
+    defaultChapterId,
+    defaultDifficulty,
+    defaultSubjectId,
+    normalizedSubjects,
+  ]);
 
   const validateRows = useCallback((nextRows) =>
     nextRows.map((row) => {
@@ -134,14 +239,17 @@ export default function ImportQuestionsModal({
   const updateRowsWithDefaults = useCallback((partial) => {
     setRows((currentRows) =>
       validateRows(
-        currentRows.map((row) => ({
-          ...row,
-          ...partial,
-          serverError: "",
-        })),
+        currentRows.map((row) =>
+          resolveImportedRow({
+            ...row,
+            ...partial,
+            mappingErrors: [],
+            serverError: "",
+          }),
+        ),
       ),
     );
-  }, [validateRows]);
+  }, [resolveImportedRow, validateRows]);
 
   useEffect(() => {
     if (!open) return;
@@ -154,7 +262,7 @@ export default function ImportQuestionsModal({
 
     setActiveTab("text");
     setSourceText("");
-    setSourceType("text");
+    setSourceType("auto");
     setSourceName("");
     setRows([]);
     setParseMessage("");
@@ -166,8 +274,6 @@ export default function ImportQuestionsModal({
     setDefaultSubjectId(fallbackSubjectId);
     setDefaultChapterId(fallbackChapterId);
     setDefaultDifficulty("Medium");
-    setDefaultSkillIds([]);
-    setSkillSearch("");
   }, [chapter, normalizedInitialChapters, normalizedSubjects, open, subject]);
 
   useEffect(() => {
@@ -176,7 +282,6 @@ export default function ImportQuestionsModal({
     let cancelled = false;
 
     const loadSkills = async () => {
-      setLoadingSkills(true);
       try {
         const skillData = await getSkills();
         if (!cancelled) {
@@ -185,10 +290,6 @@ export default function ImportQuestionsModal({
       } catch {
         if (!cancelled) {
           setAvailableSkills([]);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoadingSkills(false);
         }
       }
     };
@@ -285,20 +386,14 @@ export default function ImportQuestionsModal({
       return;
     }
 
+    const effectiveSourceType = sourceType === "auto" ? (detectCsvImport(text) ? "csv" : "text") : sourceType;
     const parsedRows = parseQuestionImport(text, sourceType);
-    const rowsWithDefaults = parsedRows.map((row) => ({
-      ...row,
-      subjectId: defaultSubjectId,
-      chapterId: defaultChapterId,
-      skillIds: defaultSkillIds,
-      difficulty: row.difficulty || defaultDifficulty,
-      serverError: "",
-    }));
+    const rowsWithDefaults = parsedRows.map((row) => resolveImportedRow(row));
 
     setRows(validateRows(rowsWithDefaults));
     setParseMessage(
       parsedRows.length
-        ? `Đã parse ${parsedRows.length} câu hỏi từ ${sourceName || "nội dung đã nhập"}.`
+        ? `Đã parse ${parsedRows.length} câu hỏi dạng ${effectiveSourceType.toUpperCase()} từ ${sourceName || "nội dung đã nhập"}.`
         : "Không tìm thấy câu hỏi nào theo format hỗ trợ.",
     );
   };
@@ -363,16 +458,6 @@ export default function ImportQuestionsModal({
     updateRowsWithDefaults({ difficulty: nextDifficulty });
   };
 
-  const handleSkillToggle = (skillId) => {
-    const exists = defaultSkillIds.includes(skillId);
-    const nextSkillIds = exists
-      ? defaultSkillIds.filter((item) => item !== skillId)
-      : [...defaultSkillIds, skillId];
-
-    setDefaultSkillIds(nextSkillIds);
-    updateRowsWithDefaults({ skillIds: nextSkillIds });
-  };
-
   const handleChangeRow = (rowId, partial) => {
     setSaveResult(null);
     setRows((currentRows) =>
@@ -382,6 +467,7 @@ export default function ImportQuestionsModal({
             ? {
                 ...row,
                 ...partial,
+                mappingErrors: partial.skills ? [] : row.mappingErrors,
                 serverError: "",
               }
             : row,
@@ -543,51 +629,23 @@ export default function ImportQuestionsModal({
           </label>
         </div>
 
-        <div className="question-import-skill-panel">
-          <div className="field-inline-header">
-            <span>Kỹ năng mặc định</span>
-            <span className="skill-hint">Không bắt buộc. Nếu chọn nhiều, kỹ năng đầu tiên là kỹ năng chính.</span>
-          </div>
-          <div className="mini-search">
-            <Search size={18} />
-            <input
-              placeholder="Tìm kỹ năng..."
-              value={skillSearch}
-              onChange={(event) => setSkillSearch(event.target.value)}
-            />
-          </div>
-          <div className="choice-list import-skill-choice-list">
-            {loadingSkills && <span>Đang tải danh sách kỹ năng...</span>}
-            {!loadingSkills &&
-              filteredSkills.map((skill) => {
-                const isSelected = defaultSkillIds.includes(skill.skillId);
-
-                return (
-                  <button
-                    type="button"
-                    className={isSelected ? "selected" : ""}
-                    onClick={() => handleSkillToggle(skill.skillId)}
-                    key={skill.skillId}
-                  >
-                    <span />
-                    {skill.name}
-                  </button>
-                );
-              })}
-            {!loadingSkills && !filteredSkills.length && <span>Không có kỹ năng phù hợp</span>}
-          </div>
-        </div>
-
         {activeTab === "text" && (
           <div className="question-import-source">
+            <label className="form-field">
+              <span>Kiểu nội dung</span>
+              <select value={sourceType} onChange={(event) => setSourceType(event.target.value)}>
+                <option value="auto">Tự nhận diện TXT/CSV</option>
+                <option value="text">Dán văn bản thường</option>
+                <option value="csv">Dán CSV</option>
+              </select>
+            </label>
             <label className="form-field full">
               <span>Nội dung câu hỏi</span>
               <textarea
                 value={sourceText}
-                placeholder="Dán nội dung theo format: Câu 1..., A. ..., B. ..., Đáp án: A"
+                placeholder="TXT: Câu 1..., A. ..., B. ..., Đáp án: A. CSV: Câu hỏi,A,B,C,D,Đáp án,..."
                 onChange={(event) => {
                   setSourceText(event.target.value);
-                  setSourceType("text");
                   setSourceName("");
                 }}
               />
@@ -649,7 +707,7 @@ export default function ImportQuestionsModal({
         <QuestionImportPreview
           rows={rows}
           subjects={normalizedSubjects}
-          chapters={availableChapters}
+          chapters={allPreviewChapters}
           skills={availableSkills}
           onChangeRow={handleChangeRow}
           onRemoveRow={handleRemoveRow}

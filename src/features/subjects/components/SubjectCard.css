@@ -94,6 +94,17 @@
   color: var(--color-text-muted);
 }
 
-.subject-card__cta {
+.subject-card__actions {
   margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.subject-card__cta {
+  width: 100%;
+}
+
+.subject-card__enroll[disabled] {
+  cursor: not-allowed;
 }

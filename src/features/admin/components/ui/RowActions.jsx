@@ -1,7 +1,7 @@
 import "./RowActions.css";
 
 /**
- * items: [{ label, icon, onClick, danger }]
+ * items: [{ label, icon, onClick, danger, disabled, title }]
  */
 export default function RowActions({ items = [] }) {
   return (
@@ -12,8 +12,9 @@ export default function RowActions({ items = [] }) {
           type="button"
           className={`row-actions__btn ${item.danger ? "is-danger" : ""}`}
           onClick={() => item.onClick?.()}
-          title={item.label}
+          title={item.title || item.label}
           aria-label={item.label}
+          disabled={item.disabled}
         >
           {item.icon}
         </button>

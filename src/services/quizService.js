@@ -3,6 +3,7 @@ import { mapAttempt, mapQuiz, mapQuizResult } from "./mappers";
 import {
   createQuestion,
   deleteQuestion,
+  getQuestionById,
   getQuestionsByChapter,
   getQuestionsByQuiz,
   updateQuestion,
@@ -111,4 +112,4 @@ export function clearQuizDraft(quizId, userId) {
   sessionStorage.removeItem(getQuizDraftKey(quizId, userId));
 }
 
-export { createQuestion, deleteQuestion, getQuestionsByChapter, getQuestionsByQuiz, updateQuestion };
+export { createQuestion, deleteQuestion, getQuestionById, getQuestionsByChapter, getQuestionsByQuiz, updateQuestion };

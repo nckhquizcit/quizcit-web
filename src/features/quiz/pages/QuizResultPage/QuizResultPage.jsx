@@ -28,6 +28,11 @@ const formatSubmittedAt = (value) => {
     : submittedAtFormatter.format(submittedDate);
 };
 
+const hasRealStandardError = (value) => {
+  const numericValue = Number(value);
+  return value !== null && value !== undefined && Number.isFinite(numericValue) && numericValue !== 0;
+};
+
 export default function QuizResultPage() {
   const { attemptId } = useParams();
   const navigate = useNavigate();
@@ -125,7 +130,7 @@ export default function QuizResultPage() {
             size={160}
             stroke={14}
             color={ringColor}
-            sublabel="Hoàn thành"
+            sublabel="Tỷ lệ đúng"
           />
         </div>
       </Card>
@@ -156,7 +161,7 @@ export default function QuizResultPage() {
             <TrendingUp size={20} />
           </span>
           <div>
-            <p>Theta tổng quan</p>
+            <p>Năng lực ước tính</p>
             <strong>{Number(result.overallTheta || 0).toFixed(2)}</strong>
           </div>
         </Card>
@@ -169,14 +174,16 @@ export default function QuizResultPage() {
             {result.skillResults.map((skill) => (
               <div className="result-skill-item" key={skill.skillId}>
                 <span className="result-skill-item__name">
-                  {skill.name || skill.skillId}
+                  {skill.name || "Kỹ năng chưa đặt tên"}
                 </span>
                 <strong className="result-skill-item__theta">
                   {Number(skill.theta || 0).toFixed(2)}
                 </strong>
-                <small className="result-skill-item__se">
-                  Sai số: {skill.standardError ?? "—"}
-                </small>
+                {hasRealStandardError(skill.standardError) && (
+                  <small className="result-skill-item__se">
+                    Sai số chuẩn: {Number(skill.standardError).toFixed(2)}
+                  </small>
+                )}
               </div>
             ))}
           </div>

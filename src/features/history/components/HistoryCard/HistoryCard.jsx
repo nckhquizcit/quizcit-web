@@ -9,7 +9,7 @@ export default function HistoryCard({
   questionCount,
   score,
   totalQuestions,
-  powerIndex,
+  estimatedAbility,
   percentage,
   onViewDetail,
 }) {
@@ -49,9 +49,11 @@ export default function HistoryCard({
           <div className="stat-box">
             <div className="stat-label-with-icon">
               <TrendingUp size={14} />
-              <span className="stat-label">Chỉ số năng lực</span>
+              <span className="stat-label">Năng lực ước tính</span>
             </div>
-            <span className="stat-value">{powerIndex}</span>
+            <span className="stat-value">
+              {Number(estimatedAbility || 0).toFixed(2)}
+            </span>
           </div>
         </div>
 

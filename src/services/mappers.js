@@ -100,13 +100,19 @@ export function mapTheory(raw = {}) {
 export function mapSkill(raw = {}) {
   const skillSource = raw.skill || raw;
   const skillId = pick(skillSource, ["skillId", "skill_id", "id"]);
+  const skillName = pickText(
+    skillSource,
+    ["name", "skillName", "skill_name"],
+    "Kỹ năng chưa đặt tên",
+  );
 
   return {
     ...raw,
     id: skillId,
     skillId,
     skill_id: skillId,
-    name: pick(skillSource, ["name", "skillName"], "Kỹ năng chưa đặt tên"),
+    name: skillName,
+    skillName,
     description: pick(skillSource, ["description"], ""),
     weight: toNumber(pick(raw, ["weight", "skillWeight", "questionWeight"], 0)),
     primary: Boolean(pick(raw, ["primary", "isPrimary"], false)),
@@ -190,12 +196,19 @@ export function mapQuiz(raw = {}) {
 
 export function mapSkillResult(raw = {}) {
   const skillId = pick(raw, ["skillId", "skill_id", "id"]);
+  const skillName = pickText(
+    raw,
+    ["skillName", "skill_name", "name"],
+    "Kỹ năng chưa đặt tên",
+  );
+
   return {
     ...raw,
     id: skillId,
     skillId,
     skill_id: skillId,
-    name: pick(raw, ["name", "skillName"], ""),
+    name: skillName,
+    skillName,
     theta: toNumber(pick(raw, ["theta", "ability"], 0)),
     standardError: pick(raw, ["standardError", "standard_error"], null),
   };

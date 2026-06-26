@@ -1,4 +1,4 @@
-import { ArrowRight, BookOpen, Layers3 } from "lucide-react";
+import { ArrowRight, BookOpen, Layers3, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Badge, Button, Card } from "../../../components/ui";
 import "./SubjectCard.css";
@@ -52,15 +52,27 @@ export default function SubjectCard({ subject }) {
         </div>
       )}
 
-      <Button
-        variant="primary"
-        fullWidth
-        iconRight={<ArrowRight size={16} />}
-        onClick={() => navigate(`/app/subjects/${targetId}`)}
-        className="subject-card__cta"
-      >
-        Vào học
-      </Button>
+      <div className="subject-card__actions">
+        <Button
+          variant="primary"
+          fullWidth
+          iconRight={<ArrowRight size={16} />}
+          onClick={() => navigate(`/app/subjects/${targetId}`)}
+          className="subject-card__cta"
+        >
+          Vào học
+        </Button>
+        <Button
+          variant="secondary"
+          fullWidth
+          disabled
+          iconLeft={<Plus size={16} />}
+          className="subject-card__enroll"
+          title="Tính năng đăng ký môn học sắp ra mắt"
+        >
+          Đăng ký
+        </Button>
+      </div>
     </Card>
   );
 }

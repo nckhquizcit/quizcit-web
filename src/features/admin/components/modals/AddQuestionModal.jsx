@@ -8,6 +8,7 @@ import { getChaptersBySubject, getSubjects } from "../../../../services/contentS
 
 const MIN_ANSWER_COUNT = 2;
 const MAX_ANSWER_COUNT = 10;
+const SKILL_WEIGHT_SUM_TOLERANCE = 0.000001;
 const createEmptyAnswers = (count = MIN_ANSWER_COUNT) => Array.from({ length: count }, () => "");
 const difficultyMap = {
   Easy: -1,
@@ -19,7 +20,7 @@ const normalizeDifficulty = (value) => {
   if (value === -1 || value === "-1") return "Easy";
   if (value === 0 || value === "0") return "Medium";
   if (value === 1 || value === "1") return "Hard";
-  if (!value) return "Hard";
+  if (!value) return "Medium";
   if (value === "medium" || value === "Medium") return "Medium";
   if (value === "hard" || value === "Hard") return "Hard";
   return "Easy";
@@ -82,13 +83,39 @@ const ensureSinglePrimarySkill = (skills = []) => {
   }));
 };
 
-const clampSkillWeight = (value) => {
+const normalizeSkillWeightInput = (value) => {
   if (value === "" || value === null || value === undefined) return "";
 
   const parsedValue = Number(value);
   if (Number.isNaN(parsedValue)) return value;
 
-  return String(Math.max(-1, Math.min(1, parsedValue)));
+  return String(Math.max(0, parsedValue));
+};
+
+const validateSkillWeights = (skills = []) => {
+  if (!skills.length) return "";
+
+  const primaryCount = skills.filter((skill) => skill.primary).length;
+  if (primaryCount !== 1) {
+    return "Vui lòng chọn đúng một kỹ năng chính cho câu hỏi.";
+  }
+
+  let weightSum = 0;
+
+  for (const skill of skills) {
+    const weight = Number(skill.weight);
+    if (skill.weight === "" || !Number.isFinite(weight) || weight < 0) {
+      return "Trọng số của mỗi kỹ năng phải là số không âm.";
+    }
+
+    weightSum += weight;
+  }
+
+  if (Math.abs(weightSum - 1) > SKILL_WEIGHT_SUM_TOLERANCE) {
+    return "Tổng trọng số kỹ năng của câu hỏi phải bằng 1.";
+  }
+
+  return "";
 };
 
 const isOptionCorrect = (option) =>
@@ -122,7 +149,7 @@ export default function AddQuestionModal({
   const isEdit = mode === "edit";
   const [question, setQuestion] = useState("");
   const [explanation, setExplanation] = useState("");
-  const [difficulty, setDifficulty] = useState("Hard");
+  const [difficulty, setDifficulty] = useState("Medium");
   const [answers, setAnswers] = useState(() => createEmptyAnswers());
   const [correctIndex, setCorrectIndex] = useState(null);
   const [selectedSubjectId, setSelectedSubjectId] = useState(
@@ -368,6 +395,18 @@ export default function AddQuestionModal({
     return availableChapters.filter((item) => item.name?.toLowerCase().includes(keyword));
   }, [availableChapters, chapterSearch]);
 
+  const skillWeightSum = useMemo(
+    () =>
+      selectedSkills.reduce((sum, skill) => {
+        const weight = Number(skill.weight);
+        return Number.isFinite(weight) ? sum + weight : sum;
+      }, 0),
+    [selectedSkills],
+  );
+
+  const isSkillWeightSumValid =
+    !selectedSkills.length || Math.abs(skillWeightSum - 1) <= SKILL_WEIGHT_SUM_TOLERANCE;
+
   const filteredSkills = useMemo(() => {
     const keyword = skillSearch.trim().toLowerCase();
 
@@ -437,7 +476,7 @@ export default function AddQuestionModal({
         {
           skillId: normalizedSkill.skillId,
           name: normalizedSkill.name,
-          weight: "0",
+          weight: currentSkills.length === 0 ? "1" : "0",
           primary: currentSkills.length === 0,
         },
       ]);
@@ -457,7 +496,7 @@ export default function AddQuestionModal({
     setSelectedSkills((currentSkills) =>
       currentSkills.map((skill) =>
         normalizeId(skill.skillId) === normalizeId(skillId)
-          ? { ...skill, weight: clampSkillWeight(value) }
+          ? { ...skill, weight: normalizeSkillWeightInput(value) }
           : skill,
       ),
     );
@@ -486,18 +525,9 @@ export default function AddQuestionModal({
       return;
     }
 
-    const invalidSkill = selectedSkills.some((skill) => {
-      const weight = Number(skill.weight);
-      return skill.weight === "" || Number.isNaN(weight) || weight < -1 || weight > 1;
-    });
-
-    if (invalidSkill) {
-      window.alert("Trọng số của mỗi kỹ năng phải nằm trong khoảng từ -1 đến 1.");
-      return;
-    }
-
-    if (selectedSkills.length > 0 && selectedSkills.filter((skill) => skill.primary).length !== 1) {
-      window.alert("Vui lòng chọn đúng một kỹ năng chính cho câu hỏi.");
+    const skillError = validateSkillWeights(selectedSkills);
+    if (skillError) {
+      window.alert(skillError);
       return;
     }
 
@@ -509,13 +539,12 @@ export default function AddQuestionModal({
       chapterId: selectedChapterId,
       skills: selectedSkills.map((skill) => ({
         skillId: skill.skillId,
-        weight: Number(clampSkillWeight(skill.weight)),
+        weight: Number(normalizeSkillWeightInput(skill.weight)),
         primary: Boolean(skill.primary),
       })),
       options: answers.map((answer, index) => ({
         content: answer.trim(),
         corrected: correctIndex === index,
-        isCorrect: correctIndex === index,
       })),
     };
 
@@ -726,18 +755,29 @@ export default function AddQuestionModal({
                         </button>
                         <input
                           type="number"
-                          min="-1"
+                          min="0"
                           max="1"
                           step="0.1"
                           value={skill.weight}
                           onChange={(event) => handleSkillWeightChange(skill.skillId, event.target.value)}
-                          placeholder="-1 đến 1"
+                          placeholder="0 đến 1"
                         />
                         <button type="button" onClick={() => handleSkillToggle(skill)}>
                           Bỏ chọn
                         </button>
                       </div>
                     ))}
+                    <div
+                      className={
+                        isSkillWeightSumValid
+                          ? "skill-weight-sum"
+                          : "skill-weight-sum invalid"
+                      }
+                    >
+                      <span>Tổng trọng số</span>
+                      <strong>{skillWeightSum.toFixed(2)} / 1.00</strong>
+                      {!isSkillWeightSumValid && <small>Tổng trọng số phải bằng 1.</small>}
+                    </div>
                   </div>
                 )}
               </div>

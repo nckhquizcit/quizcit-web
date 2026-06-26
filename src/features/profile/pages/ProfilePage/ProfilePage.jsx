@@ -82,7 +82,9 @@ export default function ProfilePage() {
   const [profileUser, setProfileUser] = useState(() => getStoredUser());
   const [attempts, setAttempts] = useState([]);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [profileError, setProfileError] = useState("");
+  const [statsError, setStatsError] = useState("");
   const [activeModal, setActiveModal] = useState(null);
   const [form, setForm] = useState({
     displayName: "",
@@ -99,20 +101,40 @@ export default function ProfilePage() {
     async function loadProfile() {
       setIsLoadingProfile(true);
       setProfileError("");
+      setStatsError("");
 
+      let mergedUser = null;
       try {
         const user = await getCurrentUser();
-        const mergedUser = mergeAndStoreUser(user);
-        const attemptRows = mergedUser?.userId ? await getUserAttempts(mergedUser.userId) : [];
+        mergedUser = mergeAndStoreUser(user);
         if (!isMounted) return;
         setProfileUser(mergedUser);
-        setAttempts(attemptRows || []);
       } catch (error) {
         if (!isMounted) return;
         setProfileError(getErrorMessage(error, "Không thể tải hồ sơ người dùng."));
+        return;
       } finally {
         if (isMounted) {
           setIsLoadingProfile(false);
+        }
+      }
+
+      if (!mergedUser?.userId || !isMounted) {
+        return;
+      }
+
+      setIsLoadingStats(true);
+      try {
+        const attemptRows = await getUserAttempts(mergedUser.userId);
+        if (!isMounted) return;
+        setAttempts(attemptRows || []);
+      } catch (error) {
+        if (!isMounted) return;
+        setAttempts([]);
+        setStatsError(getErrorMessage(error, "Không thể tải thống kê bài làm."));
+      } finally {
+        if (isMounted) {
+          setIsLoadingStats(false);
         }
       }
     }
@@ -141,7 +163,7 @@ export default function ProfilePage() {
     () => ({
       name: profileUser?.displayName || profileUser?.username || "Người dùng",
       username: profileUser?.username || "unknown",
-      xp: 0,
+      xpLabel: "Đang phát triển",
       completedQuizzes,
       achievementsCount,
     }),
@@ -411,6 +433,17 @@ export default function ProfilePage() {
             {userData.achievementsCount} đã mở khóa
           </Badge>
         </div>
+
+        {isLoadingStats && (
+          <div className="profile-stats-inline-state">
+            <Spinner size={16} />
+            <span>Đang tải thống kê...</span>
+          </div>
+        )}
+
+        {statsError && (
+          <p className="profile-stats-inline-error">{statsError}</p>
+        )}
 
         <div className="achievements-grid">
           {resolvedAchievements.map((achievement) => (

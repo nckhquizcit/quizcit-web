@@ -1857,6 +1857,37 @@
   color: #007a44;
 }
 
+.skill-weight-sum {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  color: #047857;
+  font-size: 14px;
+}
+
+.skill-weight-sum strong {
+  margin-left: auto;
+  color: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.skill-weight-sum.invalid {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.skill-weight-sum small {
+  flex-basis: 100%;
+  color: inherit;
+  opacity: 0.85;
+}
+
 .question-skills-modal {
   max-width: 640px;
 }

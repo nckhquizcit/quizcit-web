@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Lock, Shield, Trash2, Users } from "lucide-react";
 import { changeUserRole, deleteUser, getUsers, updateUserStatus } from "../../../services/userService";
-import { getErrorMessage } from "../../../services/apiClient";
+import { getErrorMessage, getStoredUser } from "../../../services/apiClient";
 import AdminPageHeader from "../components/AdminPageHeader";
 import DataTable from "../components/ui/DataTable";
 import RowActions from "../components/ui/RowActions";
@@ -34,6 +34,7 @@ const STATUS_TONE = {
 
 const formatRole = (role) => ROLE_LABELS[role] || role || "—";
 const formatStatus = (status) => STATUS_LABELS[status] || status || "—";
+const SELF_LOCKOUT_MESSAGE = "Bạn không thể khóa/xóa/thay đổi vai trò tài khoản đang đăng nhập.";
 
 export default function AdminUsers() {
   const toast = useToast();
@@ -45,6 +46,8 @@ export default function AdminUsers() {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [deletingUser, setDeletingUser] = useState(null);
+  const currentUser = useMemo(() => getStoredUser(), []);
+  const currentUserId = String(currentUser?.userId || currentUser?.user_id || currentUser?.id || "");
 
   const loadUsers = useCallback(async () => {
     try {
@@ -80,6 +83,11 @@ export default function AdminUsers() {
 
   const handleLockUser = async () => {
     if (!selectedUser?.userId) return;
+    if (String(selectedUser.userId) === currentUserId) {
+      toast.error(SELF_LOCKOUT_MESSAGE);
+      closeConfirmModal();
+      return;
+    }
     try {
       const updatedUser = await updateUserStatus(selectedUser.userId, "BANNED");
       setUsers((currentUsers) =>
@@ -97,6 +105,11 @@ export default function AdminUsers() {
 
   const handleAuthSave = async (newRole) => {
     if (!selectedUser?.userId) return;
+    if (String(selectedUser.userId) === currentUserId) {
+      toast.error(SELF_LOCKOUT_MESSAGE);
+      closeAuthModal();
+      return;
+    }
     try {
       const updatedUser = await changeUserRole(selectedUser.userId, newRole);
       setUsers((currentUsers) =>
@@ -114,6 +127,11 @@ export default function AdminUsers() {
 
   const handleDeleteUser = async () => {
     if (!deletingUser?.userId) return;
+    if (String(deletingUser.userId) === currentUserId) {
+      toast.error(SELF_LOCKOUT_MESSAGE);
+      setDeletingUser(null);
+      return;
+    }
     await deleteUser(deletingUser.userId);
     setUsers((currentUsers) => currentUsers.filter((item) => item.userId !== deletingUser.userId));
     setDeletingUser(null);
@@ -151,12 +169,17 @@ export default function AdminUsers() {
       label: "",
       width: 60,
       align: "right",
-      render: (user) => (
-        <RowActions
-          items={[
+      render: (user) => {
+        const isSelf = String(user.userId) === currentUserId;
+
+        return (
+          <RowActions
+            items={[
             {
               label: "Đổi vai trò",
               icon: <Shield size={16} />,
+              disabled: isSelf,
+              title: isSelf ? SELF_LOCKOUT_MESSAGE : "Đổi vai trò",
               onClick: () => {
                 setSelectedUser(user);
                 setIsAuthModalOpen(true);
@@ -168,6 +191,8 @@ export default function AdminUsers() {
                   {
                     label: "Khóa tài khoản",
                     icon: <Lock size={16} />,
+                    disabled: isSelf,
+                    title: isSelf ? SELF_LOCKOUT_MESSAGE : "Khóa tài khoản",
                     onClick: () => {
                       setSelectedUser(user);
                       setIsConfirmModalOpen(true);
@@ -178,11 +203,14 @@ export default function AdminUsers() {
               label: "Xóa",
               icon: <Trash2 size={16} />,
               danger: true,
+              disabled: isSelf,
+              title: isSelf ? SELF_LOCKOUT_MESSAGE : "Xóa",
               onClick: () => setDeletingUser(user),
             },
-          ]}
-        />
-      ),
+            ]}
+          />
+        );
+      },
     },
   ];
 
