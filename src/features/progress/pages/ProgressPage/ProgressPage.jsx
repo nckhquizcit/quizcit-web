@@ -4,6 +4,10 @@ import { getAverageAbility, getAbilityHistories, getUserSkillAbilities } from ".
 import { getSkills } from "../../../../services/skillService";
 import { getStoredUser, getErrorMessage } from "../../../../services/apiClient";
 import {
+  formatThetaValue,
+  thetaRawToPercent,
+} from "../../../../services/mappers";
+import {
   Card,
   EmptyState,
   ErrorState,
@@ -13,16 +17,8 @@ import {
 import ProgressBar from "../../../home/components/ProgressBar";
 import "./ProgressPage.css";
 
-const thetaToPercent = (theta) =>
-  Math.max(0, Math.min(100, Math.round(((Number(theta) + 3) / 6) * 100)));
-
 const getSkillDisplayName = (skillNameById, skillId) =>
   skillNameById.get(skillId) || "Kỹ năng chưa đặt tên";
-
-const hasRealStandardError = (value) => {
-  const numericValue = Number(value);
-  return value !== null && value !== undefined && Number.isFinite(numericValue) && numericValue !== 0;
-};
 
 export default function ProgressPage() {
   const [abilities, setAbilities] = useState([]);
@@ -91,7 +87,7 @@ export default function ProgressPage() {
     );
   }
 
-  const averagePercent = thetaToPercent(averageAbility);
+  const averagePercent = thetaRawToPercent(averageAbility);
 
   return (
     <div className="progress-page">
@@ -108,8 +104,8 @@ export default function ProgressPage() {
             value={averagePercent}
             size={130}
             stroke={12}
-            label={averageAbility.toFixed(2)}
-            sublabel="Theta trung bình"
+            label={formatThetaValue(averageAbility)}
+            sublabel="Theta -4 đến +4"
           />
         </div>
       </header>
@@ -124,7 +120,8 @@ export default function ProgressPage() {
           <h2 className="progress-section__title">Kỹ năng của bạn</h2>
           <div className="progress-grid">
             {abilities.map((ability) => {
-              const percent = thetaToPercent(ability.theta);
+              const thetaRaw = Number(ability.theta ?? 0);
+              const percent = thetaRawToPercent(thetaRaw);
               return (
                 <Card
                   className="skill-progress-card"
@@ -135,15 +132,10 @@ export default function ProgressPage() {
                       {getSkillDisplayName(skillNameById, ability.skillId)}
                     </span>
                     <strong className="skill-progress-card__theta">
-                      {ability.theta.toFixed(2)}
+                      {formatThetaValue(thetaRaw)}
                     </strong>
                   </div>
                   <ProgressBar value={percent} />
-                  {hasRealStandardError(ability.standardError) && (
-                    <small className="skill-progress-card__se">
-                      Sai số chuẩn: {Number(ability.standardError).toFixed(2)}
-                    </small>
-                  )}
                 </Card>
               );
             })}
@@ -160,7 +152,8 @@ export default function ProgressPage() {
         ) : (
           <Card padding="none" className="progress-history-card">
             {histories.slice(0, 12).map((item) => {
-              const delta = Number(item.delta || 0);
+              const thetaRaw = Number(item.theta ?? 0);
+              const delta = Number(item.delta ?? 0);
               const trend =
                 delta > 0 ? "up" : delta < 0 ? "down" : "flat";
               const TrendIcon =
@@ -175,7 +168,7 @@ export default function ProgressPage() {
                     {getSkillDisplayName(skillNameById, item.skillId)}
                   </span>
                   <span className="progress-history-row__theta">
-                    {item.theta.toFixed(2)}
+                    {formatThetaValue(thetaRaw)}
                   </span>
                   <span
                     className={`progress-history-row__delta progress-history-row__delta--${trend}`}

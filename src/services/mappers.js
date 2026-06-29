@@ -14,6 +14,46 @@ const toNumber = (value, fallback = 0) => {
   return Number.isFinite(number) ? number : fallback;
 };
 
+const THETA_RAW_MIN = -4;
+const THETA_RAW_MAX = 4;
+const THETA_SCALED_MIN = 0;
+const THETA_SCALED_MAX = 4;
+
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+const roundTheta = (value) => Math.round(value * 10000) / 10000;
+
+export function scaleThetaForDisplay(thetaRaw) {
+  const raw = clamp(toNumber(thetaRaw, 0), THETA_RAW_MIN, THETA_RAW_MAX);
+  const scaled =
+    ((raw - THETA_RAW_MIN) / (THETA_RAW_MAX - THETA_RAW_MIN)) *
+      (THETA_SCALED_MAX - THETA_SCALED_MIN) +
+    THETA_SCALED_MIN;
+
+  return roundTheta(clamp(scaled, THETA_SCALED_MIN, THETA_SCALED_MAX));
+}
+
+export function pickThetaScaled(raw = {}, thetaRaw = 0) {
+  const directValue = pick(raw, ["thetaScaled", "theta_scaled"]);
+  if (directValue !== undefined && directValue !== null) {
+    return toNumber(directValue, scaleThetaForDisplay(thetaRaw));
+  }
+
+  return scaleThetaForDisplay(thetaRaw);
+}
+
+export function thetaScaledToPercent(thetaScaled) {
+  const scaled = clamp(toNumber(thetaScaled, 0), THETA_SCALED_MIN, THETA_SCALED_MAX);
+  return Math.round((scaled / THETA_SCALED_MAX) * 100);
+}
+
+export function thetaRawToPercent(thetaRaw) {
+  return thetaScaledToPercent(scaleThetaForDisplay(thetaRaw));
+}
+
+export function formatThetaValue(thetaRaw) {
+  return toNumber(thetaRaw, 0).toFixed(2);
+}
+
 const FALLBACK_QUIZ_NAME = "Chưa có tên bài quiz";
 const FALLBACK_SUBJECT_NAME = "Không rõ môn học";
 
@@ -196,6 +236,7 @@ export function mapQuiz(raw = {}) {
 
 export function mapSkillResult(raw = {}) {
   const skillId = pick(raw, ["skillId", "skill_id", "id"]);
+  const theta = toNumber(pick(raw, ["theta", "ability"], 0));
   const skillName = pickText(
     raw,
     ["skillName", "skill_name", "name"],
@@ -209,8 +250,39 @@ export function mapSkillResult(raw = {}) {
     skill_id: skillId,
     name: skillName,
     skillName,
-    theta: toNumber(pick(raw, ["theta", "ability"], 0)),
-    standardError: pick(raw, ["standardError", "standard_error"], null),
+    theta,
+    thetaScaled: pickThetaScaled(raw, theta),
+  };
+}
+
+export function mapQuestionResult(raw = {}) {
+  const questionId = pick(raw, ["questionId", "question_id", "id"]);
+  const selectedOptionId = pick(raw, ["selectedOptionId", "selected_option_id"], null);
+  const correctOptionId = pick(raw, ["correctOptionId", "correct_option_id"], null);
+  const options = toArray(pick(raw, ["options"], [])).map(mapOption);
+  const selectedOption = options.find((option) => option.optionId === selectedOptionId);
+  const correctOption = options.find((option) => option.optionId === correctOptionId);
+
+  return {
+    ...raw,
+    id: questionId,
+    questionId,
+    question_id: questionId,
+    questionNumber: toNumber(pick(raw, ["questionNumber", "question_number"], 0)),
+    content: pick(raw, ["content"], ""),
+    explanation: pick(raw, ["explanation", "explaination"], ""),
+    selectedOptionId,
+    correctOptionId,
+    correct: Boolean(pick(raw, ["correct", "isCorrect", "score"], false)),
+    options,
+    selectedOptionContent:
+      pick(raw, ["selectedOptionContent", "selected_option_content"], "") ||
+      selectedOption?.content ||
+      "",
+    correctOptionContent:
+      pick(raw, ["correctOptionContent", "correct_option_content"], "") ||
+      correctOption?.content ||
+      "",
   };
 }
 
@@ -226,6 +298,7 @@ export function mapQuizResult(raw = {}) {
   const rawScore = toNumber(pick(raw, ["rawScore", "score"], 0));
   const totalQuestion = toNumber(pick(raw, ["totalQuestion", "total_question"], 0));
   const percentage = totalQuestion > 0 ? Math.round((rawScore / totalQuestion) * 100) : 0;
+  const overallTheta = toNumber(pick(raw, ["overallTheta", "overall_theta"], 0));
   const quizName =
     pickText(raw, ["quizName", "quiz_name"]) ||
     pickText(quizSource, ["name", "quizName", "quiz_name"], FALLBACK_QUIZ_NAME);
@@ -246,9 +319,11 @@ export function mapQuizResult(raw = {}) {
     score: rawScore,
     totalQuestion,
     percentage,
-    overallTheta: toNumber(pick(raw, ["overallTheta", "overall_theta"], 0)),
+    overallTheta,
+    overallThetaScaled: pickThetaScaled(raw, overallTheta),
     submittedAt: pick(raw, ["submittedAt", "submitted_at", "createdAt", "created_at"], null),
     skillResults: toArray(pick(raw, ["skillResults", "skill_results"], [])).map(mapSkillResult),
+    questionResults: toArray(pick(raw, ["questionResults", "question_results"], [])).map(mapQuestionResult),
   };
 }
 
@@ -272,26 +347,33 @@ export function mapUser(raw = {}) {
 
 export function mapUserSkillAbility(raw = {}) {
   const id = pick(raw, ["id", "abilityId", "ability_id"]);
+  const theta = toNumber(pick(raw, ["theta", "ability"], 0));
   return {
     ...raw,
     id,
     userId: pick(raw, ["userId", "user_id"]),
     skillId: pick(raw, ["skillId", "skill_id"]),
-    theta: toNumber(pick(raw, ["theta", "ability"], 0)),
-    standardError: pick(raw, ["standardError", "standard_error"], null),
+    theta,
+    thetaScaled: pickThetaScaled(raw, theta),
     updatedAt: pick(raw, ["updatedAt", "updated_at"], null),
   };
 }
 
 export function mapAbilityHistory(raw = {}) {
+  const theta = toNumber(pick(raw, ["theta"], 0));
+  const delta = toNumber(pick(raw, ["delta"], 0));
+  const thetaScaled = pickThetaScaled(raw, theta);
+  const previousThetaScaled = scaleThetaForDisplay(theta - delta);
+
   return {
     ...raw,
     id: pick(raw, ["id", "historyId", "history_id"]),
     userId: pick(raw, ["userId", "user_id"]),
     skillId: pick(raw, ["skillId", "skill_id"]),
-    theta: toNumber(pick(raw, ["theta"], 0)),
-    delta: toNumber(pick(raw, ["delta"], 0)),
-    standardError: pick(raw, ["standardError", "standard_error"], null),
+    theta,
+    thetaScaled,
+    delta,
+    deltaScaled: roundTheta(thetaScaled - previousThetaScaled),
     sourceAttemptId: pick(raw, ["sourceAttemptId", "source_attempt_id"], null),
     createdAt: pick(raw, ["createdAt", "created_at"], null),
   };

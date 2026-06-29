@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { BookOpen, CalendarDays, CheckCircle2, History, TrendingUp } from "lucide-react";
+import { BookOpen, CalendarDays, CheckCircle2, History, TrendingUp, XCircle } from "lucide-react";
 import { getErrorMessage } from "../../../../services/apiClient";
-import { getAttemptResult } from "../../../../services/quizService";
+import { getAttemptResult, getQuizById } from "../../../../services/quizService";
+import { getSkills } from "../../../../services/skillService";
+import { getSubjectById } from "../../../../services/subjectService";
+import { formatThetaValue } from "../../../../services/mappers";
 import {
   Badge,
   Button,
@@ -13,6 +16,7 @@ import {
 import "./QuizResultPage.css";
 
 const FALLBACK_QUIZ_NAME = "Bài kiểm tra";
+const MISSING_QUIZ_NAME = "Chưa có tên bài quiz";
 const FALLBACK_SUBJECT_NAME = "Không rõ môn học";
 const FALLBACK_DATE = "—";
 const submittedAtFormatter = new Intl.DateTimeFormat("vi-VN", {
@@ -28,10 +32,45 @@ const formatSubmittedAt = (value) => {
     : submittedAtFormatter.format(submittedDate);
 };
 
-const hasRealStandardError = (value) => {
-  const numericValue = Number(value);
-  return value !== null && value !== undefined && Number.isFinite(numericValue) && numericValue !== 0;
+const isMissingName = (value) => {
+  if (typeof value !== "string" || !value.trim()) return true;
+  const trimmed = value.trim();
+  return trimmed === MISSING_QUIZ_NAME || trimmed === FALLBACK_SUBJECT_NAME;
 };
+
+async function resolveResultMetadata(result) {
+  let { quizName, subjectName } = result;
+
+  if (isMissingName(quizName) || isMissingName(subjectName)) {
+    try {
+      const quiz = result.quizId ? await getQuizById(result.quizId) : null;
+      if (isMissingName(quizName) && quiz?.name) {
+        quizName = quiz.name;
+      }
+      if (isMissingName(subjectName) && quiz?.subjectId) {
+        const subject = await getSubjectById(quiz.subjectId).catch(() => null);
+        if (subject?.name) subjectName = subject.name;
+      }
+    } catch {
+      // Best-effort enrichment; keep fallbacks if lookups fail.
+    }
+  }
+
+  const needsSkillNames = (result.skillResults || []).some((skill) => isMissingName(skill.name));
+  let skillResults = result.skillResults;
+
+  if (needsSkillNames) {
+    const skills = await getSkills().catch(() => []);
+    const skillNameById = new Map(skills.map((skill) => [skill.skillId, skill.name]));
+    skillResults = (result.skillResults || []).map((skill) =>
+      isMissingName(skill.name)
+        ? { ...skill, name: skillNameById.get(skill.skillId) || skill.name }
+        : skill,
+    );
+  }
+
+  return { ...result, quizName, subjectName, skillResults };
+}
 
 export default function QuizResultPage() {
   const { attemptId } = useParams();
@@ -48,7 +87,8 @@ export default function QuizResultPage() {
         setLoading(true);
         setError("");
         const resultData = await getAttemptResult(attemptId);
-        if (alive) setResult(resultData);
+        const enriched = await resolveResultMetadata(resultData);
+        if (alive) setResult(enriched);
       } catch (loadError) {
         if (alive)
           setError(getErrorMessage(loadError, "Không thể tải kết quả."));
@@ -90,8 +130,12 @@ export default function QuizResultPage() {
   const total = result.totalQuestion ?? 0;
   const percentage =
     result.percentage ?? (total > 0 ? Math.round((score / total) * 100) : 0);
-  const displayQuizName = result.quizName?.trim() || FALLBACK_QUIZ_NAME;
-  const displaySubjectName = result.subjectName || FALLBACK_SUBJECT_NAME;
+  const displayQuizName = isMissingName(result.quizName)
+    ? FALLBACK_QUIZ_NAME
+    : result.quizName.trim();
+  const displaySubjectName = isMissingName(result.subjectName)
+    ? FALLBACK_SUBJECT_NAME
+    : result.subjectName;
   const displaySubmittedAt = formatSubmittedAt(result.submittedAt);
   const message =
     percentage >= 80
@@ -162,7 +206,7 @@ export default function QuizResultPage() {
           </span>
           <div>
             <p>Năng lực ước tính</p>
-            <strong>{Number(result.overallTheta || 0).toFixed(2)}</strong>
+            <strong>{formatThetaValue(result.overallTheta)}</strong>
           </div>
         </Card>
       </div>
@@ -177,19 +221,96 @@ export default function QuizResultPage() {
                   {skill.name || "Kỹ năng chưa đặt tên"}
                 </span>
                 <strong className="result-skill-item__theta">
-                  {Number(skill.theta || 0).toFixed(2)}
+                  {formatThetaValue(skill.theta)}
                 </strong>
-                {hasRealStandardError(skill.standardError) && (
-                  <small className="result-skill-item__se">
-                    Sai số chuẩn: {Number(skill.standardError).toFixed(2)}
-                  </small>
-                )}
               </div>
             ))}
           </div>
         ) : (
           <p className="result-skill-empty">
             Chưa có dữ liệu kỹ năng cho bài làm này.
+          </p>
+        )}
+      </Card>
+
+      <Card padding="lg" className="result-question-section">
+        <h2>Chi tiết câu trả lời</h2>
+        {result.questionResults?.length ? (
+          <div className="result-question-list">
+            {result.questionResults.map((question, questionIndex) => {
+              const questionNumber = question.questionNumber || questionIndex + 1;
+              const answered = Boolean(question.selectedOptionId);
+              const statusClass = question.correct
+                ? "is-correct"
+                : answered
+                  ? "is-wrong"
+                  : "is-unanswered";
+              const statusText = question.correct
+                ? "Đúng"
+                : answered
+                  ? "Sai"
+                  : "Chưa trả lời";
+
+              return (
+                <article
+                  className={`result-question-item ${statusClass}`}
+                  key={question.questionId || questionIndex}
+                >
+                  <div className="result-question-header">
+                    <div>
+                      <span className="result-question-number">
+                        Câu {questionNumber}
+                      </span>
+                      <h3>{question.content || "Câu hỏi chưa có nội dung"}</h3>
+                    </div>
+                    <span className="result-question-status">
+                      {question.correct ? <CheckCircle2 size={15} /> : <XCircle size={15} />}
+                      {statusText}
+                    </span>
+                  </div>
+
+                  <div className="result-option-list">
+                    {(question.options || []).map((option, optionIndex) => {
+                      const selected = option.optionId === question.selectedOptionId;
+                      const correctOption = option.optionId === question.correctOptionId || option.corrected;
+                      const optionClasses = [
+                        "result-option-item",
+                        selected ? "is-selected" : "",
+                        correctOption ? "is-correct-option" : "",
+                        selected && !correctOption ? "is-wrong-option" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ");
+
+                      return (
+                        <div className={optionClasses} key={option.optionId || optionIndex}>
+                          <span className="result-option-marker">
+                            {String.fromCharCode(65 + optionIndex)}
+                          </span>
+                          <span className="result-option-content">
+                            {option.content || "Đáp án chưa có nội dung"}
+                          </span>
+                          <span className="result-option-tags">
+                            {selected && <span>Bạn chọn</span>}
+                            {correctOption && <span>Đáp án đúng</span>}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {question.explanation && (
+                    <p className="result-question-explanation">
+                      Giải thích: {question.explanation}
+                    </p>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="result-question-empty">
+            Chưa có dữ liệu câu trả lời cho bài làm này.
           </p>
         )}
       </Card>

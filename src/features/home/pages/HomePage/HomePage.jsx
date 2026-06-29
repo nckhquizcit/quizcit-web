@@ -17,10 +17,11 @@ import {
   getUserSkillAbilities,
 } from "../../../../services/progressService";
 import { getErrorMessage, getStoredUser } from "../../../../services/apiClient";
+import {
+  formatThetaValue,
+  thetaRawToPercent,
+} from "../../../../services/mappers";
 import "./HomePage.css";
-
-const thetaToProgress = (theta) =>
-  Math.max(0, Math.min(100, Math.round(((theta + 3) / 6) * 100)));
 
 export default function HomePage() {
   const [subjects, setSubjects] = useState([]);
@@ -81,7 +82,7 @@ export default function HomePage() {
     };
   }, [user?.userId]);
 
-  const overallProgress = skillCount > 0 ? thetaToProgress(averageTheta) : 0;
+  const overallProgress = skillCount > 0 ? thetaRawToPercent(averageTheta) : 0;
   const recommendations = subjects.slice(0, 2).map((subject) => {
     const subjectChapters = chapters.filter(
       (chapter) => chapter.subjectId === subject.subjectId
@@ -144,8 +145,8 @@ export default function HomePage() {
             value={overallProgress}
             size={150}
             stroke={12}
-            label={skillCount > 0 ? averageTheta.toFixed(2) : "—"}
-            sublabel="Mức năng lực ước tính"
+            label={skillCount > 0 ? formatThetaValue(averageTheta) : "—"}
+            sublabel="Theta -4 đến +4"
           />
         </div>
       </section>
@@ -174,7 +175,7 @@ export default function HomePage() {
             <TrendingUp size={22} />
           </span>
           <div className="stat-card__body">
-            <h3>{skillCount > 0 ? averageTheta.toFixed(2) : "—"}</h3>
+            <h3>{skillCount > 0 ? formatThetaValue(averageTheta) : "—"}</h3>
             <p>Mức năng lực ước tính</p>
           </div>
         </Card>
@@ -193,7 +194,7 @@ export default function HomePage() {
             <p className="ai-card__desc">
               {skillCount === 0
                 ? "Hãy làm một bài quiz để hệ thống cập nhật theta và lịch sử năng lực."
-                : `Theta trung bình hiện tại: ${averageTheta.toFixed(2)}.`}
+                : `Theta hiện tại: ${formatThetaValue(averageTheta)} (-4 đến +4).`}
             </p>
           </div>
         </div>

@@ -48,6 +48,7 @@ export default function QuizTakingPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
   const startedRef = useRef(false);
   const submittedRef = useRef(false);
   const timerStartedRef = useRef(false);
@@ -278,11 +279,20 @@ export default function QuizTakingPage() {
     setPendingScrollQuestionId(target.questionId);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (submitting) return;
-    const answered = Object.keys(answers).length;
-    const confirmed = window.confirm(`Bạn đã trả lời ${answered}/${questions.length} câu. Xác nhận nộp bài?`);
-    if (confirmed) await doSubmit(answers);
+    setSubmitConfirmOpen(true);
+  };
+
+  const closeSubmitConfirm = () => {
+    if (submitting) return;
+    setSubmitConfirmOpen(false);
+  };
+
+  const confirmSubmit = async () => {
+    if (submitting) return;
+    setSubmitConfirmOpen(false);
+    await doSubmit(answers);
   };
 
   const formatTime = (seconds) => {
@@ -549,6 +559,62 @@ export default function QuizTakingPage() {
           </div>
         </aside>
       </div>
+
+      {submitConfirmOpen && (
+        <div
+          className="submit-confirm-overlay"
+          onClick={closeSubmitConfirm}
+        >
+          <section
+            className="submit-confirm-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="submit-confirm-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="submit-confirm-header">
+              <h3 id="submit-confirm-title">Xác nhận nộp bài</h3>
+              <button
+                type="button"
+                className="submit-confirm-close"
+                onClick={closeSubmitConfirm}
+                aria-label="Đóng"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="submit-confirm-body">
+              <p>
+                Bạn đã trả lời <strong>{answeredCount}/{questions.length}</strong> câu.
+                Sau khi nộp, hệ thống sẽ chấm bài và chuyển sang trang kết quả.
+              </p>
+              {answeredCount < questions.length && (
+                <p className="submit-confirm-warning">
+                  Vẫn còn {questions.length - answeredCount} câu chưa trả lời.
+                </p>
+              )}
+            </div>
+
+            <div className="submit-confirm-actions">
+              <Button
+                variant="ghost"
+                onClick={closeSubmitConfirm}
+                disabled={submitting}
+              >
+                Hủy
+              </Button>
+              <Button
+                variant="primary"
+                onClick={confirmSubmit}
+                loading={submitting}
+              >
+                Nộp bài
+              </Button>
+            </div>
+          </section>
+        </div>
+      )}
 
       {activeSkillQuestion && (
         <div

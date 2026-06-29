@@ -12,8 +12,8 @@ Components should consume mapped domain objects instead of raw backend payloads.
 - `Question.options`: array of objects with `optionId`, `content`, `corrected`.
 - `Quiz`: `quizId`, `subjectId`, `chapterId`, `name`, `type`, `totalQuestion`, `duration`. The UI treats `duration` as minutes.
 - `QuizResult` / `Attempt`: `attemptId`, `quizId`, `rawScore`, `totalQuestion`, `overallTheta`, `skillResults`.
-- `SkillResult`: `skillId`, `theta`, `standardError`.
-- `UserSkillAbility`: `id`, `userId`, `skillId`, `theta`, `standardError`, `updatedAt`.
+- `SkillResult`: `skillId`, `theta`.
+- `UserSkillAbility`: `id`, `userId`, `skillId`, `theta`, `updatedAt`.
 
 ## Known Mismatches
 
