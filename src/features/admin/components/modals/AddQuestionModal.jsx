@@ -9,6 +9,7 @@ import { getChaptersBySubject, getSubjects } from "../../../../services/contentS
 const MIN_ANSWER_COUNT = 2;
 const MAX_ANSWER_COUNT = 10;
 const SKILL_WEIGHT_SUM_TOLERANCE = 0.000001;
+const EMPTY_LIST = Object.freeze([]);
 const createEmptyAnswers = (count = MIN_ANSWER_COUNT) => Array.from({ length: count }, () => "");
 const difficultyMap = {
   Easy: -1,
@@ -135,18 +136,22 @@ const normalizeAnswers = (options = []) => {
   return nextAnswers;
 };
 
-export default function AddQuestionModal({
-  open,
+export function QuestionForm({
+  open = true,
   onClose,
+  onCancel,
   subject,
   chapter,
   initialQuestion,
   mode = "create",
   onSubmit,
-  subjects = [],
-  chapters = [],
+  subjects = EMPTY_LIST,
+  chapters = EMPTY_LIST,
+  variant = "modal",
 }) {
   const isEdit = mode === "edit";
+  const isPageVariant = variant === "page";
+  const handleCancel = onCancel || onClose;
   const [question, setQuestion] = useState("");
   const [explanation, setExplanation] = useState("");
   const [difficulty, setDifficulty] = useState("Medium");
@@ -415,6 +420,38 @@ export default function AddQuestionModal({
     return availableSkills.filter((item) => item.name?.toLowerCase().includes(keyword));
   }, [availableSkills, skillSearch]);
 
+  const selectedSubject = useMemo(
+    () =>
+      availableSubjects.find(
+        (item) => normalizeId(item.subjectId) === normalizeId(selectedSubjectId),
+      ),
+    [availableSubjects, selectedSubjectId],
+  );
+
+  const selectedChapter = useMemo(
+    () =>
+      availableChapters.find(
+        (item) => normalizeId(item.chapterId) === normalizeId(selectedChapterId),
+      ),
+    [availableChapters, selectedChapterId],
+  );
+
+  const completedAnswerCount = useMemo(
+    () => answers.filter((answer) => answer.trim()).length,
+    [answers],
+  );
+
+  const isReadyToSubmit =
+    Boolean(question.trim()) &&
+    Boolean(selectedSubjectId) &&
+    Boolean(selectedChapterId) &&
+    completedAnswerCount === answers.length &&
+    correctIndex !== null &&
+    isSkillWeightSumValid;
+
+  const correctAnswerLabel =
+    correctIndex === null ? "Chưa chọn" : `Đáp án ${String.fromCharCode(65 + correctIndex)}`;
+
   useEffect(() => {
     if (!availableSkills.length || !selectedSkills.length) return;
 
@@ -560,10 +597,12 @@ export default function AddQuestionModal({
   };
 
   return (
-    <Modal open={open} onClose={onClose}>
-      <div className="question-form-modal">
-        <div className="question-form-header">
+    <div className={`question-form-modal question-builder ${isPageVariant ? "question-builder-page" : "question-builder-modal"}`}>
+        <div className="question-form-header question-builder-header">
           <div>
+            <span className="question-builder-kicker">
+              {isEdit ? "Chỉnh sửa câu hỏi" : "Câu hỏi mới"}
+            </span>
             <h2>{isEdit ? "Cập nhật câu hỏi" : "Thêm câu hỏi mới"}</h2>
             <p>
               {isEdit
@@ -571,268 +610,376 @@ export default function AddQuestionModal({
                 : "Tạo câu hỏi mới và gắn vào môn học/chương"}
             </p>
           </div>
-          <button className="preview-toggle" onClick={() => setPreview((value) => !value)}>
+          <button className="preview-toggle" onClick={() => setPreview((value) => !value)} type="button">
             {preview ? <EyeOff size={18} /> : <Eye size={18} />}
             {preview ? "Ẩn xem trước" : "Xem trước"}
           </button>
         </div>
 
-        <div className="question-form-body">
-          {preview ? (
-            <div className="question-preview-card">
-              <div className="preview-card-head">
-                <h3>Xem trước câu hỏi</h3>
-                <span className={`preview-difficulty ${difficulty.toLowerCase()}`}>
-                  {difficulty}
+        <div className="question-builder-layout">
+          <div className="question-builder-main">
+            <div className="question-form-body">
+              {preview ? (
+                <div className="question-preview-card">
+                  <div className="preview-card-head">
+                    <h3>Xem trước câu hỏi</h3>
+                    <span className={`preview-difficulty ${difficulty.toLowerCase()}`}>
+                      {difficulty}
+                    </span>
+                  </div>
+                  <p>{question || "Nội dung câu hỏi..."}</p>
+                  <div className="preview-options">
+                    {answers.map((answer, index) => (
+                      <div
+                        className={correctIndex === index ? "preview-option correct" : "preview-option"}
+                        key={index}
+                      >
+                        <strong>{String.fromCharCode(65 + index)}.</strong>
+                        <span>{answer || `Đáp án ${String.fromCharCode(65 + index)}`}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <section className="question-section question-section-primary">
+                    <div className="question-section-head">
+                      <span>01</span>
+                      <div>
+                        <h3>Nội dung</h3>
+                        <p>Câu hỏi và giải thích</p>
+                      </div>
+                    </div>
+                    <label className="form-field full">
+                      <span>Nội dung câu hỏi *</span>
+                      <textarea
+                        className={!question ? "invalid" : ""}
+                        placeholder="Ví dụ: 2 + 2 bằng mấy?"
+                        value={question}
+                        onChange={(event) => setQuestion(event.target.value)}
+                      />
+                      {!question && <small>Trường này là bắt buộc</small>}
+                    </label>
+
+                    <label className="form-field full">
+                      <span>Giải thích</span>
+                      <textarea
+                        placeholder="Nhập giải thích cho câu hỏi"
+                        value={explanation}
+                        onChange={(event) => setExplanation(event.target.value)}
+                      />
+                    </label>
+                  </section>
+
+                  <section className="question-section">
+                    <div className="question-section-head">
+                      <span>02</span>
+                      <div>
+                        <h3>Phân loại</h3>
+                        <p>Môn học, chương và độ khó</p>
+                      </div>
+                    </div>
+                    <div className="two-column">
+                      <div className="form-field">
+                        <span>
+                          Môn học * <b>(Bắt buộc)</b>
+                        </span>
+                        <div className="mini-search">
+                          <Search size={18} />
+                          <input
+                            placeholder="Tìm môn học..."
+                            value={subjectSearch}
+                            onChange={(event) => setSubjectSearch(event.target.value)}
+                          />
+                        </div>
+                        <div className="choice-list">
+                          {loadingSubjects && <span>Đang tải danh sách môn học...</span>}
+                          {!loadingSubjects &&
+                            filteredSubjects.map((item) => (
+                              <button
+                                className={selectedSubjectId === normalizeId(item.subjectId) ? "selected" : ""}
+                                onClick={() => handleSubjectToggle(item.subjectId)}
+                                key={item.subjectId}
+                                type="button"
+                              >
+                                <span />
+                                {item.name}
+                              </button>
+                            ))}
+                          {!loadingSubjects && !filteredSubjects.length && <span>Không có môn học phù hợp</span>}
+                        </div>
+                      </div>
+
+                      <div className="form-field">
+                        <span>
+                          Chương * <b>(Bắt buộc)</b>
+                        </span>
+                        <div className="mini-search">
+                          <Search size={18} />
+                          <input
+                            placeholder="Tìm chương..."
+                            value={chapterSearch}
+                            onChange={(event) => setChapterSearch(event.target.value)}
+                          />
+                        </div>
+                        <div className="choice-list">
+                          {loadingChapters && <span>Đang tải danh sách chương...</span>}
+                          {!loadingChapters && !selectedSubjectId && <span>Vui lòng chọn môn học trước</span>}
+                          {!loadingChapters &&
+                            selectedSubjectId &&
+                            filteredChapters.map((item) => (
+                              <button
+                                className={selectedChapterId === normalizeId(item.chapterId) ? "selected" : ""}
+                                onClick={() => setSelectedChapterId(normalizeId(item.chapterId))}
+                                key={item.chapterId}
+                                type="button"
+                              >
+                                <span />
+                                {item.name}
+                              </button>
+                            ))}
+                          {!loadingChapters && selectedSubjectId && !filteredChapters.length && (
+                            <span>Không có chương phù hợp</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <label className="form-field full">
+                      <span>Độ khó</span>
+                      <div className="difficulty-selector">
+                        {Object.keys(difficultyMap).map((item) => (
+                          <button
+                            className={difficulty === item ? item.toLowerCase() : ""}
+                            onClick={() => setDifficulty(item)}
+                            key={item}
+                            type="button"
+                          >
+                            {item}
+                          </button>
+                        ))}
+                      </div>
+                    </label>
+                  </section>
+
+                  <section className="question-section">
+                    <div className="question-section-head">
+                      <span>03</span>
+                      <div>
+                        <h3>Kỹ năng</h3>
+                        <p>Gắn kỹ năng IRT nếu cần</p>
+                      </div>
+                    </div>
+                    <div className="form-field full">
+                      <div className="field-inline-header">
+                        <span>Kỹ năng</span>
+                        <span className="skill-hint">
+                          Nếu chọn kỹ năng, cần đúng 1 kỹ năng chính; các kỹ năng còn lại là kỹ năng phụ
+                        </span>
+                      </div>
+                      <div className="mini-search">
+                        <Search size={18} />
+                        <input
+                          placeholder="Tìm kỹ năng..."
+                          value={skillSearch}
+                          onChange={(event) => setSkillSearch(event.target.value)}
+                        />
+                      </div>
+                      <div className="choice-list skill-choice-list">
+                        {loadingSkills && <span>Đang tải danh sách kỹ năng...</span>}
+                        {!loadingSkills &&
+                          filteredSkills.map((item) => {
+                            const isSelected = selectedSkills.some(
+                              (skill) => normalizeId(skill.skillId) === normalizeId(item.skillId),
+                            );
+
+                            return (
+                              <button
+                                className={isSelected ? "selected" : ""}
+                                onClick={() => handleSkillToggle(item)}
+                                key={item.skillId}
+                                type="button"
+                              >
+                                <span />
+                                {item.name}
+                              </button>
+                            );
+                          })}
+                        {!loadingSkills && !filteredSkills.length && <span>Không có kỹ năng phù hợp</span>}
+                      </div>
+
+                      {selectedSkills.length > 0 && (
+                        <div className="selected-skill-list">
+                          {selectedSkills.map((skill) => (
+                            <div className="selected-skill-row" key={skill.skillId}>
+                              <strong>{skill.name}</strong>
+                              <button
+                                className={skill.primary ? "primary-skill-btn active" : "primary-skill-btn"}
+                                type="button"
+                                onClick={() => handlePrimarySkillChange(skill.skillId)}
+                              >
+                                {skill.primary ? "Kỹ năng chính" : "Đặt làm chính"}
+                              </button>
+                              <input
+                                type="number"
+                                min="0"
+                                max="1"
+                                step="0.1"
+                                value={skill.weight}
+                                onChange={(event) => handleSkillWeightChange(skill.skillId, event.target.value)}
+                                placeholder="0 đến 1"
+                              />
+                              <button type="button" onClick={() => handleSkillToggle(skill)}>
+                                Bỏ chọn
+                              </button>
+                            </div>
+                          ))}
+                          <div
+                            className={
+                              isSkillWeightSumValid
+                                ? "skill-weight-sum"
+                                : "skill-weight-sum invalid"
+                            }
+                          >
+                            <span>Tổng trọng số</span>
+                            <strong>{skillWeightSum.toFixed(2)} / 1.00</strong>
+                            {!isSkillWeightSumValid && <small>Tổng trọng số phải bằng 1.</small>}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </section>
+
+                  <section className="question-section">
+                    <div className="question-section-head">
+                      <span>04</span>
+                      <div>
+                        <h3>Đáp án</h3>
+                        <p>Nhập đáp án và đánh dấu đáp án đúng</p>
+                      </div>
+                    </div>
+                    <div className="form-field full">
+                      <div className="field-inline-header">
+                        <span>Các đáp án *</span>
+                        <label className="answer-count-control">
+                          <span>Số đáp án</span>
+                          <select value={answers.length} onChange={handleAnswerCountChange}>
+                            {Array.from(
+                              { length: MAX_ANSWER_COUNT - MIN_ANSWER_COUNT + 1 },
+                              (_, index) => MIN_ANSWER_COUNT + index,
+                            ).map((count) => (
+                              <option key={count} value={count}>
+                                {count}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      </div>
+                      <div className="answer-editor">
+                        {answers.map((answer, index) => {
+                          const answerLabel = String.fromCharCode(65 + index);
+
+                          return (
+                            <div
+                              className={correctIndex === index ? "answer-row marked-row" : "answer-row"}
+                              key={index}
+                            >
+                              <span className="answer-letter">{answerLabel}</span>
+                              <input
+                                aria-label={`Đáp án ${answerLabel}`}
+                                placeholder={`Nhập đáp án ${answerLabel}`}
+                                value={answer}
+                                onChange={(event) => handleAnswerChange(index, event.target.value)}
+                              />
+                              <button
+                                className={correctIndex === index ? "marked" : ""}
+                                onClick={() => setCorrectIndex(index)}
+                                type="button"
+                              >
+                                {correctIndex === index ? "Đúng" : "Chọn đúng"}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </section>
+                </>
+              )}
+            </div>
+
+            {submitError && <div className="modal-inline-error">{submitError}</div>}
+
+            <div className="question-modal-actions">
+              <button className="cancel-btn" onClick={handleCancel} type="button">
+                Hủy
+              </button>
+              <button className="add-btn" onClick={handleSubmit} disabled={submitting} type="button">
+                {submitting ? "Đang lưu..." : isEdit ? "Cập nhật" : "Thêm câu hỏi"}
+              </button>
+            </div>
+          </div>
+
+          <aside className="question-builder-side" aria-label="Tóm tắt câu hỏi">
+            <div className="question-summary-card">
+              <div className="question-summary-head">
+                <span className={isReadyToSubmit ? "summary-status ready" : "summary-status"}>
+                  {isReadyToSubmit ? "Sẵn sàng lưu" : "Đang soạn"}
                 </span>
+                <strong>{difficulty}</strong>
               </div>
-              <p>{question || "Nội dung câu hỏi..."}</p>
-              <div className="preview-options">
+              <div className="question-summary-rows">
+                <div>
+                  <span>Môn học</span>
+                  <strong>{selectedSubject?.name || "Chưa chọn"}</strong>
+                </div>
+                <div>
+                  <span>Chương</span>
+                  <strong>{selectedChapter?.name || "Chưa chọn"}</strong>
+                </div>
+                <div>
+                  <span>Đáp án</span>
+                  <strong>{completedAnswerCount}/{answers.length}</strong>
+                </div>
+                <div>
+                  <span>Đáp án đúng</span>
+                  <strong>{correctAnswerLabel}</strong>
+                </div>
+                <div>
+                  <span>Kỹ năng</span>
+                  <strong>{selectedSkills.length ? `${selectedSkills.length} kỹ năng` : "Không bắt buộc"}</strong>
+                </div>
+                <div>
+                  <span>Trọng số</span>
+                  <strong>{selectedSkills.length ? `${skillWeightSum.toFixed(2)} / 1.00` : "Không áp dụng"}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div className="question-side-preview">
+              <span className="side-preview-label">Xem nhanh</span>
+              <p>{question || "Nội dung câu hỏi sẽ hiển thị tại đây."}</p>
+              <div>
                 {answers.map((answer, index) => (
-                  <div
-                    className={correctIndex === index ? "preview-option correct" : "preview-option"}
+                  <span
+                    className={correctIndex === index ? "side-preview-answer correct" : "side-preview-answer"}
                     key={index}
                   >
-                    <strong>{String.fromCharCode(65 + index)}.</strong>
-                    <span>{answer || `Đáp án ${String.fromCharCode(65 + index)}`}</span>
-                  </div>
+                    {String.fromCharCode(65 + index)}. {answer || "Chưa nhập"}
+                  </span>
                 ))}
               </div>
             </div>
-          ) : (
-            <>
-              <label className="form-field full">
-                <span>Nội dung câu hỏi *</span>
-                <textarea
-                  className={!question ? "invalid" : ""}
-                  placeholder="Nhập nội dung câu hỏi"
-                  value={question}
-                  onChange={(event) => setQuestion(event.target.value)}
-                />
-                {!question && <small>Trường này là bắt buộc</small>}
-              </label>
-
-              <div className="two-column">
-                <div className="form-field">
-                  <span>
-                    Môn học * <b>(Bắt buộc)</b>
-                  </span>
-                  <div className="mini-search">
-                    <Search size={18} />
-                    <input
-                      placeholder="Tìm môn học..."
-                      value={subjectSearch}
-                      onChange={(event) => setSubjectSearch(event.target.value)}
-                    />
-                  </div>
-                  <div className="choice-list">
-                    {loadingSubjects && <span>Đang tải danh sách môn học...</span>}
-                    {!loadingSubjects &&
-                      filteredSubjects.map((item) => (
-                        <button
-                          className={selectedSubjectId === normalizeId(item.subjectId) ? "selected" : ""}
-                          onClick={() => handleSubjectToggle(item.subjectId)}
-                          key={item.subjectId}
-                          type="button"
-                        >
-                          <span />
-                          {item.name}
-                        </button>
-                      ))}
-                    {!loadingSubjects && !filteredSubjects.length && <span>Không có môn học phù hợp</span>}
-                  </div>
-                </div>
-
-                <div className="form-field">
-                  <span>
-                    Chương * <b>(Bắt buộc)</b>
-                  </span>
-                  <div className="mini-search">
-                    <Search size={18} />
-                    <input
-                      placeholder="Tìm chương..."
-                      value={chapterSearch}
-                      onChange={(event) => setChapterSearch(event.target.value)}
-                    />
-                  </div>
-                  <div className="choice-list">
-                    {loadingChapters && <span>Đang tải danh sách chương...</span>}
-                    {!loadingChapters && !selectedSubjectId && <span>Vui lòng chọn môn học trước</span>}
-                    {!loadingChapters &&
-                      selectedSubjectId &&
-                      filteredChapters.map((item) => (
-                        <button
-                          className={selectedChapterId === normalizeId(item.chapterId) ? "selected" : ""}
-                          onClick={() => setSelectedChapterId(normalizeId(item.chapterId))}
-                          key={item.chapterId}
-                          type="button"
-                        >
-                          <span />
-                          {item.name}
-                        </button>
-                      ))}
-                    {!loadingChapters && selectedSubjectId && !filteredChapters.length && (
-                      <span>Không có chương phù hợp</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <label className="form-field full">
-                <span>Độ khó</span>
-                <div className="difficulty-selector">
-                  {Object.keys(difficultyMap).map((item) => (
-                    <button
-                      className={difficulty === item ? item.toLowerCase() : ""}
-                      onClick={() => setDifficulty(item)}
-                      key={item}
-                      type="button"
-                    >
-                      {item}
-                    </button>
-                  ))}
-                </div>
-              </label>
-
-              <label className="form-field full">
-                <span>Giải thích</span>
-                <textarea
-                  placeholder="Nhập giải thích cho câu hỏi"
-                  value={explanation}
-                  onChange={(event) => setExplanation(event.target.value)}
-                />
-              </label>
-
-              <div className="form-field full">
-                <div className="field-inline-header">
-                  <span>Kỹ năng</span>
-                  <span className="skill-hint">
-                    Nếu chọn kỹ năng, cần đúng 1 kỹ năng chính; các kỹ năng còn lại là kỹ năng phụ
-                  </span>
-                </div>
-                <div className="mini-search">
-                  <Search size={18} />
-                  <input
-                    placeholder="Tìm kỹ năng..."
-                    value={skillSearch}
-                    onChange={(event) => setSkillSearch(event.target.value)}
-                  />
-                </div>
-                <div className="choice-list skill-choice-list">
-                  {loadingSkills && <span>Đang tải danh sách kỹ năng...</span>}
-                  {!loadingSkills &&
-                    filteredSkills.map((item) => {
-                      const isSelected = selectedSkills.some(
-                        (skill) => normalizeId(skill.skillId) === normalizeId(item.skillId),
-                      );
-
-                      return (
-                        <button
-                          className={isSelected ? "selected" : ""}
-                          onClick={() => handleSkillToggle(item)}
-                          key={item.skillId}
-                          type="button"
-                        >
-                          <span />
-                          {item.name}
-                        </button>
-                      );
-                    })}
-                  {!loadingSkills && !filteredSkills.length && <span>Không có kỹ năng phù hợp</span>}
-                </div>
-
-                {selectedSkills.length > 0 && (
-                  <div className="selected-skill-list">
-                    {selectedSkills.map((skill) => (
-                      <div className="selected-skill-row" key={skill.skillId}>
-                        <strong>{skill.name}</strong>
-                        <button
-                          className={skill.primary ? "primary-skill-btn active" : "primary-skill-btn"}
-                          type="button"
-                          onClick={() => handlePrimarySkillChange(skill.skillId)}
-                        >
-                          {skill.primary ? "Kỹ năng chính" : "Đặt làm chính"}
-                        </button>
-                        <input
-                          type="number"
-                          min="0"
-                          max="1"
-                          step="0.1"
-                          value={skill.weight}
-                          onChange={(event) => handleSkillWeightChange(skill.skillId, event.target.value)}
-                          placeholder="0 đến 1"
-                        />
-                        <button type="button" onClick={() => handleSkillToggle(skill)}>
-                          Bỏ chọn
-                        </button>
-                      </div>
-                    ))}
-                    <div
-                      className={
-                        isSkillWeightSumValid
-                          ? "skill-weight-sum"
-                          : "skill-weight-sum invalid"
-                      }
-                    >
-                      <span>Tổng trọng số</span>
-                      <strong>{skillWeightSum.toFixed(2)} / 1.00</strong>
-                      {!isSkillWeightSumValid && <small>Tổng trọng số phải bằng 1.</small>}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="form-field full">
-                <div className="field-inline-header">
-                  <span>Các đáp án *</span>
-                  <label className="answer-count-control">
-                    <span>Số đáp án</span>
-                    <select value={answers.length} onChange={handleAnswerCountChange}>
-                      {Array.from(
-                        { length: MAX_ANSWER_COUNT - MIN_ANSWER_COUNT + 1 },
-                        (_, index) => MIN_ANSWER_COUNT + index,
-                      ).map((count) => (
-                        <option key={count} value={count}>
-                          {count}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-                <div className="answer-editor">
-                  {answers.map((answer, index) => (
-                    <div className="answer-row" key={index}>
-                      <input
-                        placeholder={`Đáp án ${String.fromCharCode(65 + index)}`}
-                        value={answer}
-                        onChange={(event) => handleAnswerChange(index, event.target.value)}
-                      />
-                      <button
-                        className={correctIndex === index ? "marked" : ""}
-                        onClick={() => setCorrectIndex(index)}
-                        type="button"
-                      >
-                        {correctIndex === index ? "Đáp án đúng" : "Đáp án"}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
+          </aside>
         </div>
+    </div>
+  );
+}
 
-        {submitError && <div className="modal-inline-error">{submitError}</div>}
-
-        <div className="question-modal-actions">
-          <button className="cancel-btn" onClick={onClose}>
-            Hủy
-          </button>
-          <button className="add-btn" onClick={handleSubmit} disabled={submitting}>
-            {submitting ? "Đang lưu..." : isEdit ? "Cập nhật" : "Thêm câu hỏi"}
-          </button>
-        </div>
-      </div>
+export default function AddQuestionModal({ open, onClose, ...props }) {
+  return (
+    <Modal open={open} onClose={onClose}>
+      <QuestionForm open={open} onClose={onClose} onCancel={onClose} {...props} />
     </Modal>
   );
 }

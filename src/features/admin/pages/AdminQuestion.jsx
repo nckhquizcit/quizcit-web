@@ -1,12 +1,28 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Database, Pencil, Plus, Trash2, Upload } from "lucide-react";
+import {
+  BookOpen,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  ChevronsUpDown,
+  Database,
+  Gauge,
+  ListChecks,
+  Pencil,
+  Plus,
+  Search,
+  SlidersHorizontal,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react";
 
 import AddQuestionModal from "../components/modals/AddQuestionModal";
 import ImportQuestionsModal from "../components/modals/ImportQuestionsModal";
 import AdminPageHeader from "../components/AdminPageHeader";
 import Modal from "../components/ui/Modal";
-import DataTable from "../components/ui/DataTable";
 import RowActions from "../components/ui/RowActions";
 import ErrorState from "../../../components/ui/ErrorState/ErrorState";
 import EmptyState from "../../../components/ui/EmptyState/EmptyState";
@@ -20,6 +36,8 @@ import {
 } from "../../../services/quizService";
 import { getErrorMessage } from "../../../services/apiClient";
 import { getChaptersBySubject, getSubjects } from "../../../services/contentService";
+
+const QUESTION_PAGE_SIZE = 8;
 
 const getSkillId = (skill) =>
   skill?.skillId ?? skill?.id ?? skill?.skill?.skillId ?? skill?.skill?.id;
@@ -53,6 +71,12 @@ const getDifficultyLabel = (difficultyB) => {
   if (difficultyB <= -1) return "Easy";
   if (difficultyB >= 1) return "Hard";
   return "Medium";
+};
+
+const getDifficultyText = (difficulty) => {
+  if (difficulty === "Easy") return "Dễ";
+  if (difficulty === "Hard") return "Khó";
+  return "Trung bình";
 };
 
 const normalizeSubject = (subject) => ({
@@ -188,11 +212,13 @@ export default function AdminQuestions() {
   const [questionRows, setQuestionRows] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [chapters, setChapters] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("ALL");
   const [difficultyFilter, setDifficultyFilter] = useState("ALL");
+  const [sort, setSort] = useState({ key: "content", dir: "asc" });
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [openAddQuestion, setOpenAddQuestion] = useState(false);
   const [openImportQuestions, setOpenImportQuestions] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [loadingEditQuestionId, setLoadingEditQuestionId] = useState("");
@@ -250,33 +276,90 @@ export default function AdminQuestions() {
   );
 
   const visibleQuestions = useMemo(
-    () =>
-      questionRows.filter((question) => {
+    () => {
+      const q = searchQuery.trim().toLowerCase();
+
+      return questionRows.filter((question) => {
         const matchesSubject = subjectFilter === "ALL" || question.subjectId === subjectFilter;
         const matchesDifficulty =
           difficultyFilter === "ALL" ||
           getDifficultyLabel(question.difficultyB ?? 0) === difficultyFilter;
-        return matchesSubject && matchesDifficulty;
-      }),
-    [questionRows, subjectFilter, difficultyFilter],
+        const matchesSearch =
+          !q ||
+          [
+            question.content,
+            question.subject?.name,
+            question.chapter?.name,
+          ]
+            .filter(Boolean)
+            .some((value) => String(value).toLowerCase().includes(q));
+
+        return matchesSubject && matchesDifficulty && matchesSearch;
+      });
+    },
+    [questionRows, searchQuery, subjectFilter, difficultyFilter],
   );
 
-  const handleCreateQuestion = async (formValues) => {
-    const created = await createQuestion({
-      subjectId: formValues.subjectId,
-      chapterId: formValues.chapterId,
-      content: formValues.content,
-      explanation: formValues.explanation,
-      difficultyB: formValues.difficulty === "Easy" ? -1 : formValues.difficulty === "Medium" ? 0 : 1,
-      skills: normalizeSkillPayload(formValues.skills),
-      options: formValues.options,
+  const sortedQuestions = useMemo(() => {
+    const valueOf = (question) => {
+      if (sort.key === "difficultyB") return question.difficultyB ?? 0;
+      if (sort.key === "skills") return (question.skills || []).length;
+      return question.content || "";
+    };
+
+    const dir = sort.dir === "desc" ? -1 : 1;
+    return [...visibleQuestions].sort((a, b) => {
+      const va = valueOf(a);
+      const vb = valueOf(b);
+      if (typeof va === "number" && typeof vb === "number") return (va - vb) * dir;
+      return String(va).localeCompare(String(vb), "vi") * dir;
     });
-    setQuestionRows((currentRows) => [
-      enrichQuestion({ ...created, skills: created?.skills ?? formValues.skills }, chapterMap, subjectMap),
-      ...currentRows,
-    ]);
-    setOpenAddQuestion(false);
-    toast.success("Đã thêm câu hỏi mới.");
+  }, [sort, visibleQuestions]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedQuestions.length / QUESTION_PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagedQuestions = useMemo(
+    () =>
+      sortedQuestions.slice(
+        (safePage - 1) * QUESTION_PAGE_SIZE,
+        safePage * QUESTION_PAGE_SIZE,
+      ),
+    [safePage, sortedQuestions],
+  );
+
+  const questionStats = useMemo(
+    () => ({
+      total: questionRows.length,
+      matched: visibleQuestions.length,
+      withSkills: visibleQuestions.filter((question) => (question.skills || []).length > 0).length,
+    }),
+    [questionRows, visibleQuestions],
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, subjectFilter, difficultyFilter]);
+
+  const toggleSort = (key) => {
+    setPage(1);
+    setSort((current) => {
+      if (!current || current.key !== key) return { key, dir: "asc" };
+      return { key, dir: current.dir === "asc" ? "desc" : "asc" };
+    });
+  };
+
+  const renderSortIcon = (key) => {
+    if (sort?.key !== key) return <ChevronsUpDown size={14} />;
+    return sort.dir === "asc" ? <ChevronUp size={14} /> : <ChevronDown size={14} />;
+  };
+
+  const hasActiveFilters =
+    searchQuery.trim() || subjectFilter !== "ALL" || difficultyFilter !== "ALL";
+
+  const resetQuestionFilters = () => {
+    setSearchQuery("");
+    setSubjectFilter("ALL");
+    setDifficultyFilter("ALL");
   };
 
   const handleImportQuestions = async (importItems = [], onProgress) => {
@@ -399,69 +482,10 @@ export default function AdminQuestions() {
     toast.success("Đã xóa câu hỏi.");
   };
 
-  const columns = [
-    {
-      key: "content",
-      label: "Câu hỏi",
-      sortable: true,
-      sortValue: (row) => row.content,
-      render: (row) => (
-        <div className="bank-question-cell">
-          <strong>{row.content}</strong>
-          <div className="question-tags">
-            <span>Môn: {row.subject?.name || "-"}</span>
-            <span>Chương: {row.chapter?.name || "-"}</span>
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: "skills",
-      label: "Kỹ năng",
-      width: 140,
-      render: (row) => (
-        <button
-          className={`skill-preview-trigger ${(row.skills || []).length === 0 ? "empty" : ""}`}
-          onClick={() => setSkillPreviewQuestion(row)}
-          type="button"
-        >
-          {(row.skills || []).length > 0 ? `${(row.skills || []).length} kỹ năng` : "Xem danh sách"}
-        </button>
-      ),
-    },
-    {
-      key: "difficultyB",
-      label: "Độ khó",
-      width: 120,
-      sortable: true,
-      sortValue: (row) => row.difficultyB ?? 0,
-      render: (row) => <span className="difficulty-pill">{getDifficultyLabel(row.difficultyB ?? 0)}</span>,
-    },
-    {
-      key: "actions",
-      label: "",
-      width: 60,
-      align: "right",
-      render: (row) => (
-        <RowActions
-          items={[
-            {
-              label: "Chỉnh sửa",
-              icon: <Pencil size={16} />,
-              disabled: Boolean(loadingEditQuestionId),
-              onClick: () => handleStartEditQuestion(row),
-            },
-            {
-              label: "Xóa",
-              icon: <Trash2 size={16} />,
-              danger: true,
-              onClick: () => setDeletingQuestion(row),
-            },
-          ]}
-        />
-      ),
-    },
-  ];
+  const createQuestionPath =
+    subjectId && chapterId
+      ? `/admin/subjects/${subjectId}/chapters/${chapterId}/questions/new`
+      : "/admin/questions/new";
 
   return (
     <>
@@ -472,11 +496,15 @@ export default function AdminQuestions() {
         icon={<Database size={22} />}
         action={
           <div className="question-bank-actions">
-            <button className="import-question-btn" onClick={() => setOpenImportQuestions(true)}>
+            <button
+              className="import-question-btn"
+              onClick={() => setOpenImportQuestions(true)}
+              type="button"
+            >
               <Upload size={18} />
               Import câu hỏi
             </button>
-            <button className="add-btn" onClick={() => setOpenAddQuestion(true)}>
+            <button className="add-btn" onClick={() => navigate(createQuestionPath)} type="button">
               <Plus size={18} />
               Thêm câu hỏi
             </button>
@@ -487,47 +515,234 @@ export default function AdminQuestions() {
       {error ? (
         <ErrorState description={error} onRetry={loadQuestionBank} />
       ) : (
-        <DataTable
-          columns={columns}
-          rows={visibleQuestions}
-          getRowKey={(row) => row.questionId}
-          loading={loading}
-          searchPlaceholder="Tìm kiếm câu hỏi theo nội dung..."
-          searchKeys={["content"]}
-          emptyState={
-            <EmptyState
-              icon={<Database size={28} />}
-              title="Chưa có câu hỏi"
-              description="Thêm hoặc import câu hỏi để bắt đầu xây dựng ngân hàng câu hỏi."
-            />
-          }
-          toolbarExtra={
-            <>
-              <select
-                className="filter-select"
-                value={subjectFilter}
-                onChange={(event) => setSubjectFilter(event.target.value)}
-              >
-                <option value="ALL">Tất cả môn học</option>
-                {subjects.map((subject) => (
-                  <option key={subject.subjectId} value={subject.subjectId}>
-                    {subject.name}
-                  </option>
-                ))}
-              </select>
-              <select
-                className="filter-select"
-                value={difficultyFilter}
-                onChange={(event) => setDifficultyFilter(event.target.value)}
-              >
-                <option value="ALL">Tất cả độ khó</option>
-                <option value="Easy">Dễ</option>
-                <option value="Medium">Trung bình</option>
-                <option value="Hard">Khó</option>
-              </select>
-            </>
-          }
-        />
+        <section className="question-bank-shell">
+          <div className="question-bank-insights" aria-label="Tổng quan câu hỏi">
+            <article>
+              <span className="question-bank-insight-icon">
+                <Database size={18} />
+              </span>
+              <div>
+                <p>Tổng câu hỏi</p>
+                <strong>{questionStats.total}</strong>
+              </div>
+            </article>
+            <article>
+              <span className="question-bank-insight-icon">
+                <Gauge size={18} />
+              </span>
+              <div>
+                <p>Đang hiển thị</p>
+                <strong>{questionStats.matched}</strong>
+              </div>
+            </article>
+            <article>
+              <span className="question-bank-insight-icon">
+                <ListChecks size={18} />
+              </span>
+              <div>
+                <p>Có kỹ năng</p>
+                <strong>{questionStats.withSkills}</strong>
+              </div>
+            </article>
+          </div>
+
+          <div className="question-bank-surface">
+            <div className="question-bank-toolbar">
+              <label className="question-bank-search">
+                <Search size={17} />
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Tìm nội dung, môn học, chương..."
+                />
+              </label>
+
+              <div className="question-bank-filter-group">
+                <span className="question-bank-filter-label">
+                  <SlidersHorizontal size={15} />
+                  Lọc
+                </span>
+                <select
+                  className="question-bank-select"
+                  value={subjectFilter}
+                  onChange={(event) => setSubjectFilter(event.target.value)}
+                  aria-label="Lọc theo môn học"
+                >
+                  <option value="ALL">Tất cả môn học</option>
+                  {subjects.map((subject) => (
+                    <option key={subject.subjectId} value={subject.subjectId}>
+                      {subject.name}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="question-bank-select"
+                  value={difficultyFilter}
+                  onChange={(event) => setDifficultyFilter(event.target.value)}
+                  aria-label="Lọc theo độ khó"
+                >
+                  <option value="ALL">Tất cả độ khó</option>
+                  <option value="Easy">Dễ</option>
+                  <option value="Medium">Trung bình</option>
+                  <option value="Hard">Khó</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="question-bank-active-line">
+              <span>
+                Hiển thị <strong>{questionStats.matched}</strong> / {questionStats.total} câu hỏi
+              </span>
+              {hasActiveFilters && (
+                <button type="button" onClick={resetQuestionFilters}>
+                  <X size={14} />
+                  Đặt lại
+                </button>
+              )}
+            </div>
+
+            <div className="question-bank-table-wrap">
+              <table className="question-bank-table">
+                <thead>
+                  <tr>
+                    <th scope="col">
+                      <button type="button" onClick={() => toggleSort("content")}>
+                        Câu hỏi {renderSortIcon("content")}
+                      </button>
+                    </th>
+                    <th scope="col">
+                      <button type="button" onClick={() => toggleSort("skills")}>
+                        Kỹ năng {renderSortIcon("skills")}
+                      </button>
+                    </th>
+                    <th scope="col">
+                      <button type="button" onClick={() => toggleSort("difficultyB")}>
+                        Độ khó {renderSortIcon("difficultyB")}
+                      </button>
+                    </th>
+                    <th scope="col" className="question-bank-action-col">
+                      Thao tác
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading &&
+                    Array.from({ length: QUESTION_PAGE_SIZE }).map((_, index) => (
+                      <tr key={`question-skeleton-${index}`} className="question-bank-row">
+                        <td colSpan={4}>
+                          <div className="question-bank-row-skeleton" />
+                        </td>
+                      </tr>
+                    ))}
+
+                  {!loading &&
+                    pagedQuestions.map((row, index) => {
+                      const difficulty = getDifficultyLabel(row.difficultyB ?? 0);
+                      const skillCount = (row.skills || []).length;
+                      const rowNumber = (safePage - 1) * QUESTION_PAGE_SIZE + index + 1;
+
+                      return (
+                        <tr className="question-bank-row" key={row.questionId}>
+                          <td>
+                            <div className="bank-question-cell">
+                              <span className="bank-question-index">
+                                {String(rowNumber).padStart(2, "0")}
+                              </span>
+                              <div className="bank-question-main">
+                                <strong>{row.content}</strong>
+                                <div className="question-bank-meta">
+                                  <span>
+                                    <BookOpen size={13} />
+                                    {row.subject?.name || "Chưa có môn"}
+                                  </span>
+                                  <span>{row.chapter?.name || "Chưa có chương"}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td data-label="Kỹ năng">
+                            <button
+                              className={`skill-preview-trigger ${skillCount === 0 ? "empty" : ""}`}
+                              onClick={() => setSkillPreviewQuestion(row)}
+                              type="button"
+                            >
+                              <ListChecks size={14} />
+                              {skillCount > 0 ? `${skillCount} kỹ năng` : "Chưa gắn"}
+                            </button>
+                          </td>
+                          <td data-label="Độ khó">
+                            <span className={`difficulty-pill ${difficulty.toLowerCase()}`}>
+                              {getDifficultyText(difficulty)}
+                            </span>
+                          </td>
+                          <td data-label="Thao tác" className="question-bank-row-actions">
+                            <RowActions
+                              items={[
+                                {
+                                  label: "Chỉnh sửa",
+                                  icon: <Pencil size={16} />,
+                                  disabled: Boolean(loadingEditQuestionId),
+                                  onClick: () => handleStartEditQuestion(row),
+                                },
+                                {
+                                  label: "Xóa",
+                                  icon: <Trash2 size={16} />,
+                                  danger: true,
+                                  onClick: () => setDeletingQuestion(row),
+                                },
+                              ]}
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+
+              {!loading && pagedQuestions.length === 0 && (
+                <div className="question-bank-empty">
+                  <EmptyState
+                    icon={<Database size={28} />}
+                    title="Chưa có câu hỏi phù hợp"
+                    description="Thêm, import hoặc đổi bộ lọc để xem câu hỏi."
+                  />
+                </div>
+              )}
+            </div>
+
+            {!loading && sortedQuestions.length > QUESTION_PAGE_SIZE && (
+              <div className="question-bank-pagination">
+                <span>
+                  {(safePage - 1) * QUESTION_PAGE_SIZE + 1}-
+                  {Math.min(safePage * QUESTION_PAGE_SIZE, sortedQuestions.length)} /{" "}
+                  {sortedQuestions.length}
+                </span>
+                <div>
+                  <button
+                    type="button"
+                    disabled={safePage <= 1}
+                    onClick={() => setPage((current) => Math.max(1, current - 1))}
+                    aria-label="Trang trước"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <strong>
+                    Trang {safePage} / {totalPages}
+                  </strong>
+                  <button
+                    type="button"
+                    disabled={safePage >= totalPages}
+                    onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                    aria-label="Trang sau"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
       )}
 
       {chapterId && (
@@ -539,15 +754,6 @@ export default function AdminQuestions() {
         </button>
       )}
 
-      <AddQuestionModal
-        open={openAddQuestion}
-        onClose={() => setOpenAddQuestion(false)}
-        subject={selectedSubject}
-        chapter={selectedChapter}
-        onSubmit={handleCreateQuestion}
-        subjects={subjects}
-        chapters={chapters}
-      />
       <ImportQuestionsModal
         open={openImportQuestions}
         onClose={() => setOpenImportQuestions(false)}

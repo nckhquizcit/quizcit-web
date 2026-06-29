@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Clock, FileText, ListChecks, Pencil, Plus, Trash2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 import "../Admin.css";
 import "./AdminQuizzes.css";
@@ -9,7 +10,6 @@ import RowActions from "../components/ui/RowActions";
 import EmptyState from "../../../components/ui/EmptyState/EmptyState";
 import ErrorState from "../../../components/ui/ErrorState/ErrorState";
 import ConfirmDeleteModal from "../components/modals/ConfirmDeleteModal";
-import CreateQuizModal from "../components/modals/CreateQuizModal";
 import EditQuizModal from "../components/modals/EditQuizModal";
 import { useToast } from "../../../components/ui/Toast/Toast";
 import { getChaptersBySubject, getSubjects } from "../../../services/contentService";
@@ -27,6 +27,7 @@ const QUIZ_TYPE_LABELS = {
 };
 
 export default function AdminQuizzes() {
+  const navigate = useNavigate();
   const toast = useToast();
   const [subjects, setSubjects] = useState([]);
   const [chapters, setChapters] = useState([]);
@@ -37,7 +38,6 @@ export default function AdminQuizzes() {
   const [isLoadingChapters, setIsLoadingChapters] = useState(false);
   const [isLoadingQuizzes, setIsLoadingQuizzes] = useState(false);
   const [error, setError] = useState("");
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingQuiz, setEditingQuiz] = useState(null);
   const [deletingQuiz, setDeletingQuiz] = useState(null);
 
@@ -125,13 +125,6 @@ export default function AdminQuizzes() {
     () => chapters.find((chapter) => getChapterId(chapter) === selectedChapterId),
     [chapters, selectedChapterId],
   );
-
-  const handleQuizCreated = (createdQuiz, context) => {
-    if (context?.chapterId === selectedChapterId) {
-      setQuizzes((current) => [createdQuiz, ...current]);
-    }
-    toast.success("Tạo đề thi thành công.");
-  };
 
   const handleQuizUpdated = (updatedQuiz) => {
     setQuizzes((current) =>
@@ -239,7 +232,16 @@ export default function AdminQuizzes() {
         subtitle="Tạo và quản lý đề thi theo môn học và chương"
         icon={<FileText size={22} />}
         action={
-          <button className="add-btn" onClick={() => setIsCreateOpen(true)}>
+          <button
+            className="add-btn"
+            onClick={() =>
+              navigate(
+                `/admin/quizzes/new?subjectId=${encodeURIComponent(selectedSubjectId)}&chapterId=${encodeURIComponent(
+                  selectedChapterId,
+                )}`,
+              )
+            }
+          >
             <Plus size={18} />
             Tạo đề thi
           </button>
@@ -301,15 +303,6 @@ export default function AdminQuizzes() {
           }
         />
       )}
-
-      <CreateQuizModal
-        open={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-        subjects={subjects}
-        defaultSubjectId={selectedSubjectId}
-        defaultChapterId={selectedChapterId}
-        onCreated={handleQuizCreated}
-      />
 
       <EditQuizModal
         open={Boolean(editingQuiz)}

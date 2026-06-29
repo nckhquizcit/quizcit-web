@@ -1,6 +1,8 @@
-import { Trash2 } from "lucide-react";
+import { useState } from "react";
+import { Search, Trash2 } from "lucide-react";
 
 import { IMPORT_OPTION_KEYS } from "../utils/questionImportParser";
+import { filterImportSkills } from "../utils/questionImportPreviewLogic";
 
 const getNameById = (items = [], id, fallback) => {
   if (!id) return fallback;
@@ -45,6 +47,8 @@ export default function QuestionImportPreview({
   onRemoveRow,
   disabled = false,
 }) {
+  const [skillSearchByRow, setSkillSearchByRow] = useState({});
+
   if (!rows.length) {
     return (
       <div className="question-import-empty">
@@ -62,6 +66,8 @@ export default function QuestionImportPreview({
         const chapterName = getNameById(chapters, row.chapterId, "Chưa chọn chương");
         const rowSkills = row.skills || [];
         const skillNames = getSkillNames(skills, rowSkills.map((skill) => skill.skillId));
+        const skillSearch = skillSearchByRow[row.id] || "";
+        const filteredSkills = filterImportSkills(skills, skillSearch);
 
         const handleSkillToggle = (skill) => {
           const skillId = normalizeId(skill.skillId || skill.id);
@@ -207,8 +213,22 @@ export default function QuestionImportPreview({
                 <span>Kỹ năng của câu này</span>
                 <span className="skill-hint">Tổng trọng số cần bằng 1.</span>
               </div>
+              <div className="mini-search import-skill-search">
+                <Search size={18} />
+                <input
+                  placeholder="Tìm kỹ năng..."
+                  value={skillSearch}
+                  onChange={(event) =>
+                    setSkillSearchByRow((current) => ({
+                      ...current,
+                      [row.id]: event.target.value,
+                    }))
+                  }
+                  disabled={disabled}
+                />
+              </div>
               <div className="choice-list import-skill-choice-list">
-                {skills.map((skill) => {
+                {filteredSkills.map((skill) => {
                   const skillId = normalizeId(skill.skillId || skill.id);
                   const isSelected = rowSkills.some((item) => normalizeId(item.skillId) === skillId);
 
@@ -226,6 +246,7 @@ export default function QuestionImportPreview({
                   );
                 })}
                 {!skills.length && <span>Chưa tải được danh sách kỹ năng</span>}
+                {skills.length > 0 && !filteredSkills.length && <span>Không có kỹ năng phù hợp</span>}
               </div>
 
               {rowSkills.length > 0 && (

@@ -19,14 +19,16 @@ function pickRandomIds(questionIds, count) {
   return shuffled.slice(0, count);
 }
 
-export default function CreateQuizModal({
-  open,
+export function CreateQuizForm({
+  open = true,
   onClose,
+  onCancel,
   subjects = [],
   defaultSubjectId = "",
   defaultChapterId = "",
   onCreated,
 }) {
+  const handleCancel = onCancel || onClose;
   const [subjectId, setSubjectId] = useState(defaultSubjectId);
   const [chapterId, setChapterId] = useState(defaultChapterId);
   const [chapters, setChapters] = useState([]);
@@ -168,13 +170,12 @@ export default function CreateQuizModal({
   };
 
   return (
-    <Modal open={open} onClose={onClose} containerClassName="quiz-modal">
-      <FormModalLayout
+    <FormModalLayout
         title="Tạo đề thi mới"
         subtitle="Chọn môn học, chương và các câu hỏi để tạo đề thi"
         actions={
           <>
-            <button className="cancel-btn" onClick={onClose} disabled={isSubmitting}>
+            <button className="cancel-btn" onClick={handleCancel} disabled={isSubmitting}>
               Hủy
             </button>
             <button className="add-btn" onClick={handleSubmit} disabled={isSubmitting}>
@@ -296,7 +297,14 @@ export default function CreateQuizModal({
             </div>
           )}
         </div>
-      </FormModalLayout>
+    </FormModalLayout>
+  );
+}
+
+export default function CreateQuizModal({ open, onClose, ...props }) {
+  return (
+    <Modal open={open} onClose={onClose} containerClassName="quiz-modal">
+      <CreateQuizForm open={open} onClose={onClose} onCancel={onClose} {...props} />
     </Modal>
   );
 }

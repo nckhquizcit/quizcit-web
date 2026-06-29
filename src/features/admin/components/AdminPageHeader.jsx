@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 export default function AdminPageHeader({
   title,
   subtitle,
+  backHref,
   onBack,
   action,
   icon,
@@ -12,11 +13,18 @@ export default function AdminPageHeader({
       {/* ===== HEADER MAIN ===== */}
       <div className="header-main">
         <div className="header-left">
-          {onBack && (
-            <button className="back-btn" onClick={onBack}>
+          {backHref ? (
+            <a className="back-btn" href={backHref}>
+              <ArrowLeft size={16} />
+              Quay lại
+            </a>
+          ) : (
+            onBack && (
+            <button className="back-btn" onClick={onBack} type="button">
               <ArrowLeft size={16} />
               Quay lại
             </button>
+            )
           )}
 
           {icon && <div className="header-icon">{icon}</div>}
