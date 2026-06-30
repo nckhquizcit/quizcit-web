@@ -1,12 +1,26 @@
-import { useRef, useState } from "react";
-import { Link } from "react-router-dom";
-import { ArrowLeft, Info, Mail } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, Mail } from "lucide-react";
+import { getErrorMessage } from "../../../../services/apiClient";
+import { resendOtp, verifyEmail } from "../../../../services/authService";
 import { Button } from "../../../../components/ui";
 import "./VerifyForm.css";
 
-export default function VerifyForm({ email = "" }) {
+export default function VerifyForm({ email = "", verificationToken = "" }) {
+  const navigate = useNavigate();
   const [otp, setOtp] = useState(new Array(6).fill(""));
+  const [token, setToken] = useState(verificationToken);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
   const inputRefs = useRef([]);
+
+  useEffect(() => {
+    if (cooldown <= 0) return undefined;
+    const timer = setInterval(() => setCooldown((prev) => prev - 1), 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
 
   const handleChange = (element, index) => {
     if (isNaN(element.value)) return false;
@@ -24,9 +38,45 @@ export default function VerifyForm({ email = "" }) {
     }
   };
 
-  const handleVerify = (e) => {
+  const handleVerify = async (e) => {
     e.preventDefault();
-    // Backend verification API chưa sẵn sàng — màn hình demo.
+    const code = otp.join("");
+    if (code.length !== 6) {
+      setError("Vui lòng nhập đủ 6 số.");
+      return;
+    }
+    if (!token) {
+      setError("Phiên xác minh đã hết hạn. Vui lòng đăng ký lại.");
+      return;
+    }
+    try {
+      setLoading(true);
+      setError("");
+      const auth = await verifyEmail(token, code);
+      localStorage.setItem("accessToken", auth.accessToken);
+      localStorage.setItem("user", JSON.stringify(auth));
+      navigate("/app");
+    } catch (apiError) {
+      setError(getErrorMessage(apiError, "Xác minh thất bại."));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (!email || cooldown > 0) return;
+    try {
+      setResending(true);
+      setError("");
+      const res = await resendOtp(email);
+      setToken(res.verificationToken);
+      setOtp(new Array(6).fill(""));
+      setCooldown(60);
+    } catch (apiError) {
+      setError(getErrorMessage(apiError, "Không thể gửi lại mã."));
+    } finally {
+      setResending(false);
+    }
   };
 
   return (
@@ -43,6 +93,8 @@ export default function VerifyForm({ email = "" }) {
         </div>
       )}
 
+      {error && <div className="auth-form__error">{error}</div>}
+
       <div className="verify-otp">
         {otp.map((data, index) => (
           <input
@@ -58,19 +110,19 @@ export default function VerifyForm({ email = "" }) {
         ))}
       </div>
 
-      <div className="auth-notice">
-        <Info size={15} />
-        <span>Chức năng xác minh đang được phát triển.</span>
-      </div>
-
-      <Button type="submit" variant="primary" fullWidth>
+      <Button type="submit" variant="primary" fullWidth loading={loading}>
         Xác minh tài khoản
       </Button>
 
       <div className="verify-resend">
         <span>Không nhận được mã?</span>
-        <button type="button" className="verify-resend__btn">
-          Gửi lại mã
+        <button
+          type="button"
+          className="verify-resend__btn"
+          onClick={handleResend}
+          disabled={resending || cooldown > 0 || !email}
+        >
+          {cooldown > 0 ? `Gửi lại sau ${cooldown}s` : "Gửi lại mã"}
         </button>
       </div>
 

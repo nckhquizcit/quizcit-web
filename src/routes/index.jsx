@@ -1,10 +1,11 @@
 /* eslint-disable react-refresh/only-export-components */
 import { Suspense, lazy } from "react";
-import { createBrowserRouter, Link, Navigate } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout.jsx";
 import AuthLayout from "../layouts/AuthLayout.jsx";
 import AdminLayout from "../features/admin/AdminLayout.jsx";
 import ProtectedRoute from "../features/admin/components/guard/ProtectedRoute.jsx";
+import { ForgotPasswordProvider } from "../stores/contexts/ForgotPasswordContext.jsx";
 
 const HomePage = lazy(() => import("../features/home/pages/HomePage/HomePage.jsx"));
 const SubjectsPage = lazy(() => import("../features/subjects/pages/SubjectsPage/SubjectsPage.jsx"));
@@ -31,6 +32,9 @@ const AdminProfile = lazy(() => import("../features/admin/pages/AdminProfile.jsx
 const LoginPage = lazy(() => import("../features/auth/pages/LoginPage/LoginPage.jsx"));
 const RegisterPage = lazy(() => import("../features/auth/pages/RegisterPage/RegisterPage.jsx"));
 const VerifyPage = lazy(() => import("../features/auth/pages/VerifyPage/VerifyPage.jsx"));
+const ForgotPasswordPage = lazy(
+  () => import("../features/auth/pages/ForgotPasswordPage/ForgotPasswordPage.jsx"),
+);
 
 function PageLoader() {
   return <div className="page-loader">Đang tải...</div>;
@@ -41,21 +45,6 @@ function AccessDeniedPage() {
     <div className="page-loader">
       <h1>Không có quyền truy cập</h1>
       <p>Bạn không có quyền thực hiện thao tác này.</p>
-    </div>
-  );
-}
-
-function ForgotPasswordUnavailablePage() {
-  return (
-    <div className="auth-notice-page">
-      <div className="auth-notice-card">
-        <span className="auth-notice-card__icon">!</span>
-        <h1>Quên mật khẩu</h1>
-        <p>Chức năng khôi phục mật khẩu đang được phát triển.</p>
-        <Link to="/login" className="auth-notice-card__link">
-          Quay lại đăng nhập
-        </Link>
-      </div>
     </div>
   );
 }
@@ -91,7 +80,14 @@ export const router = createBrowserRouter([
       { path: "login", element: withSuspense(<LoginPage />) },
       { path: "register", element: withSuspense(<RegisterPage />) },
       { path: "verify", element: withSuspense(<VerifyPage />) },
-      { path: "forgot-password", element: <ForgotPasswordUnavailablePage /> },
+      {
+        path: "forgot-password",
+        element: withSuspense(
+          <ForgotPasswordProvider>
+            <ForgotPasswordPage />
+          </ForgotPasswordProvider>,
+        ),
+      },
     ],
   },
   {

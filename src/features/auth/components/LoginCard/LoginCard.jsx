@@ -27,6 +27,9 @@ export default function LoginCard() {
           Theo dõi tiến độ sau mỗi bài làm
         </div>
       </div>
+      <p className="auth-brand-panel__footnote">
+        Hơn 10.000 câu hỏi luyện tập theo từng môn học.
+      </p>
     </div>
   );
 }

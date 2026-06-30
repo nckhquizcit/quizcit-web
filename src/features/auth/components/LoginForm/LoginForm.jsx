@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { LockKeyhole, User } from "lucide-react";
+import { Eye, EyeOff, LockKeyhole, User } from "lucide-react";
 import { getErrorMessage } from "../../../../services/apiClient";
 import { login } from "../../../../services/authService";
 import { Button, Field, Input } from "../../../../components/ui";
@@ -11,7 +11,9 @@ export default function LoginForm() {
   const [formData, setFormData] = useState({
     username: "",
     password: "",
+    remember: false,
   });
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -62,21 +64,42 @@ export default function LoginForm() {
       </Field>
 
       <Field label="Mật khẩu" htmlFor="password">
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          placeholder="Nhập mật khẩu"
-          value={formData.password}
-          onChange={handleChange}
-          iconLeft={<LockKeyhole size={18} />}
-          required
-        />
+        <div className="auth-form__pwd">
+          <Input
+            id="password"
+            name="password"
+            type={showPassword ? "text" : "password"}
+            placeholder="Nhập mật khẩu"
+            value={formData.password}
+            onChange={handleChange}
+            iconLeft={<LockKeyhole size={18} />}
+            required
+          />
+          <button
+            type="button"
+            className="auth-form__pwd-toggle"
+            onClick={() => setShowPassword((v) => !v)}
+            aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
       </Field>
 
-      <p className="auth-form__hint">
-        Quên mật khẩu? <span>Chức năng đang phát triển.</span>
-      </p>
+      <div className="auth-form__options">
+        <label className="auth-form__remember">
+          <input
+            type="checkbox"
+            name="remember"
+            checked={formData.remember}
+            onChange={handleChange}
+          />
+          Ghi nhớ đăng nhập
+        </label>
+        <span className="auth-form__hint">
+          <Link to="/forgot-password">Quên mật khẩu?</Link>
+        </span>
+      </div>
 
       <Button type="submit" variant="primary" fullWidth loading={loading}>
         Đăng nhập

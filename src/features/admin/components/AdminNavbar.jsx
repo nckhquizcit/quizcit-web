@@ -1,16 +1,8 @@
 import "../Admin.css";
-import { Link, useNavigate } from "react-router-dom";
-import { LogOut, Menu, User } from "lucide-react";
-import { logout } from "../../../services/authService";
+import { Link } from "react-router-dom";
+import { Menu, User } from "lucide-react";
 
 export default function AdminNavbar({ onOpenMenu }) {
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
-
   return (
     <div className="admin-navbar">
       <div className="navbar-left">
@@ -30,11 +22,6 @@ export default function AdminNavbar({ onOpenMenu }) {
           <User size={16} strokeWidth={2} />
           <span>Hồ sơ</span>
         </Link>
-
-        <button type="button" className="logout" onClick={handleLogout}>
-          <LogOut size={16} />
-          <span>Đăng xuất</span>
-        </button>
       </div>
     </div>
   );

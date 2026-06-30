@@ -123,17 +123,6 @@
   font-size: 12px;
 }
 
-.logout {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 6px;
-  border: 1px solid #ddd;
-  background: white;
-  cursor: pointer;
-}
-
 .admin-content {
   padding: 30px;
 
@@ -3399,8 +3388,7 @@
   .stats-grid {
     grid-template-columns: 1fr;
   }
-  .profile-btn span,
-  .logout span {
+  .profile-btn span {
     display: none;
   }
 }

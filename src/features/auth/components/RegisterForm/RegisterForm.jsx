@@ -31,15 +31,15 @@ export default function RegisterForm() {
     try {
       setLoading(true);
       setError("");
-      const auth = await register({
+      const res = await register({
         username: formData.username,
         password: formData.password,
         email: formData.email,
         displayName: formData.username,
       });
-      localStorage.setItem("accessToken", auth.accessToken);
-      localStorage.setItem("user", JSON.stringify(auth));
-      navigate("/app");
+      navigate("/verify", {
+        state: { email: res.email, verificationToken: res.verificationToken },
+      });
     } catch (apiError) {
       setError(getErrorMessage(apiError, "Đăng ký thất bại."));
     } finally {
