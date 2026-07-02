@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { X } from "lucide-react";
 import "../modals/modal.css";
 
 export default function AuthorizationModal({ isOpen, onClose, user, onSave }) {
@@ -12,7 +13,8 @@ export default function AuthorizationModal({ isOpen, onClose, user, onSave }) {
   if (!isOpen || !user) return null;
 
   const rawDisplayName = user.displayName || user.fullName || "";
-  const displayName = rawDisplayName && rawDisplayName !== user.username ? rawDisplayName : "—";
+  const displayName =
+    rawDisplayName && rawDisplayName !== user.username ? rawDisplayName : "Chưa có tên hiển thị";
 
   const handleSave = () => {
     onSave(role);
@@ -24,6 +26,9 @@ export default function AuthorizationModal({ isOpen, onClose, user, onSave }) {
       <div className="modal-container">
         <div className="modal-header">
           <h3>Cấp quyền</h3>
+          <button className="close-btn" onClick={onClose} type="button" aria-label="Đóng">
+            <X size={18} />
+          </button>
         </div>
         <div className="modal-body">
           <p><strong>Mã người dùng:</strong> {user.userId || user.user_id}</p>

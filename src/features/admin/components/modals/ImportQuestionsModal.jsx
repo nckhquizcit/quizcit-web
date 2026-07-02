@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Download, FileText, FileUp, Upload } from "lucide-react";
+import { CheckCircle2, Download, FileText, FileUp, ListChecks, Upload } from "lucide-react";
 
 import QuestionImportPreview from "../QuestionImportPreview";
 import Modal from "../ui/Modal";
@@ -556,200 +556,243 @@ export default function ImportQuestionsModal({
   return (
     <Modal open={open} onClose={handleClose} containerClassName="import-questions-modal-shell">
       <div className="question-import-modal">
-        <div className="question-form-header">
+        <div className="question-import-header">
+          <span className="question-import-header__icon">
+            <Upload size={20} />
+          </span>
           <div>
             <h2>Import câu hỏi</h2>
-            <p>Dán nội dung hoặc tải file để tạo nhanh nhiều câu hỏi cho ngân hàng câu hỏi.</p>
+            <p>Chuẩn hóa dữ liệu trước khi lưu vào ngân hàng câu hỏi.</p>
+          </div>
+          <div className="question-import-header__meta" aria-label="Định dạng hỗ trợ">
+            <span>.txt</span>
+            <span>.csv</span>
           </div>
         </div>
 
-        <div className="question-import-tabs">
-          <button
-            type="button"
-            className={activeTab === "text" ? "active" : ""}
-            onClick={() => setActiveTab("text")}
-          >
-            <FileText size={16} />
-            Dán text
-          </button>
-          <button
-            type="button"
-            className={activeTab === "file" ? "active" : ""}
-            onClick={() => setActiveTab("file")}
-          >
-            <FileUp size={16} />
-            Upload file
-          </button>
-          <button
-            type="button"
-            className={activeTab === "template" ? "active" : ""}
-            onClick={() => setActiveTab("template")}
-          >
-            <Download size={16} />
-            File mẫu
-          </button>
-        </div>
-
-        <div className="question-import-defaults">
-          <label className="form-field">
-            <span>Môn học mặc định *</span>
-            <select value={defaultSubjectId} onChange={(event) => handleSubjectChange(event.target.value)}>
-              <option value="">Chọn môn học</option>
-              {normalizedSubjects.map((item) => (
-                <option value={item.subjectId} key={item.subjectId}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="form-field">
-            <span>Chương mặc định *</span>
-            <select
-              value={defaultChapterId}
-              onChange={(event) => handleChapterChange(event.target.value)}
-              disabled={!defaultSubjectId || loadingChapters}
+        <div className="question-import-workspace">
+          <div className="question-import-tabs" aria-label="Nguồn import">
+            <button
+              type="button"
+              className={activeTab === "text" ? "active" : ""}
+              onClick={() => setActiveTab("text")}
             >
-              <option value="">{loadingChapters ? "Đang tải chương..." : "Chọn chương"}</option>
-              {availableChapters.map((item) => (
-                <option value={item.chapterId} key={item.chapterId}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="form-field">
-            <span>Độ khó mặc định</span>
-            <select value={defaultDifficulty} onChange={(event) => handleDifficultyChange(event.target.value)}>
-              <option value="Easy">Easy</option>
-              <option value="Medium">Medium</option>
-              <option value="Hard">Hard</option>
-            </select>
-          </label>
-        </div>
-
-        {activeTab === "text" && (
-          <div className="question-import-source">
-            <label className="form-field">
-              <span>Kiểu nội dung</span>
-              <select value={sourceType} onChange={(event) => setSourceType(event.target.value)}>
-                <option value="auto">Tự nhận diện TXT/CSV</option>
-                <option value="text">Dán văn bản thường</option>
-                <option value="csv">Dán CSV</option>
-              </select>
-            </label>
-            <label className="form-field full">
-              <span>Nội dung câu hỏi</span>
-              <textarea
-                value={sourceText}
-                placeholder="TXT: Câu 1..., A. ..., B. ..., Đáp án: A. CSV: Câu hỏi,A,B,C,D,Đáp án,..."
-                onChange={(event) => {
-                  setSourceText(event.target.value);
-                  setSourceName("");
-                }}
-              />
-            </label>
-            <button type="button" className="add-btn" onClick={handleParse}>
-              Parse dữ liệu
+              <FileText size={16} />
+              Dán text
+            </button>
+            <button
+              type="button"
+              className={activeTab === "file" ? "active" : ""}
+              onClick={() => setActiveTab("file")}
+            >
+              <FileUp size={16} />
+              Upload file
+            </button>
+            <button
+              type="button"
+              className={activeTab === "template" ? "active" : ""}
+              onClick={() => setActiveTab("template")}
+            >
+              <Download size={16} />
+              File mẫu
             </button>
           </div>
-        )}
 
-        {activeTab === "file" && (
-          <div className="question-import-source">
-            <div className="quiz-import-zone question-import-file-zone">
-              <Upload size={42} />
-              <strong>Upload file câu hỏi</strong>
-              <span>Hỗ trợ .txt và .csv. XLSX, DOCX, PDF/OCR chưa hỗ trợ.</span>
-              <label>
-                <FileUp size={18} />
-                Chọn file
-                <input type="file" accept=".txt,.csv" onChange={handleFileChange} />
+          <section className="question-import-section" aria-label="Thiết lập mặc định">
+            <div className="question-import-section-head">
+              <div>
+                <strong>Thiết lập mặc định</strong>
+                <span>Dùng cho các dòng không ghi rõ môn hoặc chương.</span>
+              </div>
+            </div>
+
+            <div className="question-import-defaults">
+              <label className="form-field">
+                <span>Môn học mặc định *</span>
+                <select value={defaultSubjectId} onChange={(event) => handleSubjectChange(event.target.value)}>
+                  <option value="">Chọn môn học</option>
+                  {normalizedSubjects.map((item) => (
+                    <option value={item.subjectId} key={item.subjectId}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
               </label>
-              {sourceName && <em>File đã chọn: {sourceName}</em>}
-              {fileLoading && <em>Đang đọc file...</em>}
-            </div>
-            <button type="button" className="add-btn" onClick={handleParse} disabled={fileLoading || !sourceText}>
-              Parse dữ liệu
-            </button>
-          </div>
-        )}
 
-        {activeTab === "template" && (
-          <div className="question-import-template">
-            <div>
-              <strong>Tải file mẫu</strong>
-              <span>CSV phù hợp khi soạn bằng Excel/Google Sheets, TXT phù hợp khi copy từ tài liệu thường.</span>
+              <label className="form-field">
+                <span>Chương mặc định *</span>
+                <select
+                  value={defaultChapterId}
+                  onChange={(event) => handleChapterChange(event.target.value)}
+                  disabled={!defaultSubjectId || loadingChapters}
+                >
+                  <option value="">{loadingChapters ? "Đang tải chương..." : "Chọn chương"}</option>
+                  {availableChapters.map((item) => (
+                    <option value={item.chapterId} key={item.chapterId}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="form-field">
+                <span>Độ khó mặc định</span>
+                <select value={defaultDifficulty} onChange={(event) => handleDifficultyChange(event.target.value)}>
+                  <option value="Easy">Easy</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Hard">Hard</option>
+                </select>
+              </label>
             </div>
-            <div className="question-import-template-actions">
-              <button type="button" className="add-btn" onClick={() => downloadQuestionImportTemplate("csv")}>
-                <Download size={16} />
-                Tải CSV mẫu
+          </section>
+
+          {activeTab === "text" && (
+            <section className="question-import-source">
+              <div className="question-import-section-head compact">
+                <div>
+                  <strong>Nguồn dữ liệu</strong>
+                  <span>Chọn kiểu nhận diện rồi parse để mở preview.</span>
+                </div>
+              </div>
+
+              <label className="form-field">
+                <span>Kiểu nội dung</span>
+                <select value={sourceType} onChange={(event) => setSourceType(event.target.value)}>
+                  <option value="auto">Tự nhận diện TXT/CSV</option>
+                  <option value="text">Dán văn bản thường</option>
+                  <option value="csv">Dán CSV</option>
+                </select>
+              </label>
+              <label className="form-field full">
+                <span>Nội dung câu hỏi</span>
+                <textarea
+                  value={sourceText}
+                  placeholder="TXT: Câu 1..., A. ..., B. ..., Đáp án: A. CSV: Câu hỏi,A,B,C,D,Đáp án,..."
+                  onChange={(event) => {
+                    setSourceText(event.target.value);
+                    setSourceName("");
+                  }}
+                />
+              </label>
+              <button type="button" className="add-btn question-import-parse-btn" onClick={handleParse}>
+                <ListChecks size={16} />
+                Parse dữ liệu
               </button>
-              <button type="button" className="cancel-btn" onClick={() => downloadQuestionImportTemplate("txt")}>
-                <Download size={16} />
-                Tải TXT mẫu
+            </section>
+          )}
+
+          {activeTab === "file" && (
+            <section className="question-import-source">
+              <div className="quiz-import-zone question-import-file-zone">
+                <Upload size={38} />
+                <strong>Upload file câu hỏi</strong>
+                <span>Hỗ trợ .txt và .csv. XLSX, DOCX, PDF/OCR chưa hỗ trợ.</span>
+                <label>
+                  <FileUp size={18} />
+                  Chọn file
+                  <input type="file" accept=".txt,.csv" onChange={handleFileChange} />
+                </label>
+                {sourceName && <em>File đã chọn: {sourceName}</em>}
+                {fileLoading && <em>Đang đọc file...</em>}
+              </div>
+              <button
+                type="button"
+                className="add-btn question-import-parse-btn"
+                onClick={handleParse}
+                disabled={fileLoading || !sourceText}
+              >
+                <ListChecks size={16} />
+                Parse dữ liệu
               </button>
-            </div>
+            </section>
+          )}
+
+          {activeTab === "template" && (
+            <section className="question-import-template">
+              <div>
+                <strong>Tải file mẫu</strong>
+                <span>CSV phù hợp khi soạn bằng Excel/Google Sheets, TXT phù hợp khi copy từ tài liệu thường.</span>
+              </div>
+              <div className="question-import-template-actions">
+                <button type="button" className="add-btn" onClick={() => downloadQuestionImportTemplate("csv")}>
+                  <Download size={16} />
+                  Tải CSV mẫu
+                </button>
+                <button type="button" className="cancel-btn" onClick={() => downloadQuestionImportTemplate("txt")}>
+                  <Download size={16} />
+                  Tải TXT mẫu
+                </button>
+              </div>
+            </section>
+          )}
+
+          {parseMessage && <div className="question-import-note">{parseMessage}</div>}
+          {formError && <div className="modal-inline-error">{formError}</div>}
+
+          <div className="question-import-summary" aria-live="polite">
+            <span>
+              <strong>{rows.length}</strong>
+              Tổng
+            </span>
+            <span className="ok">
+              <strong>{validCount}</strong>
+              Hợp lệ
+            </span>
+            <span className={invalidCount ? "error" : ""}>
+              <strong>{invalidCount}</strong>
+              Cần sửa
+            </span>
           </div>
-        )}
 
-        {parseMessage && <div className="question-import-note">{parseMessage}</div>}
-        {formError && <div className="modal-inline-error">{formError}</div>}
+          <QuestionImportPreview
+            rows={rows}
+            subjects={normalizedSubjects}
+            chapters={allPreviewChapters}
+            skills={availableSkills}
+            onChangeRow={handleChangeRow}
+            onRemoveRow={handleRemoveRow}
+            disabled={submitting}
+          />
 
-        <div className="question-import-summary">
-          <span>Tổng: {rows.length}</span>
-          <span>Hợp lệ: {validCount}</span>
-          <span>Cần sửa: {invalidCount}</span>
+          {saveProgress && (
+            <div className="question-import-progress">
+              <div>
+                <strong>
+                  Đã lưu {saveProgress.completed}/{saveProgress.total} câu
+                </strong>
+                <div className="question-import-progress__counts">
+                  <span>Thành công: {saveProgress.success}</span>
+                  <span>Lỗi: {saveProgress.failed}</span>
+                </div>
+              </div>
+              <progress value={saveProgress.completed} max={saveProgress.total || 1} />
+            </div>
+          )}
+
+          {saveResult && (
+            <div className={saveResult.failureCount ? "question-import-result has-error" : "question-import-result"}>
+              <strong>
+                Đã lưu thành công {saveResult.successCount} câu, lỗi {saveResult.failureCount} câu.
+              </strong>
+              {saveResult.errors?.length > 0 && (
+                <ul>
+                  {saveResult.errors.map((error) => (
+                    <li key={`${error.clientId}-${error.index}`}>
+                      Câu {error.index}: {error.message}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
         </div>
 
-        <QuestionImportPreview
-          rows={rows}
-          subjects={normalizedSubjects}
-          chapters={allPreviewChapters}
-          skills={availableSkills}
-          onChangeRow={handleChangeRow}
-          onRemoveRow={handleRemoveRow}
-          disabled={submitting}
-        />
-
-        {saveProgress && (
-          <div className="question-import-progress">
-            <div>
-              <strong>
-                Đã lưu {saveProgress.completed}/{saveProgress.total} câu
-              </strong>
-              <span>
-                Thành công: {saveProgress.success} · Lỗi: {saveProgress.failed}
-              </span>
-            </div>
-            <progress value={saveProgress.completed} max={saveProgress.total || 1} />
-          </div>
-        )}
-
-        {saveResult && (
-          <div className={saveResult.failureCount ? "question-import-result has-error" : "question-import-result"}>
-            <strong>
-              Đã lưu thành công {saveResult.successCount} câu, lỗi {saveResult.failureCount} câu.
-            </strong>
-            {saveResult.errors?.length > 0 && (
-              <ul>
-                {saveResult.errors.map((error) => (
-                  <li key={`${error.clientId}-${error.index}`}>
-                    Câu {error.index}: {error.message}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
-
-        <div className="question-modal-actions">
+        <div className="question-modal-actions question-import-footer">
           <button className="cancel-btn" type="button" onClick={handleClose} disabled={submitting}>
             Đóng
           </button>
           <button className="add-btn" type="button" onClick={handleSubmit} disabled={submitting || !validCount}>
+            {!submitting && <CheckCircle2 size={16} />}
             {submitting ? "Đang lưu..." : "Lưu câu hỏi"}
           </button>
         </div>

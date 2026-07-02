@@ -1,6 +1,8 @@
 import { ArrowLeft } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export default function AdminPageHeader({
+  breadcrumb = [],
   title,
   subtitle,
   backHref,
@@ -8,22 +10,41 @@ export default function AdminPageHeader({
   action,
   icon,
 }) {
+  const crumbs = Array.isArray(breadcrumb) ? breadcrumb.filter(Boolean) : [];
+
   return (
-    <div className="admin-header">
-      {/* ===== HEADER MAIN ===== */}
+    <header className="admin-header admin-page-header">
+      {crumbs.length > 0 && (
+        <nav className="admin-breadcrumb" aria-label="Điều hướng">
+          <ol>
+            {crumbs.map((item, index) => {
+              const isLast = index === crumbs.length - 1;
+              const label = typeof item === "string" ? item : item.label;
+              const href = typeof item === "string" ? "" : item.href;
+
+              return (
+                <li key={`${label}-${index}`}>
+                  {href && !isLast ? <Link to={href}>{label}</Link> : <span>{label}</span>}
+                </li>
+              );
+            })}
+          </ol>
+        </nav>
+      )}
+
       <div className="header-main">
         <div className="header-left">
           {backHref ? (
-            <a className="back-btn" href={backHref}>
+            <Link className="back-btn" to={backHref}>
               <ArrowLeft size={16} />
               Quay lại
-            </a>
+            </Link>
           ) : (
             onBack && (
-            <button className="back-btn" onClick={onBack} type="button">
-              <ArrowLeft size={16} />
-              Quay lại
-            </button>
+              <button className="back-btn" onClick={onBack} type="button">
+                <ArrowLeft size={16} />
+                Quay lại
+              </button>
             )
           )}
 
@@ -37,6 +58,6 @@ export default function AdminPageHeader({
 
         {action && <div className="header-action">{action}</div>}
       </div>
-    </div>
+    </header>
   );
 }

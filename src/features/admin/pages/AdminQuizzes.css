@@ -97,3 +97,46 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Product quiz admin refresh */
+.quiz-filter-bar {
+  gap: 12px;
+  margin-bottom: 0;
+  padding: 14px;
+}
+
+.quiz-filter-bar .quiz-field {
+  gap: 7px;
+}
+
+.quiz-name-icon {
+  border-radius: var(--admin-radius-control, 8px);
+  background: var(--admin-primary-soft, #e9fbf3);
+  color: #047857;
+}
+
+.quiz-type-badge {
+  background: var(--admin-surface-strong, #eef4f8);
+  color: var(--admin-muted, #5f6f82);
+}
+
+.quiz-meta-cell {
+  color: var(--admin-muted, #5f6f82);
+}
+
+.quiz-modal-grid {
+  gap: 14px;
+}
+
+.quiz-picker {
+  border-top-color: var(--admin-border, #dce4ec);
+}
+
+.quiz-random-input {
+  border-color: var(--admin-border, #dce4ec);
+  border-radius: var(--admin-radius-control, 8px);
+}
+
+.quiz-inline-empty {
+  color: var(--admin-muted, #5f6f82);
+}

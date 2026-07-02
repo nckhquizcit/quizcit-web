@@ -73,8 +73,8 @@
   background: #ef4444;
 }
 
-.badge-purple {
-  background: #8b5cf6;
+.badge-accent {
+  background: var(--admin-primary, #10b981);
 }
 
 .badge-gray {
@@ -204,4 +204,29 @@
 .status-badge--muted {
   background: var(--color-surface-3);
   color: var(--color-text-muted);
+}
+
+/* Admin product refresh */
+.admin-users-page {
+  gap: 18px;
+}
+
+.filter-select {
+  min-height: 40px;
+  padding: 0 34px 0 12px;
+  border-color: var(--admin-border, #dce4ec);
+  border-radius: var(--admin-radius-control, 8px);
+  color: var(--admin-text, #0f172a);
+  font-weight: 700;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: var(--admin-primary, #10b981);
+  box-shadow: var(--admin-focus, 0 0 0 3px rgba(16, 185, 129, 0.18));
+}
+
+.status-badge {
+  min-height: 26px;
+  padding: 0 10px;
 }

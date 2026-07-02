@@ -74,8 +74,8 @@
 .badge-red {
   background: #ef4444;
 }
-.badge-purple {
-  background: #8b5cf6;
+.badge-accent {
+  background: #10b981;
 }
 .badge-gray {
   background: #6b7280;
@@ -97,4 +97,61 @@
 .action-btn.primary-btn {
   background: #009e60;
   color: #fff;
+}
+
+/* Product modal refresh */
+.modal-overlay {
+  background: rgba(15, 23, 42, 0.46);
+  padding: 20px;
+}
+
+.modal-container {
+  border: 1px solid var(--admin-border, #dce4ec);
+  border-radius: var(--admin-radius-surface, 8px);
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.22);
+}
+
+.modal-header {
+  margin-bottom: 0;
+  padding-bottom: 14px;
+  border-bottom-color: var(--admin-border, #dce4ec);
+}
+
+.modal-body {
+  margin: 0;
+  padding: 18px 0;
+}
+
+.modal-footer {
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--admin-border, #dce4ec);
+}
+
+.modal-btn {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: var(--admin-radius-control, 8px);
+  font-weight: 750;
+}
+
+.modal-btn.primary,
+.action-btn.primary-btn {
+  background: var(--admin-primary, #10b981);
+}
+
+.modal-btn.danger,
+.action-btn.danger-btn {
+  background: var(--admin-danger, #dc2626);
+}
+
+.modal-btn.secondary {
+  border: 1px solid var(--admin-border, #dce4ec);
+  background: var(--admin-surface, #ffffff);
+  color: var(--admin-text, #0f172a);
+}
+
+.badge-accent {
+  background: var(--admin-surface-strong, #eef4f8);
+  color: var(--admin-muted, #5f6f82);
 }

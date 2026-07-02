@@ -21,6 +21,9 @@ export default function DataTable({
   pageSize = 10,
   emptyState = null,
   toolbarExtra = null,
+  toolbarSummary = null,
+  density = "comfortable",
+  getRowClassName,
   initialSort = null,
 }) {
   const [query, setQuery] = useState("");
@@ -76,9 +79,11 @@ export default function DataTable({
     setPage(1);
   };
 
+  const tableClassName = `data-table data-table--${density}`;
+
   return (
-    <div className="data-table">
-      {(searchable || toolbarExtra) && (
+    <div className={tableClassName}>
+      {(searchable || toolbarSummary || toolbarExtra) && (
         <div className="data-table__toolbar">
           {searchable && (
             <div className="data-table__search">
@@ -91,6 +96,7 @@ export default function DataTable({
               />
             </div>
           )}
+          {toolbarSummary && <div className="data-table__summary">{toolbarSummary}</div>}
           {toolbarExtra && <div className="data-table__toolbar-extra">{toolbarExtra}</div>}
         </div>
       )}
@@ -137,10 +143,13 @@ export default function DataTable({
 
             {!loading &&
               paged.map((row, index) => (
-                <tr key={getRowKey ? getRowKey(row, index) : index}>
+                <tr
+                  key={getRowKey ? getRowKey(row, index) : index}
+                  className={getRowClassName ? getRowClassName(row, index) : undefined}
+                >
                   {columns.map((col) => (
                     <td key={col.key} style={{ textAlign: col.align || "left" }}>
-                      {col.render ? col.render(row, index) : row[col.key] ?? "—"}
+                      {col.render ? col.render(row, index) : row[col.key] ?? "Chưa có"}
                     </td>
                   ))}
                 </tr>

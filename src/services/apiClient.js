@@ -73,6 +73,18 @@ function normalizeApiError(error) {
   });
 }
 
+function isAuthEndpointRequest(error) {
+  const requestUrl = error?.config?.url;
+  if (!requestUrl) return false;
+
+  try {
+    const pathname = new URL(requestUrl, apiClient.defaults.baseURL).pathname;
+    return pathname.startsWith("/api/auth/");
+  } catch {
+    return requestUrl.startsWith("/api/auth/");
+  }
+}
+
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
 
@@ -88,7 +100,7 @@ apiClient.interceptors.response.use(
   (error) => {
     const apiError = normalizeApiError(error);
 
-    if (apiError.status === 401) {
+    if (apiError.status === 401 && !isAuthEndpointRequest(error)) {
       clearAuthSession();
       const currentPath = window.location.pathname;
       if (!currentPath.startsWith("/login")) {

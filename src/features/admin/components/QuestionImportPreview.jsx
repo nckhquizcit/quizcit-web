@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Trash2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Search, Trash2 } from "lucide-react";
 
 import { IMPORT_OPTION_KEYS } from "../utils/questionImportParser";
 import { filterImportSkills } from "../utils/questionImportPreviewLogic";
@@ -112,12 +112,13 @@ export default function QuestionImportPreview({
             key={row.id}
           >
             <div className="question-import-card__head">
-              <div>
+              <div className="question-import-card__title">
                 <strong>Câu {index + 1}</strong>
-                <span>Dòng nguồn: {row.sourceLine || index + 1}</span>
+                <span>Dòng {row.sourceLine || index + 1}</span>
               </div>
               <div className="question-import-card__actions">
                 <span className={hasError ? "import-status-pill error" : "import-status-pill ok"}>
+                  {hasError ? <AlertCircle size={13} /> : <CheckCircle2 size={13} />}
                   {hasError ? "Cần sửa" : "Hợp lệ"}
                 </span>
                 <button
@@ -203,9 +204,18 @@ export default function QuestionImportPreview({
             </div>
 
             <div className="question-import-meta">
-              <span>Môn: {subjectName}</span>
-              <span>Chương: {chapterName}</span>
-              <span>Kỹ năng: {skillNames}</span>
+              <span>
+                <b>Môn</b>
+                {subjectName}
+              </span>
+              <span>
+                <b>Chương</b>
+                {chapterName}
+              </span>
+              <span>
+                <b>Kỹ năng</b>
+                {skillNames}
+              </span>
             </div>
 
             <div className="question-import-skill-editor">

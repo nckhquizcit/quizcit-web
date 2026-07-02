@@ -19,7 +19,7 @@ export default function AdminQuizCreate() {
   const [error, setError] = useState("");
   const returnPath = "/admin/quizzes";
   const goBack = () => {
-    window.location.assign(returnPath);
+    navigate(returnPath);
   };
 
   const loadSubjects = useCallback(async () => {

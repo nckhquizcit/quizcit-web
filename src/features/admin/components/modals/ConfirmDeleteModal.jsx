@@ -1,6 +1,6 @@
 import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { Trash2, X } from "lucide-react";
 import { getErrorMessage } from "../../../../services/apiClient";
 import "./modal.css";
 
@@ -45,7 +45,9 @@ export default function ConfirmDeleteModal({ open, onClose, title, message, item
 
         <div className="modal-header">
           <h2>{title}</h2>
-          <button className="close-btn" onClick={handleClose} disabled={submitting}>×</button>
+          <button className="close-btn" onClick={handleClose} disabled={submitting} aria-label="Đóng">
+            <X size={18} />
+          </button>
         </div>
 
         <div className="modal-body">

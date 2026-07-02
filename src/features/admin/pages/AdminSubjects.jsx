@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, BookOpen, Pencil, Trash2 } from "lucide-react";
+import { ChevronRight, Plus, BookOpen, Pencil, Trash2 } from "lucide-react";
 
 import "../Admin.css";
 import AdminPageHeader from "../components/AdminPageHeader";
@@ -171,6 +171,7 @@ export default function AdminSubjects() {
               <button
                 className="icon-btn"
                 disabled={isMutating}
+                aria-label={`Chỉnh sửa ${subject.name}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   setEditingSubject(subject);
@@ -181,6 +182,7 @@ export default function AdminSubjects() {
               <button
                 className="icon-btn danger"
                 disabled={isMutating}
+                aria-label={`Xóa ${subject.name}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   setDeletingSubject(subject);
@@ -205,7 +207,7 @@ export default function AdminSubjects() {
                 {chapterCountBySubject[subject.subjectId] || 0}{" "}
                 chương
               </span>
-              <span>›</span>
+              <ChevronRight size={16} aria-hidden="true" />
             </div>
           </div>
         ))}

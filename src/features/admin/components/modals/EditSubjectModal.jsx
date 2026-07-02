@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { X } from "lucide-react";
 import "./modal.css";
 
 export default function EditSubjectModal({ open, onClose, subject, onSubmit }) {
@@ -45,7 +46,9 @@ export default function EditSubjectModal({ open, onClose, subject, onSubmit }) {
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>Chỉnh sửa môn học</h2>
-          <button className="close-btn" onClick={handleClose}>×</button>
+          <button className="close-btn" onClick={handleClose} type="button" aria-label="Đóng">
+            <X size={18} />
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="modal-body">

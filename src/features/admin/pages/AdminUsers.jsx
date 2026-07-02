@@ -32,8 +32,8 @@ const STATUS_TONE = {
   BANNED: "error",
 };
 
-const formatRole = (role) => ROLE_LABELS[role] || role || "—";
-const formatStatus = (status) => STATUS_LABELS[status] || status || "—";
+const formatRole = (role) => ROLE_LABELS[role] || role || "Chưa có";
+const formatStatus = (status) => STATUS_LABELS[status] || status || "Chưa có";
 const SELF_LOCKOUT_MESSAGE = "Bạn không thể khóa/xóa/thay đổi vai trò tài khoản đang đăng nhập.";
 
 export default function AdminUsers() {

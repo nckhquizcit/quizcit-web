@@ -100,7 +100,7 @@ export default function AdminSkills() {
     {
       key: "description",
       label: "Mô tả",
-      render: (skill) => skill.description?.trim() || "—",
+      render: (skill) => skill.description?.trim() || "Chưa có mô tả",
     },
     {
       key: "actions",

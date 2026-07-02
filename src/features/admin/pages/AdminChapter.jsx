@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, Plus, Pencil, Trash2 } from "lucide-react";
+import { BookOpen, ChevronDown, ChevronRight, FileText, Plus, Pencil, Trash2 } from "lucide-react";
 import AddChapterModal from "../components/modals/AddChapterModal";
 import EditChapterModal from "../components/modals/EditChapterModal";
 import ConfirmDeleteModal from "../components/modals/ConfirmDeleteModal";
@@ -261,6 +261,7 @@ export default function AdminChapters() {
                   <button
                     className="icon-btn"
                     disabled={isMutating}
+                    aria-label={`Chỉnh sửa ${chapter.name}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       setEditingChapter(chapter);
@@ -271,6 +272,7 @@ export default function AdminChapters() {
                   <button
                     className="icon-btn danger"
                     disabled={isMutating}
+                    aria-label={`Xóa ${chapter.name}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       setDeletingChapter(chapter);
@@ -278,7 +280,9 @@ export default function AdminChapters() {
                   >
                     <Trash2 size={16} />
                   </button>
-                  <div className="chapter-arrow">{isExpanded ? "▼" : "›"}</div>
+                  <div className="chapter-arrow" aria-hidden="true">
+                    {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                  </div>
                 </div>
               </div>
 
@@ -286,7 +290,10 @@ export default function AdminChapters() {
                 <div className="chapter-expanded-content">
                   <div className="theory-management">
                     <div className="theory-header">
-                      <h4>📖 Lý thuyết</h4>
+                      <h4>
+                        <BookOpen size={17} />
+                        Lý thuyết
+                      </h4>
                       <button
                         className="add-btn small"
                         disabled={isMutating}
@@ -312,6 +319,7 @@ export default function AdminChapters() {
                               <button
                                 className="icon-btn"
                                 disabled={isMutating}
+                                aria-label="Chỉnh sửa lý thuyết"
                                 onClick={() => setEditingTheory(theory)}
                               >
                                 <Pencil size={14} />
@@ -319,6 +327,7 @@ export default function AdminChapters() {
                               <button
                                 className="icon-btn danger"
                                 disabled={isMutating}
+                                aria-label="Xóa lý thuyết"
                                 onClick={() => setDeletingTheory(theory)}
                               >
                                 <Trash2 size={14} />
@@ -339,7 +348,8 @@ export default function AdminChapters() {
                         )
                       }
                     >
-                      Quản lý câu hỏi →
+                      <FileText size={16} />
+                      Quản lý câu hỏi
                     </button>
                   </div>
                 </div>
