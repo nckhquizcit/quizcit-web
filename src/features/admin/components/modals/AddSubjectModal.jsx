@@ -2,7 +2,7 @@ import Modal from "../ui/Modal";
 import FormModalLayout from "../ui/FormModalLayout";
 import { getErrorMessage } from "../../../../services/apiClient";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function AddSubjectModal({ open, onClose, onSubmit }) {
   const [name, setName] = useState("");
@@ -10,6 +10,21 @@ export default function AddSubjectModal({ open, onClose, onSubmit }) {
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+
+  useEffect(() => {
+    if (open) return;
+
+    setName("");
+    setCourseCode("");
+    setDescription("");
+    setSubmitError("");
+    setSubmitting(false);
+  }, [open]);
+
+  const handleClose = () => {
+    if (submitting) return;
+    onClose?.();
+  };
 
   const handleSubmit = async () => {
     if (submitting) return;
@@ -29,13 +44,13 @@ export default function AddSubjectModal({ open, onClose, onSubmit }) {
   };
 
   return (
-    <Modal open={open} onClose={onClose}>
+    <Modal open={open} onClose={handleClose}>
       <FormModalLayout
         title="Thêm môn học mới"
         subtitle="Nhập thông tin môn học để thêm vào hệ thống"
         actions={
           <>
-            <button className="cancel-btn" onClick={onClose}>
+            <button className="cancel-btn" onClick={handleClose}>
               Hủy
             </button>
             <button

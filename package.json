@@ -10,6 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@blocknote/core": "^0.52.1",
+    "@blocknote/mantine": "^0.52.1",
+    "@blocknote/react": "^0.52.1",
     "@tailwindcss/vite": "^4.1.18",
     "axios": "^1.13.6",
     "lucide-react": "^0.577.0",

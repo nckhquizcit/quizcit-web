@@ -23,6 +23,7 @@ const AdminSubjects = lazy(() => import("../features/admin/pages/AdminSubjects.j
 const AdminChapters = lazy(() => import("../features/admin/pages/AdminChapter.jsx"));
 const AdminQuestions = lazy(() => import("../features/admin/pages/AdminQuestion.jsx"));
 const AdminQuestionCreate = lazy(() => import("../features/admin/pages/AdminQuestionCreate.jsx"));
+const AdminQuestionImport = lazy(() => import("../features/admin/pages/AdminQuestionImport.jsx"));
 const AdminQuizzes = lazy(() => import("../features/admin/pages/AdminQuizzes.jsx"));
 const AdminQuizCreate = lazy(() => import("../features/admin/pages/AdminQuizCreate.jsx"));
 const AdminSkills = lazy(() => import("../features/admin/pages/AdminSkills.jsx"));
@@ -108,10 +109,15 @@ export const router = createBrowserRouter([
         element: withSuspense(<AdminQuestionCreate />),
       },
       {
+        path: "subjects/:subjectId/chapters/:chapterId/questions/import",
+        element: withSuspense(<AdminQuestionImport />),
+      },
+      {
         path: "subjects/:subjectId/chapters/:chapterId/questions",
         element: withSuspense(<AdminQuestions />),
       },
       { path: "questions/new", element: withSuspense(<AdminQuestionCreate />) },
+      { path: "questions/import", element: withSuspense(<AdminQuestionImport />) },
       { path: "questions", element: withSuspense(<AdminQuestions />) },
       { path: "quizzes/new", element: withSuspense(<AdminQuizCreate />) },
       { path: "quizzes", element: withSuspense(<AdminQuizzes />) },

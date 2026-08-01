@@ -15,13 +15,40 @@ D. Quản lý tài khoản
 Đáp án: B
 Độ khó: Easy`;
 
-export const QUESTION_IMPORT_CSV_TEMPLATE = `Câu hỏi,A,B,C,D,Đáp án,Giải thích,Độ khó,Môn học,Chương,Kỹ năng,Trọng số,Kỹ năng chính
-"HTML là viết tắt của gì?","Hyper Text Markup Language","High Text Machine Language","Hyper Tool Multi Language","Home Tool Markup Language","A","HTML là ngôn ngữ đánh dấu siêu văn bản.","Medium","Nhập tên hoặc ID môn học","Nhập tên hoặc ID chương","Nhập tên hoặc ID kỹ năng","1","Nhập kỹ năng chính"
-"CSS dùng để làm gì?","Tạo database","Tạo giao diện và định dạng trang web","Chạy server","Quản lý tài khoản","B","","Easy","","","Tên kỹ năng 1; Tên kỹ năng 2","0.7; 0.3","Tên kỹ năng 1"`;
+export const QUESTION_IMPORT_CSV_HEADER =
+  "Câu hỏi,A,B,C,D,Đáp án,Giải thích,Độ khó,Môn học,Chương,Kỹ năng,Trọng số,Kỹ năng chính";
 
-export function downloadQuestionImportTemplate(type = "csv") {
+const escapeCsv = (value = "") => `"${String(value).replaceAll('"', '""')}"`;
+
+export function createQuestionImportTemplate(type = "csv", context = {}) {
+  if (type === "txt") return QUESTION_IMPORT_TXT_TEMPLATE;
+
+  const { subjectName, chapterName } = context;
+  if (!subjectName || !chapterName) return QUESTION_IMPORT_CSV_HEADER;
+
+  return [
+    QUESTION_IMPORT_CSV_HEADER,
+    [
+      "HTML là viết tắt của gì?",
+      "Hyper Text Markup Language",
+      "High Text Machine Language",
+      "Hyper Tool Multi Language",
+      "Home Tool Markup Language",
+      "A",
+      "HTML là ngôn ngữ đánh dấu siêu văn bản.",
+      "Medium",
+      subjectName,
+      chapterName,
+      "",
+      "",
+      "",
+    ].map(escapeCsv).join(","),
+  ].join("\n");
+}
+
+export function downloadQuestionImportTemplate(type = "csv", context = {}) {
   const isTextTemplate = type === "txt";
-  const content = isTextTemplate ? QUESTION_IMPORT_TXT_TEMPLATE : QUESTION_IMPORT_CSV_TEMPLATE;
+  const content = createQuestionImportTemplate(type, context);
   const filename = isTextTemplate ? "quizcit-mau-import-cau-hoi.txt" : "quizcit-mau-import-cau-hoi.csv";
   const mimeType = isTextTemplate ? "text/plain;charset=utf-8" : "text/csv;charset=utf-8";
   const blob = new Blob(["\ufeff", content], { type: mimeType });

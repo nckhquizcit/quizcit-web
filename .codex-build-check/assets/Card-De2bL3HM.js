@@ -1,0 +1,1 @@
+import{r as s}from"./index-Bj4AdaHL.js";import"./ProgressRing-CLItuC0x.js";function l({children:r,as:a="div",padding:e="md",interactive:t=!1,className:i="",...c}){const o=["ui-card",`ui-card--pad-${e}`,t?"ui-card--interactive":"",i].filter(Boolean).join(" ");return s.createElement(a,{className:o,...c},r)}export{l as C};

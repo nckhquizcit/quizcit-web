@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 
 import AddQuestionModal from "../components/modals/AddQuestionModal";
-import ImportQuestionsModal from "../components/modals/ImportQuestionsModal";
 import AdminPageHeader from "../components/AdminPageHeader";
 import Modal from "../components/ui/Modal";
 import RowActions from "../components/ui/RowActions";
@@ -28,7 +27,6 @@ import ErrorState from "../../../components/ui/ErrorState/ErrorState";
 import EmptyState from "../../../components/ui/EmptyState/EmptyState";
 import { useToast } from "../../../components/ui/Toast/Toast";
 import {
-  createQuestion,
   deleteQuestion,
   getQuestionById,
   getQuestionsByChapter,
@@ -219,7 +217,6 @@ export default function AdminQuestions() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [openImportQuestions, setOpenImportQuestions] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [loadingEditQuestionId, setLoadingEditQuestionId] = useState("");
   const [deletingQuestion, setDeletingQuestion] = useState(null);
@@ -264,8 +261,6 @@ export default function AdminQuestions() {
     loadQuestionBank();
   }, [loadQuestionBank]);
 
-  const selectedSubject = subjects.find((subject) => subject.subjectId === subjectId);
-  const selectedChapter = chapters.find((chapter) => chapter.chapterId === chapterId);
   const chapterMap = useMemo(
     () => new Map(chapters.map((chapter) => [chapter.chapterId, chapter])),
     [chapters],
@@ -362,44 +357,6 @@ export default function AdminQuestions() {
     setDifficultyFilter("ALL");
   };
 
-  const handleImportQuestions = async (importItems = [], onProgress) => {
-    const errors = [];
-    let successCount = 0;
-
-    for (let index = 0; index < importItems.length; index += 1) {
-      const item = importItems[index];
-
-      try {
-        await createQuestion(item.payload);
-        successCount += 1;
-      } catch (importError) {
-        errors.push({
-          clientId: item.clientId,
-          index: item.index || index + 1,
-          message: getErrorMessage(importError, "Không thể lưu câu hỏi này."),
-        });
-      }
-
-      onProgress?.({
-        total: importItems.length,
-        completed: index + 1,
-        success: successCount,
-        failed: errors.length,
-      });
-    }
-
-    if (successCount > 0) {
-      await loadQuestionBank();
-      toast.success(`Đã import ${successCount} câu hỏi.`);
-    }
-
-    return {
-      successCount,
-      failureCount: errors.length,
-      errors,
-    };
-  };
-
   const handleStartEditQuestion = async (row) => {
     if (!row?.questionId || loadingEditQuestionId) return;
 
@@ -486,6 +443,10 @@ export default function AdminQuestions() {
     subjectId && chapterId
       ? `/admin/subjects/${subjectId}/chapters/${chapterId}/questions/new`
       : "/admin/questions/new";
+  const importQuestionPath =
+    subjectId && chapterId
+      ? `/admin/subjects/${subjectId}/chapters/${chapterId}/questions/import`
+      : "/admin/questions/import";
 
   return (
     <>
@@ -498,7 +459,7 @@ export default function AdminQuestions() {
           <div className="question-bank-actions">
             <button
               className="import-question-btn"
-              onClick={() => setOpenImportQuestions(true)}
+              onClick={() => navigate(importQuestionPath)}
               type="button"
             >
               <Upload size={18} />
@@ -754,15 +715,6 @@ export default function AdminQuestions() {
         </button>
       )}
 
-      <ImportQuestionsModal
-        open={openImportQuestions}
-        onClose={() => setOpenImportQuestions(false)}
-        subject={selectedSubject}
-        chapter={selectedChapter}
-        onSubmit={handleImportQuestions}
-        subjects={subjects}
-        chapters={chapters}
-      />
       <AddQuestionModal
         open={Boolean(editingQuestion)}
         onClose={() => setEditingQuestion(null)}

@@ -6,6 +6,7 @@ import EditChapterModal from "../components/modals/EditChapterModal";
 import ConfirmDeleteModal from "../components/modals/ConfirmDeleteModal";
 import AddTheoryModal from "../components/modals/AddTheoryModal";
 import EditTheoryModal from "../components/modals/EditTheoryModal";
+import TheoryContent from "../../content/components/TheoryContent";
 import AdminPageHeader from "../components/AdminPageHeader";
 import SearchBar from "../components/SearchBar";
 import {
@@ -45,6 +46,7 @@ export default function AdminChapters() {
   const [openAddTheory, setOpenAddTheory] = useState(false);
   const [editingTheory, setEditingTheory] = useState(null);
   const [deletingTheory, setDeletingTheory] = useState(null);
+  const [expandedTheories, setExpandedTheories] = useState({});
 
   useEffect(() => {
     let alive = true;
@@ -204,6 +206,13 @@ export default function AdminChapters() {
     });
   };
 
+  const toggleTheory = (theoryId) => {
+    setExpandedTheories((current) => ({
+      ...current,
+      [theoryId]: !current[theoryId],
+    }));
+  };
+
   const isMutating = Boolean(pendingAction);
 
   if (loading) return <div className="admin-page-state">Đang tải danh sách chương...</div>;
@@ -312,9 +321,33 @@ export default function AdminChapters() {
                       ) : chapterTheories.length === 0 ? (
                         <div className="empty-state">Chưa có lý thuyết</div>
                       ) : (
-                        chapterTheories.map((theory) => (
-                          <div key={theory.theoryId} className="theory-item-admin">
-                            <div className="theory-content">{theory.content}</div>
+                        chapterTheories.map((theory, theoryIndex) => {
+                          const theoryId = theory.theoryId || theory.theory_id;
+                          const theoryText = theory.content || "";
+                          const isTheoryExpanded = Boolean(expandedTheories[theoryId]);
+                          const isLongTheory =
+                            theoryText.length > 320 || theoryText.split(/\r?\n/).length > 6;
+
+                          return (
+                          <div key={theoryId} className="theory-item-admin">
+                            <div className="theory-content">
+                              <span className="theory-item-label">Lý thuyết {theoryIndex + 1}</span>
+                              <TheoryContent
+                                key={`${theoryId}-${theoryText}`}
+                                content={theoryText}
+                                contentFormat={theory.contentFormat}
+                                className={isTheoryExpanded ? "is-expanded" : "is-collapsed"}
+                              />
+                              {isLongTheory && (
+                                <button
+                                  type="button"
+                                  className="theory-expand-btn"
+                                  onClick={() => toggleTheory(theoryId)}
+                                >
+                                  {isTheoryExpanded ? "Thu gọn" : "Xem đầy đủ"}
+                                </button>
+                              )}
+                            </div>
                             <div className="theory-actions">
                               <button
                                 className="icon-btn"
@@ -334,7 +367,8 @@ export default function AdminChapters() {
                               </button>
                             </div>
                           </div>
-                        ))
+                          );
+                        })
                       )}
                     </div>
                   </div>
