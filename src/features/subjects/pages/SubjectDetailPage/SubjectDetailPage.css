@@ -186,6 +186,22 @@
   white-space: pre-wrap;
 }
 
+.theory-item .theory-rich-text {
+  max-width: 75ch;
+  overflow-wrap: anywhere;
+  font-size: var(--fs-base);
+  line-height: 1.75;
+}
+
+.theory-item .theory-rich-text p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.theory-item .theory-rich-text p + p {
+  margin-top: var(--space-4);
+}
+
 .quiz-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

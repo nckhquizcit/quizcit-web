@@ -133,6 +133,7 @@ export function mapTheory(raw = {}) {
     chapterId,
     chapter_id: chapterId,
     content: pick(raw, ["content"], ""),
+    contentFormat: pick(raw, ["contentFormat", "content_format"], "plain"),
     createdAt: pick(raw, ["createdAt", "created_at"], null),
   };
 }

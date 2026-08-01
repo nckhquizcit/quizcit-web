@@ -9,9 +9,11 @@ import { getChaptersBySubject } from "../../../../services/contentService";
 import {
   compactImportKey,
   detectCsvImport,
+  normalizeImportDifficulty,
   parseQuestionImport,
   validateQuestionImportRow,
 } from "../../utils/questionImportParser";
+import { selectImportValue } from "../../utils/questionImportMapping";
 import { downloadQuestionImportTemplate } from "../../utils/questionImportTemplate";
 
 const SUPPORTED_FILE_EXTENSIONS = [".txt", ".csv"];
@@ -116,6 +118,7 @@ export default function ImportQuestionsModal({
   subject,
   chapter,
   onSubmit,
+  variant = "modal",
 }) {
   const normalizedSubjects = useMemo(() => subjects.map(normalizeSubject), [subjects]);
   const normalizedInitialChapters = useMemo(
@@ -136,6 +139,8 @@ export default function ImportQuestionsModal({
   const [defaultSubjectId, setDefaultSubjectId] = useState("");
   const [defaultChapterId, setDefaultChapterId] = useState("");
   const [defaultDifficulty, setDefaultDifficulty] = useState("Medium");
+  const [placementMode, setPlacementMode] = useState("per-row");
+  const [allowPartialSave, setAllowPartialSave] = useState(false);
   const [availableChapters, setAvailableChapters] = useState([]);
   const [availableSkills, setAvailableSkills] = useState([]);
   const [loadingChapters, setLoadingChapters] = useState(false);
@@ -152,32 +157,51 @@ export default function ImportQuestionsModal({
 
   const resolveImportedRow = useCallback((row) => {
     const mappingErrors = [];
-    let subjectId = defaultSubjectId;
-    let chapterId = defaultChapterId;
+    const subjectRef = selectImportValue({
+      mode: placementMode,
+      importedValue: row.importedSubjectId,
+      defaultValue: defaultSubjectId,
+      manualValue: row.manualSubjectId,
+    });
+    const chapterRef = selectImportValue({
+      mode: placementMode,
+      importedValue: row.importedChapterId,
+      defaultValue: defaultChapterId,
+      manualValue: row.manualChapterId,
+    });
+    const difficulty = selectImportValue({
+      mode: placementMode,
+      importedValue: row.importedDifficulty
+        ? normalizeImportDifficulty(row.importedDifficulty, defaultDifficulty)
+        : "",
+      defaultValue: defaultDifficulty,
+      manualValue: row.manualDifficulty,
+    });
+    let subjectId = "";
+    let chapterId = "";
 
-    if (row.subjectId) {
-      const matchedSubject = findByIdOrName(normalizedSubjects, row.subjectId, "subjectId");
+    if (subjectRef) {
+      const matchedSubject = findByIdOrName(normalizedSubjects, subjectRef, "subjectId");
       if (matchedSubject) {
         subjectId = matchedSubject.subjectId;
       } else {
-        mappingErrors.push(`Không map được môn học "${row.subjectId}".`);
-        subjectId = "";
+        mappingErrors.push(`Không map được môn học "${subjectRef}".`);
       }
     }
 
-    if (row.chapterId) {
+    if (chapterRef) {
       const chapterCandidates = subjectId
         ? allPreviewChapters.filter((item) => item.subjectId === subjectId)
         : allPreviewChapters;
       const matchedChapter =
-        findByIdOrName(chapterCandidates, row.chapterId, "chapterId") ||
-        findByIdOrName(allPreviewChapters, row.chapterId, "chapterId");
+        findByIdOrName(chapterCandidates, chapterRef, "chapterId") ||
+        findByIdOrName(allPreviewChapters, chapterRef, "chapterId");
 
       if (matchedChapter && (!subjectId || matchedChapter.subjectId === subjectId)) {
         chapterId = matchedChapter.chapterId;
+        subjectId ||= matchedChapter.subjectId;
       } else {
-        mappingErrors.push(`Không map được chương "${row.chapterId}".`);
-        chapterId = "";
+        mappingErrors.push(`Không map được chương "${chapterRef}".`);
       }
     }
 
@@ -208,7 +232,7 @@ export default function ImportQuestionsModal({
       ...row,
       subjectId,
       chapterId,
-      difficulty: row.difficulty || defaultDifficulty,
+      difficulty,
       skills: ensureSinglePrimarySkill(resolvedSkills),
       mappingErrors,
       serverError: "",
@@ -220,6 +244,7 @@ export default function ImportQuestionsModal({
     defaultDifficulty,
     defaultSubjectId,
     normalizedSubjects,
+    placementMode,
   ]);
 
   const validateRows = useCallback((nextRows) =>
@@ -236,29 +261,11 @@ export default function ImportQuestionsModal({
       };
     }), []);
 
-  const updateRowsWithDefaults = useCallback((partial) => {
-    setRows((currentRows) =>
-      validateRows(
-        currentRows.map((row) =>
-          resolveImportedRow({
-            ...row,
-            ...partial,
-            mappingErrors: [],
-            serverError: "",
-          }),
-        ),
-      ),
-    );
-  }, [resolveImportedRow, validateRows]);
-
   useEffect(() => {
     if (!open) return;
 
-    const fallbackSubjectId = normalizeId(getSubjectId(subject) || getSubjectId(normalizedSubjects[0]));
-    const fallbackChapters = normalizedInitialChapters.filter(
-      (item) => !fallbackSubjectId || item.subjectId === fallbackSubjectId,
-    );
-    const fallbackChapterId = normalizeId(getChapterId(chapter) || getChapterId(fallbackChapters[0]));
+    const routeSubjectId = normalizeId(getSubjectId(subject));
+    const routeChapterId = normalizeId(getChapterId(chapter));
 
     setActiveTab("text");
     setSourceText("");
@@ -271,10 +278,12 @@ export default function ImportQuestionsModal({
     setSubmitting(false);
     setSaveProgress(null);
     setSaveResult(null);
-    setDefaultSubjectId(fallbackSubjectId);
-    setDefaultChapterId(fallbackChapterId);
+    setDefaultSubjectId(routeSubjectId);
+    setDefaultChapterId(routeChapterId);
     setDefaultDifficulty("Medium");
-  }, [chapter, normalizedInitialChapters, normalizedSubjects, open, subject]);
+    setPlacementMode(routeSubjectId && routeChapterId ? "single-chapter" : "per-row");
+    setAllowPartialSave(false);
+  }, [chapter, open, subject]);
 
   useEffect(() => {
     if (!open) return;
@@ -328,14 +337,14 @@ export default function ImportQuestionsModal({
         setAvailableChapters(nextChapters);
         setDefaultChapterId((currentChapterId) => {
           const hasCurrent = nextChapters.some((item) => item.chapterId === currentChapterId);
-          return hasCurrent ? currentChapterId : normalizeId(nextChapters[0]?.chapterId);
+          return hasCurrent ? currentChapterId : "";
         });
       } catch {
         if (!cancelled) {
           setAvailableChapters(fallbackChapters);
           setDefaultChapterId((currentChapterId) => {
             const hasCurrent = fallbackChapters.some((item) => item.chapterId === currentChapterId);
-            return hasCurrent ? currentChapterId : normalizeId(fallbackChapters[0]?.chapterId);
+            return hasCurrent ? currentChapterId : "";
           });
         }
       } finally {
@@ -355,20 +364,21 @@ export default function ImportQuestionsModal({
   useEffect(() => {
     if (!rows.length) return;
 
-    updateRowsWithDefaults({
-      subjectId: defaultSubjectId,
-      chapterId: defaultChapterId,
-    });
-  }, [defaultChapterId, defaultSubjectId, rows.length, updateRowsWithDefaults]);
+    setRows((currentRows) =>
+      validateRows(
+        currentRows.map((row) =>
+          resolveImportedRow({
+            ...row,
+            mappingErrors: [],
+            serverError: "",
+          }),
+        ),
+      ),
+    );
+  }, [defaultChapterId, defaultDifficulty, defaultSubjectId, placementMode, resolveImportedRow, rows.length, validateRows]);
 
   const handleClose = () => {
     if (submitting) return;
-
-    if (rows.length > 0 && !saveResult) {
-      const confirmed = window.confirm("Bạn có dữ liệu import chưa lưu. Đóng modal sẽ mất phần preview hiện tại.");
-      if (!confirmed) return;
-    }
-
     onClose?.();
   };
 
@@ -378,11 +388,12 @@ export default function ImportQuestionsModal({
     setFormError("");
     setSaveResult(null);
     setSaveProgress(null);
+    setAllowPartialSave(false);
 
     if (!text) {
       setRows([]);
       setParseMessage("");
-      setFormError("Vui lòng dán nội dung hoặc tải file trước khi parse.");
+      setFormError("Vui lòng dán nội dung hoặc tải file trước khi kiểm tra.");
       return;
     }
 
@@ -393,7 +404,7 @@ export default function ImportQuestionsModal({
     setRows(validateRows(rowsWithDefaults));
     setParseMessage(
       parsedRows.length
-        ? `Đã parse ${parsedRows.length} câu hỏi dạng ${effectiveSourceType.toUpperCase()} từ ${sourceName || "nội dung đã nhập"}.`
+        ? `Đã kiểm tra ${parsedRows.length} câu hỏi dạng ${effectiveSourceType.toUpperCase()} từ ${sourceName || "nội dung đã nhập"}.`
         : "Không tìm thấy câu hỏi nào theo format hỗ trợ.",
     );
   };
@@ -424,7 +435,7 @@ export default function ImportQuestionsModal({
 
     reader.onload = () => {
       setSourceText(String(reader.result || ""));
-      setParseMessage(`Đã đọc file ${file.name}. Bấm Parse dữ liệu để xem trước.`);
+      setParseMessage(`Đã đọc file ${file.name}. Bấm Kiểm tra dữ liệu để xem trước.`);
       setFileLoading(false);
       event.target.value = "";
     };
@@ -442,36 +453,41 @@ export default function ImportQuestionsModal({
   const handleSubjectChange = (nextSubjectId) => {
     setDefaultSubjectId(nextSubjectId);
     setDefaultChapterId("");
-    updateRowsWithDefaults({
-      subjectId: nextSubjectId,
-      chapterId: "",
-    });
   };
 
   const handleChapterChange = (nextChapterId) => {
     setDefaultChapterId(nextChapterId);
-    updateRowsWithDefaults({ chapterId: nextChapterId });
   };
 
   const handleDifficultyChange = (nextDifficulty) => {
     setDefaultDifficulty(nextDifficulty);
-    updateRowsWithDefaults({ difficulty: nextDifficulty });
   };
 
   const handleChangeRow = (rowId, partial) => {
     setSaveResult(null);
+    setAllowPartialSave(false);
     setRows((currentRows) =>
       validateRows(
-        currentRows.map((row) =>
-          row.id === rowId
-            ? {
-                ...row,
-                ...partial,
-                mappingErrors: partial.skills ? [] : row.mappingErrors,
-                serverError: "",
-              }
-            : row,
-        ),
+        currentRows.map((row) => {
+          if (row.id !== rowId) return row;
+
+          const nextRow = {
+            ...row,
+            ...partial,
+            ...(Object.hasOwn(partial, "subjectId") && {
+              manualSubjectId: partial.subjectId,
+              manualChapterId: Object.hasOwn(partial, "chapterId") ? partial.chapterId : "",
+            }),
+            ...(Object.hasOwn(partial, "chapterId") && { manualChapterId: partial.chapterId }),
+            ...(Object.hasOwn(partial, "difficulty") && { manualDifficulty: partial.difficulty }),
+            mappingErrors: partial.skills ? [] : row.mappingErrors,
+            serverError: "",
+          };
+
+          return Object.hasOwn(partial, "subjectId") || Object.hasOwn(partial, "chapterId")
+            ? resolveImportedRow(nextRow)
+            : nextRow;
+        }),
       ),
     );
   };
@@ -479,6 +495,7 @@ export default function ImportQuestionsModal({
   const handleRemoveRow = (rowId) => {
     setRows((currentRows) => currentRows.filter((row) => row.id !== rowId));
     setSaveResult(null);
+    setAllowPartialSave(false);
   };
 
   const handleSubmit = async () => {
@@ -495,11 +512,9 @@ export default function ImportQuestionsModal({
       return;
     }
 
-    if (invalidCount > 0) {
-      const confirmed = window.confirm(
-        `${invalidCount} câu đang lỗi sẽ bị bỏ qua. Bạn có muốn lưu ${validRows.length} câu hợp lệ không?`,
-      );
-      if (!confirmed) return;
+    if (invalidCount > 0 && !allowPartialSave) {
+      setFormError("Hãy sửa hết lỗi hoặc xác nhận chỉ lưu các câu hợp lệ.");
+      return;
     }
 
     const importItems = validRows.map((row, index) => ({
@@ -552,11 +567,16 @@ export default function ImportQuestionsModal({
 
   const validCount = rows.filter((row) => !row.errors?.length).length;
   const invalidCount = rows.length - validCount;
+  const selectedSubject = normalizedSubjects.find((item) => item.subjectId === defaultSubjectId);
+  const selectedChapter = allPreviewChapters.find((item) => item.chapterId === defaultChapterId);
+  const templateContext = {
+    subjectName: selectedSubject?.name,
+    chapterName: selectedChapter?.name,
+  };
 
-  return (
-    <Modal open={open} onClose={handleClose} containerClassName="import-questions-modal-shell">
-      <div className="question-import-modal">
-        <div className="question-import-header">
+  const content = (
+    <div className="question-import-modal">
+        {variant !== "page" && <div className="question-import-header">
           <span className="question-import-header__icon">
             <Upload size={20} />
           </span>
@@ -568,17 +588,17 @@ export default function ImportQuestionsModal({
             <span>.txt</span>
             <span>.csv</span>
           </div>
-        </div>
+        </div>}
 
         <div className="question-import-workspace">
-          <div className="question-import-tabs" aria-label="Nguồn import">
+          <div className="question-import-tabs two-columns" aria-label="Nguồn import">
             <button
               type="button"
               className={activeTab === "text" ? "active" : ""}
               onClick={() => setActiveTab("text")}
             >
               <FileText size={16} />
-              Dán text
+              Dán nội dung
             </button>
             <button
               type="button"
@@ -588,70 +608,14 @@ export default function ImportQuestionsModal({
               <FileUp size={16} />
               Upload file
             </button>
-            <button
-              type="button"
-              className={activeTab === "template" ? "active" : ""}
-              onClick={() => setActiveTab("template")}
-            >
-              <Download size={16} />
-              File mẫu
-            </button>
           </div>
-
-          <section className="question-import-section" aria-label="Thiết lập mặc định">
-            <div className="question-import-section-head">
-              <div>
-                <strong>Thiết lập mặc định</strong>
-                <span>Dùng cho các dòng không ghi rõ môn hoặc chương.</span>
-              </div>
-            </div>
-
-            <div className="question-import-defaults">
-              <label className="form-field">
-                <span>Môn học mặc định *</span>
-                <select value={defaultSubjectId} onChange={(event) => handleSubjectChange(event.target.value)}>
-                  <option value="">Chọn môn học</option>
-                  {normalizedSubjects.map((item) => (
-                    <option value={item.subjectId} key={item.subjectId}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="form-field">
-                <span>Chương mặc định *</span>
-                <select
-                  value={defaultChapterId}
-                  onChange={(event) => handleChapterChange(event.target.value)}
-                  disabled={!defaultSubjectId || loadingChapters}
-                >
-                  <option value="">{loadingChapters ? "Đang tải chương..." : "Chọn chương"}</option>
-                  {availableChapters.map((item) => (
-                    <option value={item.chapterId} key={item.chapterId}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="form-field">
-                <span>Độ khó mặc định</span>
-                <select value={defaultDifficulty} onChange={(event) => handleDifficultyChange(event.target.value)}>
-                  <option value="Easy">Easy</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Hard">Hard</option>
-                </select>
-              </label>
-            </div>
-          </section>
 
           {activeTab === "text" && (
             <section className="question-import-source">
               <div className="question-import-section-head compact">
                 <div>
                   <strong>Nguồn dữ liệu</strong>
-                  <span>Chọn kiểu nhận diện rồi parse để mở preview.</span>
+                  <span>Dán nội dung, sau đó kiểm tra trước khi lưu.</span>
                 </div>
               </div>
 
@@ -676,7 +640,7 @@ export default function ImportQuestionsModal({
               </label>
               <button type="button" className="add-btn question-import-parse-btn" onClick={handleParse}>
                 <ListChecks size={16} />
-                Parse dữ liệu
+                Kiểm tra dữ liệu
               </button>
             </section>
           )}
@@ -702,19 +666,24 @@ export default function ImportQuestionsModal({
                 disabled={fileLoading || !sourceText}
               >
                 <ListChecks size={16} />
-                Parse dữ liệu
+                Kiểm tra dữ liệu
               </button>
             </section>
           )}
 
-          {activeTab === "template" && (
-            <section className="question-import-template">
+          <section className="question-import-template">
               <div>
                 <strong>Tải file mẫu</strong>
-                <span>CSV phù hợp khi soạn bằng Excel/Google Sheets, TXT phù hợp khi copy từ tài liệu thường.</span>
+                <span>
+                  CSV có dòng mẫu khi đã chọn môn và chương. TXT luôn dùng môn/chương bên dưới.
+                </span>
               </div>
               <div className="question-import-template-actions">
-                <button type="button" className="add-btn" onClick={() => downloadQuestionImportTemplate("csv")}>
+                <button
+                  type="button"
+                  className="cancel-btn"
+                  onClick={() => downloadQuestionImportTemplate("csv", templateContext)}
+                >
                   <Download size={16} />
                   Tải CSV mẫu
                 </button>
@@ -723,8 +692,92 @@ export default function ImportQuestionsModal({
                   Tải TXT mẫu
                 </button>
               </div>
-            </section>
-          )}
+          </section>
+
+          <section className="question-import-section" aria-label="Cách gán môn và chương">
+            <div className="question-import-section-head">
+              <div>
+                <strong>Cách gán môn và chương</strong>
+                <span>Mỗi câu bắt buộc thuộc một chương.</span>
+              </div>
+            </div>
+
+            <div className="question-import-placement-modes">
+              <label className={placementMode === "single-chapter" ? "active" : ""}>
+                <input
+                  type="radio"
+                  name="question-import-placement"
+                  value="single-chapter"
+                  checked={placementMode === "single-chapter"}
+                  onChange={(event) => {
+                    setPlacementMode(event.target.value);
+                    setAllowPartialSave(false);
+                    setFormError("");
+                  }}
+                />
+                <span>
+                  <strong>Một chương cho tất cả</strong>
+                  Bỏ qua cột môn/chương trong file.
+                </span>
+              </label>
+              <label className={placementMode === "per-row" ? "active" : ""}>
+                <input
+                  type="radio"
+                  name="question-import-placement"
+                  value="per-row"
+                  checked={placementMode === "per-row"}
+                  onChange={(event) => {
+                    setPlacementMode(event.target.value);
+                    setAllowPartialSave(false);
+                    setFormError("");
+                  }}
+                />
+                <span>
+                  <strong>Theo từng dòng CSV</strong>
+                  Giá trị bên dưới chỉ bù cho dòng bị thiếu.
+                </span>
+              </label>
+            </div>
+
+            <div className="question-import-defaults">
+              <label className="form-field">
+                <span>{placementMode === "single-chapter" ? "Môn học dùng chung *" : "Môn học bù"}</span>
+                <select value={defaultSubjectId} onChange={(event) => handleSubjectChange(event.target.value)}>
+                  <option value="">Chọn môn học</option>
+                  {normalizedSubjects.map((item) => (
+                    <option value={item.subjectId} key={item.subjectId}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="form-field">
+                <span>{placementMode === "single-chapter" ? "Chương dùng chung *" : "Chương bù"}</span>
+                <select
+                  value={defaultChapterId}
+                  onChange={(event) => handleChapterChange(event.target.value)}
+                  disabled={!defaultSubjectId || loadingChapters}
+                >
+                  <option value="">{loadingChapters ? "Đang tải chương..." : "Chọn chương"}</option>
+                  {availableChapters.map((item) => (
+                    <option value={item.chapterId} key={item.chapterId}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="form-field">
+                <span>{placementMode === "single-chapter" ? "Độ khó dùng chung" : "Độ khó bù"}</span>
+                <select value={defaultDifficulty} onChange={(event) => handleDifficultyChange(event.target.value)}>
+                  <option value="Easy">Dễ</option>
+                  <option value="Medium">Trung bình</option>
+                  <option value="Hard">Khó</option>
+                </select>
+              </label>
+            </div>
+          </section>
 
           {parseMessage && <div className="question-import-note">{parseMessage}</div>}
           {formError && <div className="modal-inline-error">{formError}</div>}
@@ -752,7 +805,24 @@ export default function ImportQuestionsModal({
             onChangeRow={handleChangeRow}
             onRemoveRow={handleRemoveRow}
             disabled={submitting}
+            allowPlacementEdit={placementMode === "per-row"}
           />
+
+          {invalidCount > 0 && validCount > 0 && (
+            <label className="question-import-partial-save">
+              <input
+                type="checkbox"
+                checked={allowPartialSave}
+                onChange={(event) => {
+                  setAllowPartialSave(event.target.checked);
+                  setFormError("");
+                }}
+              />
+              <span>
+                Chỉ lưu <strong>{validCount} câu hợp lệ</strong>, giữ lại {invalidCount} câu lỗi để sửa sau.
+              </span>
+            </label>
+          )}
 
           {saveProgress && (
             <div className="question-import-progress">
@@ -789,14 +859,28 @@ export default function ImportQuestionsModal({
 
         <div className="question-modal-actions question-import-footer">
           <button className="cancel-btn" type="button" onClick={handleClose} disabled={submitting}>
-            Đóng
+            {variant === "page" ? "Quay lại" : "Đóng"}
           </button>
-          <button className="add-btn" type="button" onClick={handleSubmit} disabled={submitting || !validCount}>
+          <button
+            className="add-btn"
+            type="button"
+            onClick={handleSubmit}
+            disabled={submitting || !validCount || (invalidCount > 0 && !allowPartialSave)}
+          >
             {!submitting && <CheckCircle2 size={16} />}
-            {submitting ? "Đang lưu..." : "Lưu câu hỏi"}
+            {submitting ? "Đang lưu..." : `Lưu ${validCount} câu${invalidCount ? " hợp lệ" : ""}`}
           </button>
         </div>
       </div>
+  );
+
+  if (variant === "page") {
+    return <div className="import-questions-modal-shell question-import-page-shell">{content}</div>;
+  }
+
+  return (
+    <Modal open={open} onClose={handleClose} containerClassName="import-questions-modal-shell">
+      {content}
     </Modal>
   );
 }

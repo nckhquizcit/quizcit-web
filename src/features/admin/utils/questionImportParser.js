@@ -217,6 +217,9 @@ export function validateQuestionImportRow(row, { requireSubject = true, requireC
 
 export function createQuestionImportRow(partial = {}, index = 0) {
   const correctResult = getSingleCorrectKey(partial.correctKey);
+  const importedSubjectId = normalizeText(partial.subjectId);
+  const importedChapterId = normalizeText(partial.chapterId);
+  const importedDifficulty = normalizeText(partial.difficulty);
   const row = {
     id: partial.id || `import-question-${Date.now()}-${index}`,
     content: normalizeText(partial.content),
@@ -224,8 +227,11 @@ export function createQuestionImportRow(partial = {}, index = 0) {
     correctKey: correctResult.correctKey,
     explanation: normalizeText(partial.explanation),
     difficulty: normalizeImportDifficulty(partial.difficulty, "Medium"),
-    subjectId: normalizeText(partial.subjectId),
-    chapterId: normalizeText(partial.chapterId),
+    subjectId: importedSubjectId,
+    chapterId: importedChapterId,
+    importedSubjectId,
+    importedChapterId,
+    importedDifficulty,
     skills: normalizeImportSkills(partial.skills),
     mappingErrors: partial.mappingErrors || [],
     sourceLine: partial.sourceLine || index + 1,

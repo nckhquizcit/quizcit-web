@@ -22,6 +22,7 @@ import {
   Spinner,
 } from "../../../../components/ui";
 import { getErrorMessage } from "../../../../services/apiClient";
+import TheoryContent from "../../../content/components/TheoryContent";
 import "./SubjectDetailPage.css";
 
 export default function SubjectDetailPage() {
@@ -198,7 +199,10 @@ export default function SubjectDetailPage() {
                       key={theory.theoryId || theory.theory_id}
                       className="theory-item"
                     >
-                      {theory.content}
+                      <TheoryContent
+                        content={theory.content}
+                        contentFormat={theory.contentFormat}
+                      />
                     </div>
                   ))}
                 </div>

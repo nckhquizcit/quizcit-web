@@ -46,21 +46,47 @@ export default function QuestionImportPreview({
   onChangeRow,
   onRemoveRow,
   disabled = false,
+  allowPlacementEdit = false,
 }) {
   const [skillSearchByRow, setSkillSearchByRow] = useState({});
+  const [filter, setFilter] = useState("all");
 
   if (!rows.length) {
     return (
       <div className="question-import-empty">
         <strong>Chưa có câu hỏi để xem trước</strong>
-        <span>Dán nội dung hoặc tải file .txt/.csv rồi bấm Parse dữ liệu.</span>
+        <span>Dán nội dung hoặc tải file .txt/.csv rồi bấm Kiểm tra dữ liệu.</span>
       </div>
     );
   }
 
+  const indexedRows = rows.map((row, index) => ({ row, index }));
+  const visibleRows = indexedRows.filter(({ row }) => {
+    if (filter === "errors") return row.errors?.length > 0;
+    if (filter === "valid") return !row.errors?.length;
+    return true;
+  }).sort((left, right) => Number(right.row.errors?.length > 0) - Number(left.row.errors?.length > 0));
+
   return (
-    <div className="question-import-preview-list">
-      {rows.map((row, index) => {
+    <>
+      <div className="question-import-preview-toolbar" aria-label="Lọc bản xem trước">
+        {[
+          ["errors", "Cần sửa", rows.filter((row) => row.errors?.length).length],
+          ["valid", "Hợp lệ", rows.filter((row) => !row.errors?.length).length],
+          ["all", "Tất cả", rows.length],
+        ].map(([value, label, count]) => (
+          <button
+            type="button"
+            className={filter === value ? "active" : ""}
+            onClick={() => setFilter(value)}
+            key={value}
+          >
+            {label} ({count})
+          </button>
+        ))}
+      </div>
+      <div className="question-import-preview-list">
+      {visibleRows.map(({ row, index }) => {
         const hasError = row.errors?.length > 0;
         const subjectName = getNameById(subjects, row.subjectId, "Chưa chọn môn");
         const chapterName = getNameById(chapters, row.chapterId, "Chưa chọn chương");
@@ -106,21 +132,26 @@ export default function QuestionImportPreview({
           });
         };
 
+        const rowChapters = chapters.filter((chapter) => chapter.subjectId === row.subjectId);
+
         return (
-          <article
+          <details
             className={hasError ? "question-import-card has-error" : "question-import-card"}
             key={row.id}
+            open={hasError}
           >
-            <div className="question-import-card__head">
-              <div className="question-import-card__title">
+            <summary className="question-import-card__summary">
+              <div>
                 <strong>Câu {index + 1}</strong>
-                <span>Dòng {row.sourceLine || index + 1}</span>
+                <span>{row.content || `Dòng ${row.sourceLine || index + 1} chưa có nội dung`}</span>
               </div>
+              <span className={hasError ? "import-status-pill error" : "import-status-pill ok"}>
+                {hasError ? <AlertCircle size={13} /> : <CheckCircle2 size={13} />}
+                {hasError ? "Cần sửa" : "Hợp lệ"}
+              </span>
+            </summary>
+            <div className="question-import-card__body">
               <div className="question-import-card__actions">
-                <span className={hasError ? "import-status-pill error" : "import-status-pill ok"}>
-                  {hasError ? <AlertCircle size={13} /> : <CheckCircle2 size={13} />}
-                  {hasError ? "Cần sửa" : "Hợp lệ"}
-                </span>
                 <button
                   type="button"
                   aria-label={`Xóa câu ${index + 1}`}
@@ -128,9 +159,9 @@ export default function QuestionImportPreview({
                   disabled={disabled}
                 >
                   <Trash2 size={16} />
+                  Xóa câu
                 </button>
               </div>
-            </div>
 
             <label className="form-field full">
               <span>Nội dung câu hỏi *</span>
@@ -179,6 +210,44 @@ export default function QuestionImportPreview({
             </div>
 
             <div className="question-import-row-controls">
+              {allowPlacementEdit && (
+                <>
+                  <label className="form-field">
+                    <span>Môn học *</span>
+                    <select
+                      value={row.subjectId}
+                      onChange={(event) =>
+                        onChangeRow?.(row.id, { subjectId: event.target.value, chapterId: "" })
+                      }
+                      disabled={disabled}
+                    >
+                      <option value="">Chọn môn học</option>
+                      {subjects.map((subject) => (
+                        <option value={subject.subjectId} key={subject.subjectId}>
+                          {subject.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="form-field">
+                    <span>Chương *</span>
+                    <select
+                      value={row.chapterId}
+                      onChange={(event) => onChangeRow?.(row.id, { chapterId: event.target.value })}
+                      disabled={disabled || !row.subjectId}
+                    >
+                      <option value="">Chọn chương</option>
+                      {rowChapters.map((chapter) => (
+                        <option value={chapter.chapterId} key={chapter.chapterId}>
+                          {chapter.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </>
+              )}
+
               <label className="form-field">
                 <span>Độ khó</span>
                 <select
@@ -186,9 +255,9 @@ export default function QuestionImportPreview({
                   onChange={(event) => onChangeRow?.(row.id, { difficulty: event.target.value })}
                   disabled={disabled}
                 >
-                  <option value="Easy">Easy</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Hard">Hard</option>
+                  <option value="Easy">Dễ</option>
+                  <option value="Medium">Trung bình</option>
+                  <option value="Hard">Khó</option>
                 </select>
               </label>
 
@@ -305,9 +374,17 @@ export default function QuestionImportPreview({
                 ))}
               </div>
             )}
-          </article>
+            </div>
+          </details>
         );
       })}
-    </div>
+      {!visibleRows.length && (
+        <div className="question-import-empty compact">
+          <strong>Không có câu hỏi trong nhóm này</strong>
+          <span>Chọn bộ lọc khác để xem các câu còn lại.</span>
+        </div>
+      )}
+      </div>
+    </>
   );
 }

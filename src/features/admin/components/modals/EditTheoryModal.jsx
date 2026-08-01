@@ -2,19 +2,22 @@ import { useState } from "react";
 import FormModalLayout from "../ui/FormModalLayout";
 import Modal from "../ui/Modal";
 import { getErrorMessage } from "../../../../services/apiClient";
+import TheoryEditor from "../../../content/components/TheoryEditor";
+import { isTheoryContentEmpty } from "../../../content/components/theoryContentUtils";
 
 function EditTheoryForm({ theory, onClose, onSubmit }) {
   const [content, setContent] = useState(theory?.content || "");
+  const [contentFormat, setContentFormat] = useState(theory?.contentFormat || "plain");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
   const handleSubmit = async () => {
-    if (submitting || !content.trim()) return;
+    if (submitting || isTheoryContentEmpty(content, contentFormat)) return;
 
     try {
       setSubmitting(true);
       setSubmitError("");
-      await onSubmit?.({ content: content.trim() });
+      await onSubmit?.({ content, contentFormat });
     } catch (error) {
       setSubmitError(getErrorMessage(error, "Không thể lưu lý thuyết. Vui lòng thử lại."));
     } finally {
@@ -34,22 +37,24 @@ function EditTheoryForm({ theory, onClose, onSubmit }) {
           <button
             className="add-btn"
             type="button"
-            disabled={submitting || !content.trim()}
+            disabled={submitting || isTheoryContentEmpty(content, contentFormat)}
             onClick={handleSubmit}
           >
             {submitting ? "Đang lưu..." : "Lưu"}
           </button>
         </>
       }
-    >
-      {submitError && <div className="modal-inline-error">{submitError}</div>}
-      <textarea
-        placeholder="Nội dung lý thuyết"
-        value={content}
-        onChange={(event) => setContent(event.target.value)}
-        rows={6}
-        style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #cbd5e1" }}
-      />
+      >
+        {submitError && <div className="modal-inline-error">{submitError}</div>}
+        <TheoryEditor
+          value={content}
+          contentFormat={contentFormat}
+          disabled={submitting}
+          onChange={({ content: nextContent, contentFormat: nextFormat }) => {
+            setContent(nextContent);
+            setContentFormat(nextFormat);
+          }}
+        />
     </FormModalLayout>
   );
 }
@@ -58,8 +63,13 @@ export default function EditTheoryModal({ open, onClose, theory, onSubmit }) {
   if (!theory) return null;
 
   return (
-    <Modal open={open} onClose={onClose}>
-      <EditTheoryForm key={theory.theoryId || theory.id} theory={theory} onClose={onClose} onSubmit={onSubmit} />
+    <Modal open={open} onClose={onClose} containerClassName="theory-editor-modal">
+      <EditTheoryForm
+        key={`${theory.theoryId || theory.id}-${open ? "open" : "closed"}`}
+        theory={theory}
+        onClose={onClose}
+        onSubmit={onSubmit}
+      />
     </Modal>
   );
 }
