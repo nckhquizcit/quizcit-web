@@ -3,18 +3,28 @@ import { CheckCircle2, Download, FileText, FileUp, ListChecks, Upload } from "lu
 
 import QuestionImportPreview from "../QuestionImportPreview";
 import Modal from "../ui/Modal";
-import { getSkills } from "../../services/skillService";
 import { getErrorMessage } from "../../../../services/apiClient";
 import { getChaptersBySubject } from "../../../../services/contentService";
 import {
   compactImportKey,
   detectCsvImport,
-  normalizeImportDifficulty,
+  normalizeImportDifficultyB,
   parseQuestionImport,
   validateQuestionImportRow,
 } from "../../utils/questionImportParser";
-import { selectImportValue } from "../../utils/questionImportMapping";
+import {
+  isImportReferenceDataReady,
+  selectImportValue,
+} from "../../utils/questionImportMapping";
+import { getImportSkillsForChapter } from "../../utils/questionImportPreviewLogic";
 import { downloadQuestionImportTemplate } from "../../utils/questionImportTemplate";
+import {
+  DEFAULT_DIFFICULTY_B,
+  DEFAULT_DIFFICULTY_KEY,
+  DIFFICULTY_PRESETS,
+  matchDifficultyPresetKey,
+  resolveDifficultyB,
+} from "../../utils/difficultyLevels";
 
 const SUPPORTED_FILE_EXTENSIONS = [".txt", ".csv"];
 
@@ -36,16 +46,17 @@ const normalizeSubject = (subject) => ({
   subjectId: normalizeId(getSubjectId(subject)),
 });
 
-const normalizeChapter = (chapter, fallbackSubjectId = "") => ({
-  ...chapter,
-  chapterId: normalizeId(getChapterId(chapter)),
-  subjectId: normalizeId(getChapterSubjectId(chapter) || fallbackSubjectId),
-});
-
 const normalizeSkill = (skill) => ({
   ...skill,
   skillId: normalizeId(getSkillId(skill)),
   name: getSkillName(skill),
+});
+
+const normalizeChapter = (chapter, fallbackSubjectId = "") => ({
+  ...chapter,
+  chapterId: normalizeId(getChapterId(chapter)),
+  subjectId: normalizeId(getChapterSubjectId(chapter) || fallbackSubjectId),
+  skills: (chapter?.skills || []).map(normalizeSkill),
 });
 
 const formatWeight = (value) => {
@@ -80,12 +91,6 @@ const findByIdOrName = (items = [], ref = "", idKey) => {
   );
 };
 
-const getDifficultyValue = (difficulty) => {
-  if (difficulty === "Easy") return -1;
-  if (difficulty === "Hard") return 1;
-  return 0;
-};
-
 const getSupportedExtension = (filename = "") => {
   const lowerFilename = filename.toLowerCase();
   return SUPPORTED_FILE_EXTENSIONS.find((extension) => lowerFilename.endsWith(extension)) || "";
@@ -96,7 +101,9 @@ const toImportPayload = (row) => ({
   chapterId: row.chapterId,
   content: row.content.trim(),
   explanation: row.explanation?.trim() || "",
-  difficultyB: getDifficultyValue(row.difficulty),
+  difficultyB: Number.isFinite(Number(row.difficultyB))
+    ? Number(row.difficultyB)
+    : resolveDifficultyB(row.difficulty, DEFAULT_DIFFICULTY_B),
   skills: (row.skills || []).map((skill) => ({
     skillId: skill.skillId,
     weight: Number(skill.weight),
@@ -138,11 +145,10 @@ export default function ImportQuestionsModal({
   const [saveResult, setSaveResult] = useState(null);
   const [defaultSubjectId, setDefaultSubjectId] = useState("");
   const [defaultChapterId, setDefaultChapterId] = useState("");
-  const [defaultDifficulty, setDefaultDifficulty] = useState("Medium");
+  const [defaultDifficulty, setDefaultDifficulty] = useState(DEFAULT_DIFFICULTY_KEY);
   const [placementMode, setPlacementMode] = useState("per-row");
   const [allowPartialSave, setAllowPartialSave] = useState(false);
   const [availableChapters, setAvailableChapters] = useState([]);
-  const [availableSkills, setAvailableSkills] = useState([]);
   const [loadingChapters, setLoadingChapters] = useState(false);
 
   const allPreviewChapters = useMemo(() => {
@@ -169,14 +175,23 @@ export default function ImportQuestionsModal({
       defaultValue: defaultChapterId,
       manualValue: row.manualChapterId,
     });
-    const difficulty = selectImportValue({
-      mode: placementMode,
-      importedValue: row.importedDifficulty
-        ? normalizeImportDifficulty(row.importedDifficulty, defaultDifficulty)
-        : "",
-      defaultValue: defaultDifficulty,
-      manualValue: row.manualDifficulty,
-    });
+    const defaultDifficultyB = resolveDifficultyB(defaultDifficulty);
+    const difficultyB = (() => {
+      if (row.manualDifficultyB !== undefined && row.manualDifficultyB !== null && row.manualDifficultyB !== "") {
+        return Number(row.manualDifficultyB);
+      }
+      if (row.manualDifficulty) {
+        return resolveDifficultyB(row.manualDifficulty, defaultDifficultyB);
+      }
+      if (placementMode === "single-chapter") {
+        return defaultDifficultyB;
+      }
+      if (row.importedDifficulty) {
+        return normalizeImportDifficultyB(row.importedDifficulty, defaultDifficultyB);
+      }
+      return defaultDifficultyB;
+    })();
+    const difficulty = matchDifficultyPresetKey(difficultyB);
     let subjectId = "";
     let chapterId = "";
 
@@ -211,10 +226,11 @@ export default function ImportQuestionsModal({
     }
 
     const sourceSkills = row.skills || [];
+    const chapterSkills = getImportSkillsForChapter(allPreviewChapters, chapterId);
     const equalWeight = equalSkillWeight(sourceSkills.length);
     const hasPrimary = sourceSkills.some((skill) => skill.primary);
     const resolvedSkills = sourceSkills.map((skill, index) => {
-      const matchedSkill = findByIdOrName(availableSkills, skill.skillId || skill.name, "skillId");
+      const matchedSkill = findByIdOrName(chapterSkills, skill.skillId || skill.name, "skillId");
 
       if (!matchedSkill) {
         mappingErrors.push(`Không map được kỹ năng "${skill.name || skill.skillId || "không rõ"}".`);
@@ -233,13 +249,13 @@ export default function ImportQuestionsModal({
       subjectId,
       chapterId,
       difficulty,
+      difficultyB: Number(difficultyB),
       skills: ensureSinglePrimarySkill(resolvedSkills),
       mappingErrors,
       serverError: "",
     };
   }, [
     allPreviewChapters,
-    availableSkills,
     defaultChapterId,
     defaultDifficulty,
     defaultSubjectId,
@@ -280,35 +296,11 @@ export default function ImportQuestionsModal({
     setSaveResult(null);
     setDefaultSubjectId(routeSubjectId);
     setDefaultChapterId(routeChapterId);
-    setDefaultDifficulty("Medium");
+    setDefaultDifficulty(DEFAULT_DIFFICULTY_KEY);
+    setLoadingChapters(Boolean(routeSubjectId));
     setPlacementMode(routeSubjectId && routeChapterId ? "single-chapter" : "per-row");
     setAllowPartialSave(false);
   }, [chapter, open, subject]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    let cancelled = false;
-
-    const loadSkills = async () => {
-      try {
-        const skillData = await getSkills();
-        if (!cancelled) {
-          setAvailableSkills((skillData || []).map(normalizeSkill));
-        }
-      } catch {
-        if (!cancelled) {
-          setAvailableSkills([]);
-        }
-      }
-    };
-
-    loadSkills();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [open]);
 
   useEffect(() => {
     if (!open || !defaultSubjectId) {
@@ -390,6 +382,11 @@ export default function ImportQuestionsModal({
     setSaveProgress(null);
     setAllowPartialSave(false);
 
+    if (!isImportReferenceDataReady({ loadingChapters })) {
+      setFormError("Đang tải dữ liệu môn học và chương. Vui lòng đợi trong giây lát.");
+      return;
+    }
+
     if (!text) {
       setRows([]);
       setParseMessage("");
@@ -451,6 +448,7 @@ export default function ImportQuestionsModal({
   };
 
   const handleSubjectChange = (nextSubjectId) => {
+    setLoadingChapters(Boolean(nextSubjectId));
     setDefaultSubjectId(nextSubjectId);
     setDefaultChapterId("");
   };
@@ -480,6 +478,7 @@ export default function ImportQuestionsModal({
             }),
             ...(Object.hasOwn(partial, "chapterId") && { manualChapterId: partial.chapterId }),
             ...(Object.hasOwn(partial, "difficulty") && { manualDifficulty: partial.difficulty }),
+            ...(Object.hasOwn(partial, "difficultyB") && { manualDifficultyB: partial.difficultyB }),
             mappingErrors: partial.skills ? [] : row.mappingErrors,
             serverError: "",
           };
@@ -638,7 +637,15 @@ export default function ImportQuestionsModal({
                   }}
                 />
               </label>
-              <button type="button" className="add-btn question-import-parse-btn" onClick={handleParse}>
+              <button
+                type="button"
+                className="add-btn question-import-parse-btn"
+                onClick={handleParse}
+                disabled={
+                  !sourceText.trim() ||
+                  !isImportReferenceDataReady({ loadingChapters })
+                }
+              >
                 <ListChecks size={16} />
                 Kiểm tra dữ liệu
               </button>
@@ -663,7 +670,11 @@ export default function ImportQuestionsModal({
                 type="button"
                 className="add-btn question-import-parse-btn"
                 onClick={handleParse}
-                disabled={fileLoading || !sourceText}
+                disabled={
+                  fileLoading ||
+                  !sourceText ||
+                  !isImportReferenceDataReady({ loadingChapters })
+                }
               >
                 <ListChecks size={16} />
                 Kiểm tra dữ liệu
@@ -771,9 +782,11 @@ export default function ImportQuestionsModal({
               <label className="form-field">
                 <span>{placementMode === "single-chapter" ? "Độ khó dùng chung" : "Độ khó bù"}</span>
                 <select value={defaultDifficulty} onChange={(event) => handleDifficultyChange(event.target.value)}>
-                  <option value="Easy">Dễ</option>
-                  <option value="Medium">Trung bình</option>
-                  <option value="Hard">Khó</option>
+                  {DIFFICULTY_PRESETS.map((preset) => (
+                    <option key={preset.key} value={preset.key}>
+                      {preset.label} ({preset.value > 0 ? `+${preset.value}` : preset.value})
+                    </option>
+                  ))}
                 </select>
               </label>
             </div>
@@ -801,7 +814,6 @@ export default function ImportQuestionsModal({
             rows={rows}
             subjects={normalizedSubjects}
             chapters={allPreviewChapters}
-            skills={availableSkills}
             onChangeRow={handleChangeRow}
             onRemoveRow={handleRemoveRow}
             disabled={submitting}

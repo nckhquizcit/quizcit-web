@@ -202,6 +202,29 @@
   margin-top: var(--space-4);
 }
 
+.theory-item .theory-rich-text.is-collapsed,
+.theory-item .theory-rich-text--blocknote.is-collapsed {
+  max-height: 13rem;
+  overflow: hidden;
+}
+
+.theory-expand-btn {
+  margin-top: var(--space-3);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.theory-expand-btn:hover {
+  color: var(--color-primary-700);
+  text-decoration: underline;
+}
+
 .quiz-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

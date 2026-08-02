@@ -2,7 +2,15 @@ import { useState } from "react";
 import { AlertCircle, CheckCircle2, Search, Trash2 } from "lucide-react";
 
 import { IMPORT_OPTION_KEYS } from "../utils/questionImportParser";
-import { filterImportSkills } from "../utils/questionImportPreviewLogic";
+import {
+  filterImportSkills,
+  getImportSkillsForChapter,
+} from "../utils/questionImportPreviewLogic";
+import {
+  CUSTOM_DIFFICULTY_KEY,
+  DIFFICULTY_PRESETS,
+  resolveDifficultyB,
+} from "../utils/difficultyLevels";
 
 const getNameById = (items = [], id, fallback) => {
   if (!id) return fallback;
@@ -42,7 +50,6 @@ export default function QuestionImportPreview({
   rows = [],
   subjects = [],
   chapters = [],
-  skills = [],
   onChangeRow,
   onRemoveRow,
   disabled = false,
@@ -91,9 +98,10 @@ export default function QuestionImportPreview({
         const subjectName = getNameById(subjects, row.subjectId, "Chưa chọn môn");
         const chapterName = getNameById(chapters, row.chapterId, "Chưa chọn chương");
         const rowSkills = row.skills || [];
-        const skillNames = getSkillNames(skills, rowSkills.map((skill) => skill.skillId));
+        const chapterSkills = getImportSkillsForChapter(chapters, row.chapterId);
+        const skillNames = getSkillNames(chapterSkills, rowSkills.map((skill) => skill.skillId));
         const skillSearch = skillSearchByRow[row.id] || "";
-        const filteredSkills = filterImportSkills(skills, skillSearch);
+        const filteredSkills = filterImportSkills(chapterSkills, skillSearch);
 
         const handleSkillToggle = (skill) => {
           const skillId = normalizeId(skill.skillId || skill.id);
@@ -252,13 +260,41 @@ export default function QuestionImportPreview({
                 <span>Độ khó</span>
                 <select
                   value={row.difficulty}
-                  onChange={(event) => onChangeRow?.(row.id, { difficulty: event.target.value })}
+                  onChange={(event) => {
+                    const nextKey = event.target.value;
+                    onChangeRow?.(row.id, {
+                      difficulty: nextKey,
+                      difficultyB:
+                        nextKey === CUSTOM_DIFFICULTY_KEY
+                          ? Number(row.difficultyB ?? 0)
+                          : resolveDifficultyB(nextKey),
+                    });
+                  }}
                   disabled={disabled}
                 >
-                  <option value="Easy">Dễ</option>
-                  <option value="Medium">Trung bình</option>
-                  <option value="Hard">Khó</option>
+                  {DIFFICULTY_PRESETS.map((preset) => (
+                    <option key={preset.key} value={preset.key}>
+                      {preset.label}
+                    </option>
+                  ))}
+                  <option value={CUSTOM_DIFFICULTY_KEY}>Tùy chỉnh</option>
                 </select>
+                {row.difficulty === CUSTOM_DIFFICULTY_KEY && (
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={row.difficultyB ?? ""}
+                    onChange={(event) =>
+                      onChangeRow?.(row.id, {
+                        difficulty: CUSTOM_DIFFICULTY_KEY,
+                        difficultyB: event.target.value,
+                      })
+                    }
+                    disabled={disabled}
+                    placeholder="Ví dụ: -1.2"
+                    aria-label="Độ khó tùy chỉnh"
+                  />
+                )}
               </label>
 
               <label className="form-field">
@@ -324,8 +360,9 @@ export default function QuestionImportPreview({
                     </button>
                   );
                 })}
-                {!skills.length && <span>Chưa tải được danh sách kỹ năng</span>}
-                {skills.length > 0 && !filteredSkills.length && <span>Không có kỹ năng phù hợp</span>}
+                {!row.chapterId && <span>Chọn chương để xem kỹ năng</span>}
+                {row.chapterId && !chapterSkills.length && <span>Chương này chưa gán kỹ năng</span>}
+                {chapterSkills.length > 0 && !filteredSkills.length && <span>Không có kỹ năng phù hợp</span>}
               </div>
 
               {rowSkills.length > 0 && (

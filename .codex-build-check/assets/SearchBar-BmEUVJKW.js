@@ -1,1 +1,0 @@
-import{j as a}from"./index-Bj4AdaHL.js";function n({placeholder:r,onChange:e}){return a.jsx("div",{className:"search-wrapper",children:a.jsx("input",{className:"search-input",placeholder:r,onChange:s=>e(s.target.value)})})}export{n as S};

@@ -4,26 +4,57 @@ import { Eye, EyeOff, Search } from "lucide-react";
 import Modal from "../ui/Modal";
 import { getErrorMessage } from "../../../../services/apiClient";
 import { getChapterById, getChaptersBySubject, getSubjects } from "../../../../services/contentService";
+import {
+  CUSTOM_DIFFICULTY_KEY,
+  DEFAULT_DIFFICULTY_B,
+  DEFAULT_DIFFICULTY_KEY,
+  DIFFICULTY_PRESETS,
+  getDifficultyLabelVi,
+  getDifficultyTone,
+  matchDifficultyPresetKey,
+  resolveDifficultyB,
+} from "../../utils/difficultyLevels";
 
 const MIN_ANSWER_COUNT = 2;
 const MAX_ANSWER_COUNT = 10;
 const SKILL_WEIGHT_SUM_TOLERANCE = 0.000001;
 const EMPTY_LIST = Object.freeze([]);
 const createEmptyAnswers = (count = MIN_ANSWER_COUNT) => Array.from({ length: count }, () => "");
-const difficultyMap = {
-  Easy: -1,
-  Medium: 0,
-  Hard: 1,
-};
 
-const normalizeDifficulty = (value) => {
-  if (value === -1 || value === "-1") return "Easy";
-  if (value === 0 || value === "0") return "Medium";
-  if (value === 1 || value === "1") return "Hard";
-  if (!value) return "Medium";
-  if (value === "medium" || value === "Medium") return "Medium";
-  if (value === "hard" || value === "Hard") return "Hard";
-  return "Easy";
+const normalizeDifficultyState = (value) => {
+  if (value && typeof value === "object") {
+    const key = value.key || matchDifficultyPresetKey(value.value ?? value.difficultyB);
+    const customValue = value.customValue ?? value.value ?? value.difficultyB ?? DEFAULT_DIFFICULTY_B;
+    return {
+      key: key || DEFAULT_DIFFICULTY_KEY,
+      customValue: Number.isFinite(Number(customValue)) ? Number(customValue) : DEFAULT_DIFFICULTY_B,
+    };
+  }
+
+  if (typeof value === "string") {
+    const legacyMap = {
+      Easy: "EASY",
+      Medium: "MEDIUM",
+      Hard: "HARD",
+      easy: "EASY",
+      medium: "MEDIUM",
+      hard: "HARD",
+    };
+    if (legacyMap[value]) {
+      return { key: legacyMap[value], customValue: DEFAULT_DIFFICULTY_B };
+    }
+  }
+
+  const numeric = Number(value);
+  if (Number.isFinite(numeric)) {
+    const key = matchDifficultyPresetKey(numeric);
+    return {
+      key,
+      customValue: key === CUSTOM_DIFFICULTY_KEY ? numeric : DEFAULT_DIFFICULTY_B,
+    };
+  }
+
+  return { key: DEFAULT_DIFFICULTY_KEY, customValue: DEFAULT_DIFFICULTY_B };
 };
 
 const normalizeId = (value) => (value === undefined || value === null ? "" : String(value));
@@ -153,7 +184,8 @@ export function QuestionForm({
   const handleCancel = onCancel || onClose;
   const [question, setQuestion] = useState("");
   const [explanation, setExplanation] = useState("");
-  const [difficulty, setDifficulty] = useState("Medium");
+  const [difficultyKey, setDifficultyKey] = useState(DEFAULT_DIFFICULTY_KEY);
+  const [customDifficultyB, setCustomDifficultyB] = useState(String(DEFAULT_DIFFICULTY_B));
   const [answers, setAnswers] = useState(() => createEmptyAnswers());
   const [correctIndex, setCorrectIndex] = useState(null);
   const [selectedSubjectId, setSelectedSubjectId] = useState(
@@ -272,7 +304,11 @@ export function QuestionForm({
 
     setQuestion(initialQuestion?.content || "");
     setExplanation(initialQuestion?.explanation || initialQuestion?.explaination || "");
-    setDifficulty(normalizeDifficulty(initialQuestion?.difficulty ?? initialQuestion?.difficultyB));
+    const nextDifficulty = normalizeDifficultyState(
+      initialQuestion?.difficultyB ?? initialQuestion?.difficulty,
+    );
+    setDifficultyKey(nextDifficulty.key);
+    setCustomDifficultyB(String(nextDifficulty.customValue));
     setAnswers(nextAnswers);
     setCorrectIndex(nextCorrectIndex >= 0 && nextCorrectIndex < nextAnswers.length ? nextCorrectIndex : null);
     setSelectedSubjectId(
@@ -467,6 +503,10 @@ export function QuestionForm({
     );
   }, [availableSkills, selectedSkills.length]);
 
+  const resolvedDifficultyB = resolveDifficultyB(difficultyKey, customDifficultyB);
+  const difficultyLabel = getDifficultyLabelVi(resolvedDifficultyB);
+  const difficultyTone = getDifficultyTone(resolvedDifficultyB);
+
   const handleAnswerChange = (index, value) => {
     const updated = [...answers];
     updated[index] = value;
@@ -569,10 +609,21 @@ export function QuestionForm({
       return;
     }
 
+    if (difficultyKey === CUSTOM_DIFFICULTY_KEY) {
+      const customValue = Number(String(customDifficultyB).replace(",", "."));
+      if (!Number.isFinite(customValue)) {
+        window.alert("Vui lòng nhập độ khó tùy chỉnh hợp lệ (ví dụ: -1.2).");
+        return;
+      }
+    }
+
+    const difficultyB = resolveDifficultyB(difficultyKey, customDifficultyB);
+
     const payload = {
       content: question.trim(),
       explanation: explanation.trim(),
-      difficulty,
+      difficulty: difficultyKey,
+      difficultyB,
       subjectId: selectedSubjectId,
       chapterId: selectedChapterId,
       skills: selectedSkills.map((skill) => ({
@@ -624,8 +675,8 @@ export function QuestionForm({
                 <div className="question-preview-card">
                   <div className="preview-card-head">
                     <h3>Xem trước câu hỏi</h3>
-                    <span className={`preview-difficulty ${difficulty.toLowerCase()}`}>
-                      {difficulty}
+                    <span className={`preview-difficulty ${difficultyTone}`}>
+                      {difficultyLabel}
                     </span>
                   </div>
                   <p>{question || "Nội dung câu hỏi..."}</p>
@@ -748,18 +799,38 @@ export function QuestionForm({
 
                     <label className="form-field full">
                       <span>Độ khó</span>
-                      <div className="difficulty-selector">
-                        {Object.keys(difficultyMap).map((item) => (
+                      <div className="difficulty-selector difficulty-selector--six">
+                        {DIFFICULTY_PRESETS.map((item) => (
                           <button
-                            className={difficulty === item ? item.toLowerCase() : ""}
-                            onClick={() => setDifficulty(item)}
-                            key={item}
+                            className={difficultyKey === item.key ? getDifficultyTone(item.value) : ""}
+                            onClick={() => setDifficultyKey(item.key)}
+                            key={item.key}
                             type="button"
                           >
-                            {item}
+                            <strong>{item.label}</strong>
+                            <small>{item.value > 0 ? `+${item.value.toFixed(1)}` : item.value.toFixed(1)}</small>
                           </button>
                         ))}
+                        <button
+                          className={difficultyKey === CUSTOM_DIFFICULTY_KEY ? "custom" : ""}
+                          onClick={() => setDifficultyKey(CUSTOM_DIFFICULTY_KEY)}
+                          type="button"
+                        >
+                          <strong>Tùy chỉnh</strong>
+                          <small>Nhập giá trị</small>
+                        </button>
                       </div>
+                      {difficultyKey === CUSTOM_DIFFICULTY_KEY && (
+                        <input
+                          className="difficulty-custom-input"
+                          type="number"
+                          step="0.1"
+                          value={customDifficultyB}
+                          onChange={(event) => setCustomDifficultyB(event.target.value)}
+                          placeholder="Ví dụ: -1.2"
+                          aria-label="Độ khó tùy chỉnh"
+                        />
+                      )}
                     </label>
                   </section>
 
@@ -927,7 +998,7 @@ export function QuestionForm({
                 <span className={isReadyToSubmit ? "summary-status ready" : "summary-status"}>
                   {isReadyToSubmit ? "Sẵn sàng lưu" : "Đang soạn"}
                 </span>
-                <strong>{difficulty}</strong>
+                <strong>{difficultyLabel}</strong>
               </div>
               <div className="question-summary-rows">
                 <div>

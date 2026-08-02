@@ -8,3 +8,7 @@ export function selectImportValue({
   if (manualValue !== undefined) return manualValue;
   return importedValue || defaultValue;
 }
+
+export const isImportReferenceDataReady = ({
+  loadingChapters = false,
+} = {}) => !loadingChapters;

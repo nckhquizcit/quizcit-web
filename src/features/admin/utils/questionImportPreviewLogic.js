@@ -1,6 +1,14 @@
 const normalizeSearchText = (value) =>
   value === undefined || value === null ? "" : String(value).trim().toLowerCase();
 
+export function getImportSkillsForChapter(chapters = [], chapterId = "") {
+  const chapter = chapters.find(
+    (item) => String(item?.chapterId ?? item?.id ?? "") === String(chapterId),
+  );
+
+  return Array.isArray(chapter?.skills) ? chapter.skills : [];
+}
+
 export function filterImportSkills(skills = [], search = "") {
   const keyword = normalizeSearchText(search);
 

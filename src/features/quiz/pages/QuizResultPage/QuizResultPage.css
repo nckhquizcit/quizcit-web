@@ -122,9 +122,17 @@
   color: var(--color-text-muted);
 }
 .result-stat strong {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
   font-size: var(--fs-xl);
   font-weight: 800;
   color: var(--color-text);
+}
+.result-stat__level {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--color-text-muted);
 }
 
 /* Skill section */
@@ -153,9 +161,18 @@
   flex: 1;
 }
 .result-skill-item__theta {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
   font-size: var(--fs-md);
   color: var(--color-primary);
   font-variant-numeric: tabular-nums;
+}
+.result-skill-item__theta span {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--color-text-muted);
 }
 .result-skill-empty {
   font-size: var(--fs-sm);

@@ -4,7 +4,10 @@ import { BookOpen, CalendarDays, CheckCircle2, History, TrendingUp, XCircle } fr
 import { getErrorMessage } from "../../../../services/apiClient";
 import { getAttemptResult, getQuizById } from "../../../../services/quizService";
 import { getSubjectById } from "../../../../services/subjectService";
-import { formatThetaValue } from "../../../../services/mappers";
+import {
+  formatScaledThetaValue,
+  getAbilityLevel,
+} from "../../../../services/mappers";
 import {
   Badge,
   Button,
@@ -195,7 +198,12 @@ export default function QuizResultPage() {
           </span>
           <div>
             <p>Năng lực ước tính</p>
-            <strong>{formatThetaValue(result.overallTheta)}</strong>
+            <strong>
+              {formatScaledThetaValue(result.overallTheta)}
+              <span className="result-stat__level">
+                {getAbilityLevel(result.overallTheta).label}
+              </span>
+            </strong>
           </div>
         </Card>
       </div>
@@ -204,16 +212,20 @@ export default function QuizResultPage() {
         <h2>Kết quả theo kỹ năng</h2>
         {result.skillResults?.length ? (
           <div className="result-skill-list">
-            {result.skillResults.map((skill) => (
+            {result.skillResults.map((skill) => {
+              const level = getAbilityLevel(skill.theta);
+              return (
               <div className="result-skill-item" key={skill.skillId}>
                 <span className="result-skill-item__name">
                   {skill.name || "Kỹ năng chưa đặt tên"}
                 </span>
                 <strong className="result-skill-item__theta">
-                  {formatThetaValue(skill.theta)}
+                  {formatScaledThetaValue(skill.theta)}
+                  <span>/4 · {level.label}</span>
                 </strong>
               </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <p className="result-skill-empty">

@@ -1,1 +1,0 @@
-import{j as t}from"./index-Bj4AdaHL.js";import"./ProgressRing-CLItuC0x.js";function d({children:e,variant:s="neutral",size:a="md",iconLeft:n=null,className:i="",...o}){const r=["ui-badge",`ui-badge--${s}`,`ui-badge--${a}`,i].filter(Boolean).join(" ");return t.jsxs("span",{className:r,...o,children:[n,e]})}export{d as B};
