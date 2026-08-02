@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { selectImportValue } from "./questionImportMapping.js";
+import { isImportReferenceDataReady, selectImportValue } from "./questionImportMapping.js";
+import { createQuestionImportRow } from "./questionImportParser.js";
 
 describe("selectImportValue", () => {
   it("keeps a value declared by the CSV in per-row mode", () => {
@@ -43,5 +44,29 @@ describe("selectImportValue", () => {
       }),
       "chapter-fixed-by-admin",
     );
+  });
+
+  it("keeps the CSV chapter available for remapping after the first lookup fails", () => {
+    const row = createQuestionImportRow({ chapterId: "Chương 1" });
+    const failedFirstLookup = { ...row, chapterId: "" };
+
+    assert.equal(
+      selectImportValue({
+        mode: "per-row",
+        importedValue: failedFirstLookup.importedChapterId,
+        defaultValue: "",
+      }),
+      "Chương 1",
+    );
+  });
+});
+
+describe("isImportReferenceDataReady", () => {
+  it("blocks the first check while chapter references are loading", () => {
+    assert.equal(isImportReferenceDataReady({ loadingChapters: true }), false);
+  });
+
+  it("allows checking after all reference data has settled", () => {
+    assert.equal(isImportReferenceDataReady({}), true);
   });
 });

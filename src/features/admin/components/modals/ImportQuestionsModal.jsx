@@ -3,7 +3,6 @@ import { CheckCircle2, Download, FileText, FileUp, ListChecks, Upload } from "lu
 
 import QuestionImportPreview from "../QuestionImportPreview";
 import Modal from "../ui/Modal";
-import { getSkills } from "../../services/skillService";
 import { getErrorMessage } from "../../../../services/apiClient";
 import { getChaptersBySubject } from "../../../../services/contentService";
 import {
@@ -13,7 +12,11 @@ import {
   parseQuestionImport,
   validateQuestionImportRow,
 } from "../../utils/questionImportParser";
-import { selectImportValue } from "../../utils/questionImportMapping";
+import {
+  isImportReferenceDataReady,
+  selectImportValue,
+} from "../../utils/questionImportMapping";
+import { getImportSkillsForChapter } from "../../utils/questionImportPreviewLogic";
 import { downloadQuestionImportTemplate } from "../../utils/questionImportTemplate";
 
 const SUPPORTED_FILE_EXTENSIONS = [".txt", ".csv"];
@@ -36,16 +39,17 @@ const normalizeSubject = (subject) => ({
   subjectId: normalizeId(getSubjectId(subject)),
 });
 
-const normalizeChapter = (chapter, fallbackSubjectId = "") => ({
-  ...chapter,
-  chapterId: normalizeId(getChapterId(chapter)),
-  subjectId: normalizeId(getChapterSubjectId(chapter) || fallbackSubjectId),
-});
-
 const normalizeSkill = (skill) => ({
   ...skill,
   skillId: normalizeId(getSkillId(skill)),
   name: getSkillName(skill),
+});
+
+const normalizeChapter = (chapter, fallbackSubjectId = "") => ({
+  ...chapter,
+  chapterId: normalizeId(getChapterId(chapter)),
+  subjectId: normalizeId(getChapterSubjectId(chapter) || fallbackSubjectId),
+  skills: (chapter?.skills || []).map(normalizeSkill),
 });
 
 const formatWeight = (value) => {
@@ -142,7 +146,6 @@ export default function ImportQuestionsModal({
   const [placementMode, setPlacementMode] = useState("per-row");
   const [allowPartialSave, setAllowPartialSave] = useState(false);
   const [availableChapters, setAvailableChapters] = useState([]);
-  const [availableSkills, setAvailableSkills] = useState([]);
   const [loadingChapters, setLoadingChapters] = useState(false);
 
   const allPreviewChapters = useMemo(() => {
@@ -211,10 +214,11 @@ export default function ImportQuestionsModal({
     }
 
     const sourceSkills = row.skills || [];
+    const chapterSkills = getImportSkillsForChapter(allPreviewChapters, chapterId);
     const equalWeight = equalSkillWeight(sourceSkills.length);
     const hasPrimary = sourceSkills.some((skill) => skill.primary);
     const resolvedSkills = sourceSkills.map((skill, index) => {
-      const matchedSkill = findByIdOrName(availableSkills, skill.skillId || skill.name, "skillId");
+      const matchedSkill = findByIdOrName(chapterSkills, skill.skillId || skill.name, "skillId");
 
       if (!matchedSkill) {
         mappingErrors.push(`Không map được kỹ năng "${skill.name || skill.skillId || "không rõ"}".`);
@@ -239,7 +243,6 @@ export default function ImportQuestionsModal({
     };
   }, [
     allPreviewChapters,
-    availableSkills,
     defaultChapterId,
     defaultDifficulty,
     defaultSubjectId,
@@ -281,34 +284,10 @@ export default function ImportQuestionsModal({
     setDefaultSubjectId(routeSubjectId);
     setDefaultChapterId(routeChapterId);
     setDefaultDifficulty("Medium");
+    setLoadingChapters(Boolean(routeSubjectId));
     setPlacementMode(routeSubjectId && routeChapterId ? "single-chapter" : "per-row");
     setAllowPartialSave(false);
   }, [chapter, open, subject]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    let cancelled = false;
-
-    const loadSkills = async () => {
-      try {
-        const skillData = await getSkills();
-        if (!cancelled) {
-          setAvailableSkills((skillData || []).map(normalizeSkill));
-        }
-      } catch {
-        if (!cancelled) {
-          setAvailableSkills([]);
-        }
-      }
-    };
-
-    loadSkills();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [open]);
 
   useEffect(() => {
     if (!open || !defaultSubjectId) {
@@ -390,6 +369,11 @@ export default function ImportQuestionsModal({
     setSaveProgress(null);
     setAllowPartialSave(false);
 
+    if (!isImportReferenceDataReady({ loadingChapters })) {
+      setFormError("Đang tải dữ liệu môn học và chương. Vui lòng đợi trong giây lát.");
+      return;
+    }
+
     if (!text) {
       setRows([]);
       setParseMessage("");
@@ -451,6 +435,7 @@ export default function ImportQuestionsModal({
   };
 
   const handleSubjectChange = (nextSubjectId) => {
+    setLoadingChapters(Boolean(nextSubjectId));
     setDefaultSubjectId(nextSubjectId);
     setDefaultChapterId("");
   };
@@ -638,7 +623,15 @@ export default function ImportQuestionsModal({
                   }}
                 />
               </label>
-              <button type="button" className="add-btn question-import-parse-btn" onClick={handleParse}>
+              <button
+                type="button"
+                className="add-btn question-import-parse-btn"
+                onClick={handleParse}
+                disabled={
+                  !sourceText.trim() ||
+                  !isImportReferenceDataReady({ loadingChapters })
+                }
+              >
                 <ListChecks size={16} />
                 Kiểm tra dữ liệu
               </button>
@@ -663,7 +656,11 @@ export default function ImportQuestionsModal({
                 type="button"
                 className="add-btn question-import-parse-btn"
                 onClick={handleParse}
-                disabled={fileLoading || !sourceText}
+                disabled={
+                  fileLoading ||
+                  !sourceText ||
+                  !isImportReferenceDataReady({ loadingChapters })
+                }
               >
                 <ListChecks size={16} />
                 Kiểm tra dữ liệu
@@ -801,7 +798,6 @@ export default function ImportQuestionsModal({
             rows={rows}
             subjects={normalizedSubjects}
             chapters={allPreviewChapters}
-            skills={availableSkills}
             onChangeRow={handleChangeRow}
             onRemoveRow={handleRemoveRow}
             disabled={submitting}

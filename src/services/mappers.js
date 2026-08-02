@@ -348,12 +348,15 @@ export function mapUser(raw = {}) {
 
 export function mapUserSkillAbility(raw = {}) {
   const id = pick(raw, ["id", "abilityId", "ability_id"]);
+  const skillName = pickText(raw, ["name", "skillName", "skill_name"], "Kỹ năng chưa đặt tên");
   const theta = toNumber(pick(raw, ["theta", "ability"], 0));
   return {
     ...raw,
     id,
     userId: pick(raw, ["userId", "user_id"]),
     skillId: pick(raw, ["skillId", "skill_id"]),
+    name: skillName,
+    skillName,
     theta,
     thetaScaled: pickThetaScaled(raw, theta),
     updatedAt: pick(raw, ["updatedAt", "updated_at"], null),
@@ -361,6 +364,7 @@ export function mapUserSkillAbility(raw = {}) {
 }
 
 export function mapAbilityHistory(raw = {}) {
+  const skillName = pickText(raw, ["name", "skillName", "skill_name"], "Kỹ năng chưa đặt tên");
   const theta = toNumber(pick(raw, ["theta"], 0));
   const delta = toNumber(pick(raw, ["delta"], 0));
   const thetaScaled = pickThetaScaled(raw, theta);
@@ -371,6 +375,8 @@ export function mapAbilityHistory(raw = {}) {
     id: pick(raw, ["id", "historyId", "history_id"]),
     userId: pick(raw, ["userId", "user_id"]),
     skillId: pick(raw, ["skillId", "skill_id"]),
+    name: skillName,
+    skillName,
     theta,
     thetaScaled,
     delta,

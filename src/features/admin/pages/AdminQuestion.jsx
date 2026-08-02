@@ -34,6 +34,10 @@ import {
 } from "../../../services/quizService";
 import { getErrorMessage } from "../../../services/apiClient";
 import { getChaptersBySubject, getSubjects } from "../../../services/contentService";
+import {
+  filterQuestionBankQuestions,
+  getQuestionSkillOptions,
+} from "../utils/questionBankLogic";
 
 const QUESTION_PAGE_SIZE = 8;
 
@@ -213,6 +217,7 @@ export default function AdminQuestions() {
   const [searchQuery, setSearchQuery] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("ALL");
   const [difficultyFilter, setDifficultyFilter] = useState("ALL");
+  const [skillFilter, setSkillFilter] = useState("ALL");
   const [sort, setSort] = useState({ key: "content", dir: "asc" });
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -270,29 +275,20 @@ export default function AdminQuestions() {
     [subjects],
   );
 
+  const skillOptions = useMemo(
+    () => getQuestionSkillOptions(chapters, questionRows),
+    [chapters, questionRows],
+  );
+
   const visibleQuestions = useMemo(
-    () => {
-      const q = searchQuery.trim().toLowerCase();
-
-      return questionRows.filter((question) => {
-        const matchesSubject = subjectFilter === "ALL" || question.subjectId === subjectFilter;
-        const matchesDifficulty =
-          difficultyFilter === "ALL" ||
-          getDifficultyLabel(question.difficultyB ?? 0) === difficultyFilter;
-        const matchesSearch =
-          !q ||
-          [
-            question.content,
-            question.subject?.name,
-            question.chapter?.name,
-          ]
-            .filter(Boolean)
-            .some((value) => String(value).toLowerCase().includes(q));
-
-        return matchesSubject && matchesDifficulty && matchesSearch;
-      });
-    },
-    [questionRows, searchQuery, subjectFilter, difficultyFilter],
+    () =>
+      filterQuestionBankQuestions(questionRows, {
+        search: searchQuery,
+        subjectId: subjectFilter,
+        difficulty: difficultyFilter,
+        skillId: skillFilter,
+      }),
+    [questionRows, searchQuery, subjectFilter, difficultyFilter, skillFilter],
   );
 
   const sortedQuestions = useMemo(() => {
@@ -333,7 +329,7 @@ export default function AdminQuestions() {
 
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, subjectFilter, difficultyFilter]);
+  }, [searchQuery, subjectFilter, difficultyFilter, skillFilter]);
 
   const toggleSort = (key) => {
     setPage(1);
@@ -349,12 +345,16 @@ export default function AdminQuestions() {
   };
 
   const hasActiveFilters =
-    searchQuery.trim() || subjectFilter !== "ALL" || difficultyFilter !== "ALL";
+    searchQuery.trim() ||
+    subjectFilter !== "ALL" ||
+    difficultyFilter !== "ALL" ||
+    skillFilter !== "ALL";
 
   const resetQuestionFilters = () => {
     setSearchQuery("");
     setSubjectFilter("ALL");
     setDifficultyFilter("ALL");
+    setSkillFilter("ALL");
   };
 
   const handleStartEditQuestion = async (row) => {
@@ -547,6 +547,19 @@ export default function AdminQuestions() {
                   <option value="Easy">Dễ</option>
                   <option value="Medium">Trung bình</option>
                   <option value="Hard">Khó</option>
+                </select>
+                <select
+                  className="question-bank-select"
+                  value={skillFilter}
+                  onChange={(event) => setSkillFilter(event.target.value)}
+                  aria-label="Lọc theo kỹ năng"
+                >
+                  <option value="ALL">Tất cả kỹ năng</option>
+                  {skillOptions.map((skill) => (
+                    <option key={skill.skillId} value={skill.skillId}>
+                      {skill.name}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
