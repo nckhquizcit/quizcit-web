@@ -14,12 +14,6 @@ const normalizeSkillPayload = (skills = []) =>
     primary: Boolean(skill.primary),
   }));
 
-const getDifficultyValue = (difficulty) => {
-  if (difficulty === "Easy") return -1;
-  if (difficulty === "Hard") return 1;
-  return 0;
-};
-
 export default function AdminQuestionCreate() {
   const { subjectId, chapterId } = useParams();
   const navigate = useNavigate();
@@ -46,7 +40,7 @@ export default function AdminQuestionCreate() {
       chapterId: formValues.chapterId,
       content: formValues.content,
       explanation: formValues.explanation,
-      difficultyB: getDifficultyValue(formValues.difficulty),
+      difficultyB: Number(formValues.difficultyB),
       skills: normalizeSkillPayload(formValues.skills),
       options: formValues.options,
     });

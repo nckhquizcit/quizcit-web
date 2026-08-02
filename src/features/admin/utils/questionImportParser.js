@@ -1,17 +1,13 @@
+import {
+  DEFAULT_DIFFICULTY_B,
+  DEFAULT_DIFFICULTY_KEY,
+  matchDifficultyPresetKey,
+  normalizeImportDifficultyKey,
+  parseImportDifficultyB,
+} from "./difficultyLevels.js";
+
 export const IMPORT_OPTION_KEYS = ["A", "B", "C", "D"];
 export const SKILL_WEIGHT_SUM_TOLERANCE = 0.000001;
-
-const DIFFICULTY_LABELS = {
-  "-1": "Easy",
-  easy: "Easy",
-  de: "Easy",
-  "0": "Medium",
-  medium: "Medium",
-  trungbinh: "Medium",
-  "1": "Hard",
-  hard: "Hard",
-  kho: "Hard",
-};
 
 const CSV_COLUMN_ALIASES = {
   content: ["content", "question", "cauhoi", "noidung", "noidungcauhoi"],
@@ -47,10 +43,17 @@ const normalizeText = (value = "") => String(value ?? "").replace(/\s+/g, " ").t
 
 const normalizeId = (value) => (value === undefined || value === null ? "" : String(value));
 
-export const normalizeImportDifficulty = (value, fallback = "Medium") => {
-  const normalizedKey = compactImportKey(value);
-  return DIFFICULTY_LABELS[normalizedKey] || fallback;
+export const normalizeImportDifficulty = (value, fallback = DEFAULT_DIFFICULTY_KEY) => {
+  const legacyFallback = {
+    Easy: "EASY",
+    Medium: "MEDIUM",
+    Hard: "HARD",
+  };
+  return normalizeImportDifficultyKey(value, legacyFallback[fallback] || fallback);
 };
+
+export const normalizeImportDifficultyB = (value, fallback = DEFAULT_DIFFICULTY_B) =>
+  parseImportDifficultyB(value, fallback);
 
 export const createEmptyImportOptions = () =>
   IMPORT_OPTION_KEYS.map((key) => ({
@@ -220,13 +223,15 @@ export function createQuestionImportRow(partial = {}, index = 0) {
   const importedSubjectId = normalizeText(partial.subjectId);
   const importedChapterId = normalizeText(partial.chapterId);
   const importedDifficulty = normalizeText(partial.difficulty);
+  const difficultyB = normalizeImportDifficultyB(partial.difficulty, DEFAULT_DIFFICULTY_B);
   const row = {
     id: partial.id || `import-question-${Date.now()}-${index}`,
     content: normalizeText(partial.content),
     options: normalizeOptionList(partial.options),
     correctKey: correctResult.correctKey,
     explanation: normalizeText(partial.explanation),
-    difficulty: normalizeImportDifficulty(partial.difficulty, "Medium"),
+    difficulty: matchDifficultyPresetKey(difficultyB),
+    difficultyB,
     subjectId: importedSubjectId,
     chapterId: importedChapterId,
     importedSubjectId,

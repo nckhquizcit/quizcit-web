@@ -4,7 +4,7 @@ B. High Text Machine Language
 C. Hyper Tool Multi Language
 D. Home Tool Markup Language
 Đáp án: A
-Độ khó: Medium
+Độ khó: Trung bình
 Giải thích: HTML là ngôn ngữ đánh dấu siêu văn bản.
 
 Câu 2: CSS dùng để làm gì?
@@ -13,7 +13,7 @@ B. Tạo giao diện và định dạng trang web
 C. Chạy server
 D. Quản lý tài khoản
 Đáp án: B
-Độ khó: Easy`;
+Độ khó: Dễ`;
 
 export const QUESTION_IMPORT_CSV_HEADER =
   "Câu hỏi,A,B,C,D,Đáp án,Giải thích,Độ khó,Môn học,Chương,Kỹ năng,Trọng số,Kỹ năng chính";
@@ -36,7 +36,7 @@ export function createQuestionImportTemplate(type = "csv", context = {}) {
       "Home Tool Markup Language",
       "A",
       "HTML là ngôn ngữ đánh dấu siêu văn bản.",
-      "Medium",
+      "Trung bình",
       subjectName,
       chapterName,
       "",

@@ -9,13 +9,13 @@ import {
 const questions = [
   {
     subjectId: "subject-1",
-    difficultyB: -1,
+    difficultyB: -1.8,
     content: "Câu vòng lặp",
     skills: [{ skillId: "skill-loop", name: "Vòng lặp" }],
   },
   {
     subjectId: "subject-1",
-    difficultyB: 1,
+    difficultyB: 1.8,
     content: "Câu mảng",
     skills: [{ skillId: "skill-array", name: "Mảng" }],
   },
@@ -33,7 +33,7 @@ describe("filterQuestionBankQuestions", () => {
     assert.deepEqual(
       filterQuestionBankQuestions(questions, {
         subjectId: "subject-1",
-        difficulty: "Hard",
+        difficulty: "HARD",
         skillId: "skill-array",
         search: "mảng",
       }),

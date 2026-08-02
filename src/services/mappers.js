@@ -19,6 +19,15 @@ const THETA_RAW_MAX = 4;
 const THETA_SCALED_MIN = 0;
 const THETA_SCALED_MAX = 4;
 
+const ABILITY_LEVELS = [
+  { max: -1.5, key: "weak", label: "Yếu" },
+  { max: -0.5, key: "average", label: "Trung bình" },
+  { max: 0.5, key: "fair", label: "Trung bình khá" },
+  { max: 1.5, key: "good", label: "Khá" },
+  { max: 2.5, key: "very-good", label: "Giỏi" },
+  { max: Infinity, key: "excellent", label: "Xuất sắc" },
+];
+
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const roundTheta = (value) => Math.round(value * 10000) / 10000;
 
@@ -52,6 +61,21 @@ export function thetaRawToPercent(thetaRaw) {
 
 export function formatThetaValue(thetaRaw) {
   return toNumber(thetaRaw, 0).toFixed(2);
+}
+
+export function formatScaledThetaValue(thetaRaw) {
+  return scaleThetaForDisplay(thetaRaw).toFixed(2);
+}
+
+export function getAbilityLevel(thetaRaw) {
+  const raw = toNumber(thetaRaw, 0);
+  const level = ABILITY_LEVELS.find((item) => raw < item.max) || ABILITY_LEVELS.at(-1);
+  return {
+    key: level.key,
+    label: level.label,
+    theta: raw,
+    thetaScaled: scaleThetaForDisplay(raw),
+  };
 }
 
 const FALLBACK_QUIZ_NAME = "Chưa có tên bài quiz";
@@ -204,7 +228,7 @@ export function mapQuestion(raw = {}) {
     content: pick(raw, ["content"], ""),
     explanation: pick(raw, ["explanation", "explaination"], ""),
     difficultyB,
-    difficulty: difficultyB <= -0.5 ? "Easy" : difficultyB >= 0.5 ? "Hard" : "Medium",
+    difficulty: difficultyB <= -1.8 ? "Easy" : difficultyB >= 1.8 ? "Hard" : "Medium",
     active: pick(raw, ["active"], true),
     options,
     correctOptionId,

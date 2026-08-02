@@ -1,5 +1,9 @@
 import { Calendar, FileText, TrendingUp } from "lucide-react";
 import { Badge, Button, Card } from "../../../../components/ui";
+import {
+  formatScaledThetaValue,
+  getAbilityLevel,
+} from "../../../../services/mappers";
 import "./HistoryCard.css";
 
 export default function HistoryCard({
@@ -52,7 +56,8 @@ export default function HistoryCard({
               <span className="stat-label">Năng lực ước tính</span>
             </div>
             <span className="stat-value">
-              {Number(estimatedAbility || 0).toFixed(2)}
+              {formatScaledThetaValue(estimatedAbility)}
+              <small> /4 · {getAbilityLevel(estimatedAbility).label}</small>
             </span>
           </div>
         </div>

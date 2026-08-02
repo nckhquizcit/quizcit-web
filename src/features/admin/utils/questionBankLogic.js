@@ -1,13 +1,9 @@
+import { matchDifficultyPresetKey } from "./difficultyLevels.js";
+
 const getSkillId = (skill) => skill?.skillId ?? skill?.id ?? skill?.skill?.skillId ?? skill?.skill?.id;
 
 const getSkillName = (skill) =>
   skill?.name ?? skill?.skillName ?? skill?.skill?.name ?? "Kỹ năng chưa đặt tên";
-
-const getDifficultyLabel = (difficultyB) => {
-  if (difficultyB <= -1) return "Easy";
-  if (difficultyB >= 1) return "Hard";
-  return "Medium";
-};
 
 export function filterQuestionBankQuestions(
   questions = [],
@@ -18,7 +14,8 @@ export function filterQuestionBankQuestions(
   return questions.filter((question) => {
     const matchesSubject = subjectId === "ALL" || question.subjectId === subjectId;
     const matchesDifficulty =
-      difficulty === "ALL" || getDifficultyLabel(question.difficultyB ?? 0) === difficulty;
+      difficulty === "ALL" ||
+      matchDifficultyPresetKey(question.difficultyB ?? 0) === difficulty;
     const matchesSkill =
       skillId === "ALL" || (question.skills || []).some((skill) => String(getSkillId(skill)) === String(skillId));
     const matchesSearch =

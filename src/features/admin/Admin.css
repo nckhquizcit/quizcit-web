@@ -1174,6 +1174,7 @@
   color: #007a44;
 }
 
+.difficulty-pill.very-easy,
 .difficulty-pill.easy {
   background: #ecfdf5;
   color: #047857;
@@ -1184,7 +1185,9 @@
   color: #8a5a00;
 }
 
-.difficulty-pill.hard {
+.difficulty-pill.fairly-hard,
+.difficulty-pill.hard,
+.difficulty-pill.very-hard {
   background: #ffe4e6;
   color: #be123c;
 }
@@ -1200,17 +1203,21 @@
 }
 
 .status-pill.danger,
-.preview-difficulty.hard {
+.preview-difficulty.fairly-hard,
+.preview-difficulty.hard,
+.preview-difficulty.very-hard {
   background: #ffe0e2;
   color: #e7040f;
 }
 
+.preview-difficulty.very-easy,
 .preview-difficulty.easy {
   background: #d8fae5;
   color: #007a44;
 }
 
-.preview-difficulty.medium {
+.preview-difficulty.medium,
+.preview-difficulty.custom {
   background: #fff1b8;
   color: #a16207;
 }
@@ -1919,14 +1926,30 @@
   gap: 10px;
 }
 
+.difficulty-selector--six {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .difficulty-selector button {
-  height: 50px;
+  min-height: 58px;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
   background: #fff;
   color: #334155;
   font-weight: 800;
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px 6px;
+}
+
+.difficulty-selector button small {
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.8;
 }
 
 .difficulty-selector button:hover {
@@ -1934,22 +1957,36 @@
   background: #f8fafc;
 }
 
+.difficulty-selector button.very-easy,
 .difficulty-selector button.easy {
   border-color: #bbf7d0;
   background: #d8fae5;
   color: #007a44;
 }
 
-.difficulty-selector button.medium {
+.difficulty-selector button.medium,
+.difficulty-selector button.custom {
   border-color: #fde68a;
   background: #fff1b8;
   color: #a16207;
 }
 
-.difficulty-selector button.hard {
-  border-color: #e7040f;
-  background: #e7040f;
-  color: #fff;
+.difficulty-selector button.fairly-hard,
+.difficulty-selector button.hard,
+.difficulty-selector button.very-hard {
+  border-color: #fda4af;
+  background: #ffe4e6;
+  color: #be123c;
+}
+
+.difficulty-custom-input {
+  margin-top: 10px;
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0 12px;
+  font-weight: 700;
 }
 
 .answer-editor {
@@ -4155,7 +4192,9 @@
 .status-badge--success,
 .published-pill,
 .status-pill.success,
+.difficulty-pill.very-easy,
 .difficulty-pill.easy,
+.preview-difficulty.very-easy,
 .preview-difficulty.easy,
 .import-status-pill.ok {
   background: var(--admin-primary-soft);
@@ -4164,6 +4203,8 @@
 
 .status-badge--warning,
 .difficulty-pill.medium,
+.preview-difficulty.medium,
+.preview-difficulty.custom,
 .status-pill.warning,
 .import-status-pill.warning {
   background: var(--admin-warning-soft);
@@ -4173,8 +4214,12 @@
 .status-badge--error,
 .unpublished-pill,
 .status-pill.danger,
+.difficulty-pill.fairly-hard,
 .difficulty-pill.hard,
+.difficulty-pill.very-hard,
+.preview-difficulty.fairly-hard,
 .preview-difficulty.hard,
+.preview-difficulty.very-hard,
 .import-status-pill.error {
   background: var(--admin-danger-soft);
   color: var(--admin-danger);

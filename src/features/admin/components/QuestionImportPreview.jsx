@@ -6,6 +6,11 @@ import {
   filterImportSkills,
   getImportSkillsForChapter,
 } from "../utils/questionImportPreviewLogic";
+import {
+  CUSTOM_DIFFICULTY_KEY,
+  DIFFICULTY_PRESETS,
+  resolveDifficultyB,
+} from "../utils/difficultyLevels";
 
 const getNameById = (items = [], id, fallback) => {
   if (!id) return fallback;
@@ -255,13 +260,41 @@ export default function QuestionImportPreview({
                 <span>Độ khó</span>
                 <select
                   value={row.difficulty}
-                  onChange={(event) => onChangeRow?.(row.id, { difficulty: event.target.value })}
+                  onChange={(event) => {
+                    const nextKey = event.target.value;
+                    onChangeRow?.(row.id, {
+                      difficulty: nextKey,
+                      difficultyB:
+                        nextKey === CUSTOM_DIFFICULTY_KEY
+                          ? Number(row.difficultyB ?? 0)
+                          : resolveDifficultyB(nextKey),
+                    });
+                  }}
                   disabled={disabled}
                 >
-                  <option value="Easy">Dễ</option>
-                  <option value="Medium">Trung bình</option>
-                  <option value="Hard">Khó</option>
+                  {DIFFICULTY_PRESETS.map((preset) => (
+                    <option key={preset.key} value={preset.key}>
+                      {preset.label}
+                    </option>
+                  ))}
+                  <option value={CUSTOM_DIFFICULTY_KEY}>Tùy chỉnh</option>
                 </select>
+                {row.difficulty === CUSTOM_DIFFICULTY_KEY && (
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={row.difficultyB ?? ""}
+                    onChange={(event) =>
+                      onChangeRow?.(row.id, {
+                        difficulty: CUSTOM_DIFFICULTY_KEY,
+                        difficultyB: event.target.value,
+                      })
+                    }
+                    disabled={disabled}
+                    placeholder="Ví dụ: -1.2"
+                    aria-label="Độ khó tùy chỉnh"
+                  />
+                )}
               </label>
 
               <label className="form-field">

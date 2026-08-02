@@ -33,8 +33,16 @@ export default function SubjectDetailPage() {
   const [theoriesByChapter, setTheoriesByChapter] = useState({});
   const [quizzesByChapter, setQuizzesByChapter] = useState({});
   const [activeChapterId, setActiveChapterId] = useState(null);
+  const [expandedTheories, setExpandedTheories] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const toggleTheory = (theoryId) => {
+    setExpandedTheories((current) => ({
+      ...current,
+      [theoryId]: !current[theoryId],
+    }));
+  };
 
   useEffect(() => {
     let alive = true;
@@ -194,17 +202,35 @@ export default function SubjectDetailPage() {
                 </p>
               ) : (
                 <div className="theory-list">
-                  {theories.map((theory) => (
-                    <div
-                      key={theory.theoryId || theory.theory_id}
-                      className="theory-item"
-                    >
-                      <TheoryContent
-                        content={theory.content}
-                        contentFormat={theory.contentFormat}
-                      />
-                    </div>
-                  ))}
+                  {theories.map((theory) => {
+                    const theoryId = theory.theoryId || theory.theory_id;
+                    const theoryText = theory.content || "";
+                    const isTheoryExpanded = Boolean(expandedTheories[theoryId]);
+                    const isLongTheory =
+                      theoryText.length > 320 ||
+                      theoryText.split(/\r?\n/).length > 6;
+
+                    return (
+                      <div key={theoryId} className="theory-item">
+                        <TheoryContent
+                          content={theoryText}
+                          contentFormat={theory.contentFormat}
+                          className={
+                            isTheoryExpanded ? "is-expanded" : "is-collapsed"
+                          }
+                        />
+                        {isLongTheory && (
+                          <button
+                            type="button"
+                            className="theory-expand-btn"
+                            onClick={() => toggleTheory(theoryId)}
+                          >
+                            {isTheoryExpanded ? "Thu gọn" : "Xem đầy đủ"}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </Card>

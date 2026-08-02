@@ -18,7 +18,8 @@ import {
 } from "../../../../services/progressService";
 import { getErrorMessage, getStoredUser } from "../../../../services/apiClient";
 import {
-  formatThetaValue,
+  formatScaledThetaValue,
+  getAbilityLevel,
   thetaRawToPercent,
 } from "../../../../services/mappers";
 import "./HomePage.css";
@@ -83,6 +84,7 @@ export default function HomePage() {
   }, [user?.userId]);
 
   const overallProgress = skillCount > 0 ? thetaRawToPercent(averageTheta) : 0;
+  const averageLevel = getAbilityLevel(averageTheta);
   const recommendations = subjects.slice(0, 2).map((subject) => {
     const subjectChapters = chapters.filter(
       (chapter) => chapter.subjectId === subject.subjectId
@@ -145,8 +147,8 @@ export default function HomePage() {
             value={overallProgress}
             size={150}
             stroke={12}
-            label={skillCount > 0 ? formatThetaValue(averageTheta) : "—"}
-            sublabel="Theta -4 đến +4"
+            label={skillCount > 0 ? formatScaledThetaValue(averageTheta) : "—"}
+            sublabel="trên 4"
           />
         </div>
       </section>
@@ -175,8 +177,8 @@ export default function HomePage() {
             <TrendingUp size={22} />
           </span>
           <div className="stat-card__body">
-            <h3>{skillCount > 0 ? formatThetaValue(averageTheta) : "—"}</h3>
-            <p>Mức năng lực ước tính</p>
+            <h3>{skillCount > 0 ? formatScaledThetaValue(averageTheta) : "—"}</h3>
+            <p>{skillCount > 0 ? averageLevel.label : "Mức năng lực ước tính"}</p>
           </div>
         </Card>
       </section>
@@ -193,8 +195,8 @@ export default function HomePage() {
             </div>
             <p className="ai-card__desc">
               {skillCount === 0
-                ? "Hãy làm một bài quiz để hệ thống cập nhật theta và lịch sử năng lực."
-                : `Theta hiện tại: ${formatThetaValue(averageTheta)} (-4 đến +4).`}
+                ? "Hãy làm một bài quiz để hệ thống cập nhật năng lực và lịch sử học tập."
+                : `Điểm năng lực: ${formatScaledThetaValue(averageTheta)}/4 · ${averageLevel.label}.`}
             </p>
           </div>
         </div>
