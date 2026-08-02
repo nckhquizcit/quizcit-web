@@ -1,12 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
 import AdminNavbar from "./components/AdminNavbar";
 import Sidebar from "../../components/Sidebar/Sidebar";
 import { ToastProvider } from "../../components/ui/Toast/Toast";
+import { getStoredUser } from "../../services/apiClient";
+import { clearUserPreview, isUserPreviewActive } from "../../services/userPreviewMode";
 import "./Admin.css";
 
 export default function AdminLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    if (isUserPreviewActive(getStoredUser())) clearUserPreview();
+  }, []);
 
   return (
     <ToastProvider>

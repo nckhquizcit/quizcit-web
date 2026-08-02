@@ -1,4 +1,5 @@
 import axios from "axios";
+import { clearUserPreview, isUserPreviewActive } from "./userPreviewMode";
 
 const AUTH_CHANGED_EVENT = "quizcit:auth-changed";
 export const ACCESS_DENIED_MESSAGE = "Bạn không có quyền thực hiện thao tác này.";
@@ -22,6 +23,7 @@ const apiClient = axios.create({
 export function clearAuthSession() {
   localStorage.removeItem("accessToken");
   localStorage.removeItem("user");
+  clearUserPreview();
   window.dispatchEvent(new CustomEvent(AUTH_CHANGED_EVENT));
 }
 
@@ -87,9 +89,14 @@ function isAuthEndpointRequest(error) {
 
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
+  const user = getStoredUser();
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  if (isUserPreviewActive(user)) {
+    config.headers["X-QuizCIT-View-As"] = "USER";
   }
 
   return config;

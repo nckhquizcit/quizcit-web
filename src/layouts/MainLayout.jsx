@@ -1,9 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Menu } from "lucide-react";
+import { ArrowLeft, Menu } from "lucide-react";
 import Sidebar from "../components/Sidebar/Sidebar";
 import { ToastProvider } from "../components/ui/Toast/Toast";
 import { getStoredUser } from "../services/apiClient";
+import {
+  exitUserPreview,
+  isUserPreviewActive,
+  subscribeToUserPreview,
+} from "../services/userPreviewMode";
 import "./MainLayout.css";
 
 const TITLE_MAP = [
@@ -26,6 +31,16 @@ export default function MainLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const user = getStoredUser();
+  const [isPreviewing, setIsPreviewing] = useState(() => isUserPreviewActive(user));
+
+  useEffect(
+    () => subscribeToUserPreview(() => setIsPreviewing(isUserPreviewActive(getStoredUser()))),
+    [],
+  );
+
+  const handleExitPreview = () => {
+    navigate(exitUserPreview());
+  };
 
   const displayName = user?.displayName || user?.username || "Học viên";
   const initial = displayName.trim().charAt(0).toUpperCase() || "H";
@@ -47,7 +62,16 @@ export default function MainLayout() {
           onClose={() => setMobileOpen(false)}
         />
 
-        <div className="app-main-col">
+        <div className={`app-main-col ${isPreviewing ? "app-main-col--preview" : ""}`}>
+          {isPreviewing && (
+            <div className="user-preview-banner" role="status">
+              <span>Bạn đang xem website với góc nhìn của người dùng.</span>
+              <button type="button" onClick={handleExitPreview}>
+                <ArrowLeft size={16} />
+                Quay lại trang quản trị
+              </button>
+            </div>
+          )}
           <header className="app-topbar">
             <div className="app-topbar__left">
               <button

@@ -115,6 +115,28 @@
   gap: 15px;
 }
 
+.preview-user-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #fff;
+  color: #334155;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.preview-user-btn:hover {
+  border-color: #009e60;
+  background: #ecfdf5;
+  color: #007a44;
+}
+
 .role {
   background: #009e60;
   color: white;
@@ -239,6 +261,24 @@
 /* active (click) cho có cảm giác nhấn */
 .profile-btn:active {
   transform: scale(0.96);
+}
+
+@media (max-width: 700px) {
+  .admin-navbar {
+    padding: 0 16px;
+  }
+
+  .navbar-title,
+  .preview-user-btn span,
+  .profile-btn span {
+    display: none;
+  }
+
+  .preview-user-btn,
+  .profile-btn {
+    justify-content: center;
+    padding: 8px;
+  }
 }
 /* ===== HEADER ===== */
 .page-header {
