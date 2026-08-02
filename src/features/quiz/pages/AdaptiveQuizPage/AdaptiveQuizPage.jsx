@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AlertCircle } from "lucide-react";
 import { Button, ErrorState, Spinner } from "../../../../components/ui";
+import RichTextView from "../../../../components/richtext/RichTextView";
 import { getErrorMessage } from "../../../../services/apiClient";
 import { getAdaptiveAttempt, submitAdaptiveBatch } from "../../../../services/quizService";
 import {
@@ -78,14 +79,14 @@ export default function AdaptiveQuizPage() {
           {questions.map((question, index) => (
             <article className="quiz-question-card" key={question.questionId}>
               <div className="question-number">Câu {state.answeredQuestion + index + 1}</div>
-              <p className="question-content">{question.content}</p>
+              <RichTextView className="question-content" content={question.content} contentFormat={question.contentFormat} />
               <div className="options-list">
                 {(question.options || []).map((option, optionIndex) => (
                   <label className={`option-item ${answers[question.questionId] === option.optionId ? "is-selected" : ""}`} key={option.optionId}>
                     <input type="radio" name={question.questionId} checked={answers[question.questionId] === option.optionId}
                       disabled={submitting} onChange={() => setAnswers((current) => ({ ...current, [question.questionId]: option.optionId }))} />
                     <span className="option-marker">{String.fromCharCode(65 + optionIndex)}</span>
-                    <span className="option-text">{option.content}</span>
+                    <RichTextView className="option-text" variant="inline" content={option.content} contentFormat={option.contentFormat} />
                   </label>
                 ))}
               </div>

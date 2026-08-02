@@ -40,6 +40,7 @@ export default function AdminQuestionCreate() {
       chapterId: formValues.chapterId,
       content: formValues.content,
       explanation: formValues.explanation,
+      contentFormat: formValues.contentFormat,
       difficultyB: Number(formValues.difficultyB),
       skills: normalizeSkillPayload(formValues.skills),
       options: formValues.options,

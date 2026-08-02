@@ -1,3 +1,4 @@
+import { normalizeContentFormat } from "../components/richtext/richTextUtils";
 import { request } from "./apiClient";
 import { mapQuestion } from "./mappers";
 import { enrichSkillNames, getSkills } from "./skillService";
@@ -17,6 +18,7 @@ function mapQuestionPayload(payload = {}) {
     chapterId: payload.chapterId,
     content: payload.content,
     explanation: payload.explanation ?? payload.explaination ?? "",
+    contentFormat: normalizeContentFormat(payload.contentFormat),
     difficultyB: Number(payload.difficultyB ?? payload.difficulty ?? 0),
     options: (payload.options || []).map((option) => ({
       content: option.content,

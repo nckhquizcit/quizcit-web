@@ -13,6 +13,7 @@ dist-ssr
 *.local
 
 # Scratch build/dev-server verification output (agent tooling)
+.build-verify/
 .codex-build-check/
 .codex-dev-*.log
 .codex-vite-*.log

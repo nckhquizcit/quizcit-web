@@ -191,12 +191,18 @@ export function mapSkill(raw = {}) {
   };
 }
 
-export function mapOption(raw = {}) {
+/**
+ * Đáp án không có cột content_format riêng ở database vì chúng luôn được tạo
+ * và sửa cùng câu hỏi. `fallbackFormat` là định dạng của câu hỏi cha, dùng khi
+ * API không kèm theo giá trị này.
+ */
+export function mapOption(raw = {}, fallbackFormat = "plain") {
   if (typeof raw === "string") {
     return {
       optionId: raw,
       id: raw,
       content: raw,
+      contentFormat: "plain",
       corrected: false,
     };
   }
@@ -208,6 +214,7 @@ export function mapOption(raw = {}) {
     optionId,
     option_id: optionId,
     content: pick(raw, ["content", "text", "label"], ""),
+    contentFormat: pick(raw, ["contentFormat", "content_format"], fallbackFormat),
     corrected: Boolean(pick(raw, ["corrected", "correct", "isCorrect"], false)),
   };
 }
@@ -216,7 +223,10 @@ export function mapQuestion(raw = {}) {
   const questionId = pick(raw, ["questionId", "question_id", "id"]);
   const subjectId = pick(raw, ["subjectId", "subject_id"]);
   const chapterId = pick(raw, ["chapterId", "chapter_id"]);
-  const options = toArray(pick(raw, ["options", "answers"], [])).map(mapOption);
+  const contentFormat = pick(raw, ["contentFormat", "content_format"], "plain");
+  const options = toArray(pick(raw, ["options", "answers"], [])).map((option) =>
+    mapOption(option, contentFormat),
+  );
   const correctOptionId =
     pick(raw, ["correctOptionId", "correct_option_id"]) ||
     options.find((option) => option.corrected)?.optionId ||
@@ -234,6 +244,7 @@ export function mapQuestion(raw = {}) {
     chapter_id: chapterId,
     content: pick(raw, ["content"], ""),
     explanation: pick(raw, ["explanation", "explaination"], ""),
+    contentFormat,
     difficultyB,
     difficulty: difficultyB <= -1.8 ? "Easy" : difficultyB >= 1.8 ? "Hard" : "Medium",
     active: pick(raw, ["active"], true),
@@ -293,7 +304,10 @@ export function mapQuestionResult(raw = {}) {
   const questionId = pick(raw, ["questionId", "question_id", "id"]);
   const selectedOptionId = pick(raw, ["selectedOptionId", "selected_option_id"], null);
   const correctOptionId = pick(raw, ["correctOptionId", "correct_option_id"], null);
-  const options = toArray(pick(raw, ["options"], [])).map(mapOption);
+  const contentFormat = pick(raw, ["contentFormat", "content_format"], "plain");
+  const options = toArray(pick(raw, ["options"], [])).map((option) =>
+    mapOption(option, contentFormat),
+  );
   const selectedOption = options.find((option) => option.optionId === selectedOptionId);
   const correctOption = options.find((option) => option.optionId === correctOptionId);
 
@@ -305,6 +319,7 @@ export function mapQuestionResult(raw = {}) {
     questionNumber: toNumber(pick(raw, ["questionNumber", "question_number"], 0)),
     content: pick(raw, ["content"], ""),
     explanation: pick(raw, ["explanation", "explaination"], ""),
+    contentFormat,
     selectedOptionId,
     correctOptionId,
     correct: Boolean(pick(raw, ["correct", "isCorrect", "score"], false)),

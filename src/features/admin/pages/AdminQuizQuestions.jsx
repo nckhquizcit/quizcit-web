@@ -6,6 +6,7 @@ import ErrorState from "../../../components/ui/ErrorState/ErrorState";
 import { getErrorMessage } from "../../../services/apiClient";
 import { getQuestionsByChapter, getQuestionsByQuiz, getQuizById, updateQuiz } from "../../../services/quizService";
 import { useToast } from "../../../components/ui/Toast/Toast";
+import { toPreviewText } from "../../../components/richtext/richTextUtils";
 import "./AdminQuizzes.css";
 
 const BANK_CACHE_PREFIX = "quizcit:question-bank:";
@@ -137,7 +138,7 @@ export default function AdminQuizQuestions() {
     <div className="admin-section-card quiz-picker quiz-questions-page">
       {error && <ErrorState description={error} onRetry={!quiz ? load : undefined} />}
       <div className="quiz-question-list quiz-question-list--scroll quiz-current-list">
-        {quizQuestions.map((question, index) => <div key={getQuestionId(question)} className="quiz-question-item selected quiz-current-question"><span className="quiz-question-content"><strong>Câu {index + 1}</strong><span>{question.content}</span></span><button type="button" className="icon-btn danger" onClick={() => removeQuestion(getQuestionId(question))} aria-label="Xóa câu hỏi khỏi đề"><Trash2 size={16} /></button></div>)}
+        {quizQuestions.map((question, index) => <div key={getQuestionId(question)} className="quiz-question-item selected quiz-current-question"><span className="quiz-question-content"><strong>Câu {index + 1}</strong><span>{toPreviewText(question.content, question.contentFormat)}</span></span><button type="button" className="icon-btn danger" onClick={() => removeQuestion(getQuestionId(question))} aria-label="Xóa câu hỏi khỏi đề"><Trash2 size={16} /></button></div>)}
         {quiz && !quizQuestions.length && <div className="quiz-inline-empty">Đề thi hiện chưa có câu hỏi.</div>}
         {!quiz && !error && <div className="quiz-inline-empty">Đang tải câu hỏi của đề thi...</div>}
       </div>
@@ -150,7 +151,7 @@ export default function AdminQuizQuestions() {
           {bankError && <div className="modal-inline-error">{bankError}</div>}
           <label className="quiz-bank-search"><Search size={17} /><input value={bankQuery} onChange={(event) => setBankQuery(event.target.value)} placeholder="Tìm nội dung câu hỏi..." /><span className="sr-only">Tìm nội dung câu hỏi</span></label>
           {bankLoading ? <div className="quiz-inline-empty">Đang tải ngân hàng câu hỏi...</div> : <div className="quiz-question-list quiz-question-list--scroll quiz-bank-list">
-            {availableBankQuestions.map((question) => { const id = getQuestionId(question); return <label key={id} className={`quiz-question-item quiz-bank-option ${bankSelection.includes(id) ? "selected" : ""}`}><input type="checkbox" checked={bankSelection.includes(id)} onChange={() => toggleBankQuestion(id)} /><span className="quiz-question-content"><span>{question.content}</span></span></label>; })}
+            {availableBankQuestions.map((question) => { const id = getQuestionId(question); return <label key={id} className={`quiz-question-item quiz-bank-option ${bankSelection.includes(id) ? "selected" : ""}`}><input type="checkbox" checked={bankSelection.includes(id)} onChange={() => toggleBankQuestion(id)} /><span className="quiz-question-content"><span>{toPreviewText(question.content, question.contentFormat)}</span></span></label>; })}
             {!bankLoading && !availableBankQuestions.length && <div className="quiz-inline-empty">Không còn câu hỏi phù hợp để thêm.</div>}
           </div>}
         </div>

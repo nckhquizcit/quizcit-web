@@ -15,6 +15,8 @@ import {
   ProgressRing,
   Spinner,
 } from "../../../../components/ui";
+import RichTextView from "../../../../components/richtext/RichTextView";
+import { isRichTextEmpty } from "../../../../components/richtext/richTextUtils";
 import "./QuizResultPage.css";
 
 const FALLBACK_QUIZ_NAME = "Bài kiểm tra";
@@ -262,7 +264,17 @@ export default function QuizResultPage() {
                       <span className="result-question-number">
                         Câu {questionNumber}
                       </span>
-                      <h3>{question.content || "Câu hỏi chưa có nội dung"}</h3>
+                      <h3>
+                        {isRichTextEmpty(question.content, question.contentFormat) ? (
+                          "Câu hỏi chưa có nội dung"
+                        ) : (
+                          <RichTextView
+                            variant="inline"
+                            content={question.content}
+                            contentFormat={question.contentFormat}
+                          />
+                        )}
+                      </h3>
                     </div>
                     <span className="result-question-status">
                       {question.correct ? <CheckCircle2 size={15} /> : <XCircle size={15} />}
@@ -289,7 +301,15 @@ export default function QuizResultPage() {
                             {String.fromCharCode(65 + optionIndex)}
                           </span>
                           <span className="result-option-content">
-                            {option.content || "Đáp án chưa có nội dung"}
+                            {isRichTextEmpty(option.content, option.contentFormat) ? (
+                              "Đáp án chưa có nội dung"
+                            ) : (
+                              <RichTextView
+                                variant="inline"
+                                content={option.content}
+                                contentFormat={option.contentFormat}
+                              />
+                            )}
                           </span>
                           <span className="result-option-tags">
                             {selected && <span>Bạn chọn</span>}
@@ -300,10 +320,15 @@ export default function QuizResultPage() {
                     })}
                   </div>
 
-                  {question.explanation && (
-                    <p className="result-question-explanation">
-                      Giải thích: {question.explanation}
-                    </p>
+                  {!isRichTextEmpty(question.explanation, question.contentFormat) && (
+                    <div className="result-question-explanation">
+                      <span>Giải thích: </span>
+                      <RichTextView
+                        variant="inline"
+                        content={question.explanation}
+                        contentFormat={question.contentFormat}
+                      />
+                    </div>
                   )}
                 </article>
               );

@@ -4,6 +4,7 @@ import Modal from "../ui/Modal";
 import FormModalLayout from "../ui/FormModalLayout";
 import { getChaptersBySubject } from "../../../../services/contentService";
 import { getErrorMessage } from "../../../../services/apiClient";
+import { toPreviewText } from "../../../../components/richtext/richTextUtils";
 import { createQuiz, getQuestionsByChapter, updateQuiz } from "../../services/quizService";
 
 const getSubjectId = (subject) => String(subject?.subjectId ?? subject?.id ?? "");
@@ -310,7 +311,7 @@ export function CreateQuizForm({
                     <span className="quiz-checkmark">✓</span>
                     <span className="quiz-question-content">
                       <strong>Câu {index + 1}</strong>
-                      <span>{question.content}</span>
+                      <span>{toPreviewText(question.content, question.contentFormat)}</span>
                     </span>
                   </button>
                 );

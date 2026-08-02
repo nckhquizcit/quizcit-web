@@ -2,6 +2,16 @@ import { useEffect, useMemo, useState } from "react";
 import { Eye, EyeOff, Search } from "lucide-react";
 
 import Modal from "../ui/Modal";
+import RichTextEditor from "../../../../components/richtext/RichTextEditor";
+import RichTextView from "../../../../components/richtext/RichTextView";
+import {
+  deserializeRichTextContent,
+  FORMAT_BLOCKNOTE,
+  FORMAT_PLAIN,
+  isRichTextEmpty,
+  normalizeContentFormat,
+  serializeRichTextContent,
+} from "../../../../components/richtext/richTextUtils";
 import { getErrorMessage } from "../../../../services/apiClient";
 import { getChapterById, getChaptersBySubject, getSubjects } from "../../../../services/contentService";
 import {
@@ -20,6 +30,20 @@ const MAX_ANSWER_COUNT = 10;
 const SKILL_WEIGHT_SUM_TOLERANCE = 0.000001;
 const EMPTY_LIST = Object.freeze([]);
 const createEmptyAnswers = (count = MIN_ANSWER_COUNT) => Array.from({ length: count }, () => "");
+
+/**
+ * Form luôn làm việc ở định dạng BlockNote. Nội dung cũ dạng plain được nâng
+ * cấp ngay khi mở form, nhờ vậy không tồn tại trạng thái nửa vời kiểu câu hỏi
+ * đã là JSON còn giải thích vẫn là chữ thuần.
+ */
+const toRichTextValue = (value, sourceFormat) => {
+  const text = value ?? "";
+  if (!text) return "";
+  if (normalizeContentFormat(sourceFormat) === FORMAT_BLOCKNOTE) return String(text);
+  return serializeRichTextContent(deserializeRichTextContent(text, FORMAT_PLAIN));
+};
+
+const isAnswerFilled = (answer) => !isRichTextEmpty(answer, FORMAT_BLOCKNOTE);
 
 const normalizeDifficultyState = (value) => {
   if (value && typeof value === "object") {
@@ -152,8 +176,10 @@ const validateSkillWeights = (skills = []) => {
 const isOptionCorrect = (option) =>
   Boolean(option?.corrected ?? option?.isCorrect ?? option?.is_correct);
 
-const normalizeAnswers = (options = []) => {
-  const nextAnswers = options.map((option) => option.content).slice(0, MAX_ANSWER_COUNT);
+const normalizeAnswers = (options = [], sourceFormat) => {
+  const nextAnswers = options
+    .map((option) => toRichTextValue(option.content, option.contentFormat ?? sourceFormat))
+    .slice(0, MAX_ANSWER_COUNT);
 
   if (!nextAnswers.length) {
     return createEmptyAnswers();
@@ -299,11 +325,17 @@ export function QuestionForm({
   useEffect(() => {
     if (!open) return;
 
-    const nextAnswers = normalizeAnswers(initialQuestion?.options);
+    const sourceFormat = initialQuestion?.contentFormat;
+    const nextAnswers = normalizeAnswers(initialQuestion?.options, sourceFormat);
     const nextCorrectIndex = initialQuestion?.options?.findIndex((option) => isOptionCorrect(option));
 
-    setQuestion(initialQuestion?.content || "");
-    setExplanation(initialQuestion?.explanation || initialQuestion?.explaination || "");
+    setQuestion(toRichTextValue(initialQuestion?.content, sourceFormat));
+    setExplanation(
+      toRichTextValue(
+        initialQuestion?.explanation || initialQuestion?.explaination,
+        sourceFormat,
+      ),
+    );
     const nextDifficulty = normalizeDifficultyState(
       initialQuestion?.difficultyB ?? initialQuestion?.difficulty,
     );
@@ -474,12 +506,18 @@ export function QuestionForm({
   );
 
   const completedAnswerCount = useMemo(
-    () => answers.filter((answer) => answer.trim()).length,
+    () => answers.filter(isAnswerFilled).length,
     [answers],
   );
 
+  const isQuestionFilled = !isRichTextEmpty(question, FORMAT_BLOCKNOTE);
+
+  // RichTextEditor chỉ đọc `value` một lần lúc mount, nên phải remount khi form
+  // chuyển sang câu hỏi khác thì nội dung mới hiện đúng.
+  const editorKey = `${open ? "open" : "closed"}-${initialQuestion?.questionId ?? "new"}`;
+
   const isReadyToSubmit =
-    Boolean(question.trim()) &&
+    isQuestionFilled &&
     Boolean(selectedSubjectId) &&
     Boolean(selectedChapterId) &&
     completedAnswerCount === answers.length &&
@@ -583,7 +621,7 @@ export function QuestionForm({
   const handleSubmit = async () => {
     if (submitting) return;
 
-    if (!question.trim()) {
+    if (!isQuestionFilled) {
       window.alert("Vui lòng nhập nội dung câu hỏi.");
       return;
     }
@@ -593,7 +631,7 @@ export function QuestionForm({
       return;
     }
 
-    if (answers.some((answer) => !answer.trim())) {
+    if (!answers.every(isAnswerFilled)) {
       window.alert("Vui lòng nhập đầy đủ nội dung cho tất cả đáp án.");
       return;
     }
@@ -620,8 +658,9 @@ export function QuestionForm({
     const difficultyB = resolveDifficultyB(difficultyKey, customDifficultyB);
 
     const payload = {
-      content: question.trim(),
-      explanation: explanation.trim(),
+      content: question,
+      explanation: isRichTextEmpty(explanation, FORMAT_BLOCKNOTE) ? "" : explanation,
+      contentFormat: FORMAT_BLOCKNOTE,
       difficulty: difficultyKey,
       difficultyB,
       subjectId: selectedSubjectId,
@@ -632,7 +671,7 @@ export function QuestionForm({
         primary: Boolean(skill.primary),
       })),
       options: answers.map((answer, index) => ({
-        content: answer.trim(),
+        content: answer,
         corrected: correctIndex === index,
       })),
     };
@@ -679,7 +718,11 @@ export function QuestionForm({
                       {difficultyLabel}
                     </span>
                   </div>
-                  <p>{question || "Nội dung câu hỏi..."}</p>
+                  {isQuestionFilled ? (
+                    <RichTextView content={question} contentFormat={FORMAT_BLOCKNOTE} />
+                  ) : (
+                    <p>Nội dung câu hỏi...</p>
+                  )}
                   <div className="preview-options">
                     {answers.map((answer, index) => (
                       <div
@@ -687,7 +730,17 @@ export function QuestionForm({
                         key={index}
                       >
                         <strong>{String.fromCharCode(65 + index)}.</strong>
-                        <span>{answer || `Đáp án ${String.fromCharCode(65 + index)}`}</span>
+                        <span>
+                          {isAnswerFilled(answer) ? (
+                            <RichTextView
+                              content={answer}
+                              contentFormat={FORMAT_BLOCKNOTE}
+                              variant="inline"
+                            />
+                          ) : (
+                            `Đáp án ${String.fromCharCode(65 + index)}`
+                          )}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -702,25 +755,26 @@ export function QuestionForm({
                         <p>Câu hỏi và giải thích</p>
                       </div>
                     </div>
-                    <label className="form-field full">
+                    <div className="form-field full">
                       <span>Nội dung câu hỏi *</span>
-                      <textarea
-                        className={!question ? "invalid" : ""}
-                        placeholder="Ví dụ: 2 + 2 bằng mấy?"
+                      <RichTextEditor
+                        key={`${editorKey}-question`}
                         value={question}
-                        onChange={(event) => setQuestion(event.target.value)}
+                        disabled={submitting}
+                        onChange={({ content }) => setQuestion(content)}
                       />
-                      {!question && <small>Trường này là bắt buộc</small>}
-                    </label>
+                      {!isQuestionFilled && <small>Trường này là bắt buộc</small>}
+                    </div>
 
-                    <label className="form-field full">
+                    <div className="form-field full">
                       <span>Giải thích</span>
-                      <textarea
-                        placeholder="Nhập giải thích cho câu hỏi"
+                      <RichTextEditor
+                        key={`${editorKey}-explanation`}
                         value={explanation}
-                        onChange={(event) => setExplanation(event.target.value)}
+                        disabled={submitting}
+                        onChange={({ content }) => setExplanation(content)}
                       />
-                    </label>
+                    </div>
                   </section>
 
                   <section className="question-section">
@@ -957,11 +1011,13 @@ export function QuestionForm({
                               key={index}
                             >
                               <span className="answer-letter">{answerLabel}</span>
-                              <input
-                                aria-label={`Đáp án ${answerLabel}`}
-                                placeholder={`Nhập đáp án ${answerLabel}`}
+                              <RichTextEditor
+                                key={`${editorKey}-answer-${index}`}
+                                className="answer-rich-text"
+                                variant="inline"
                                 value={answer}
-                                onChange={(event) => handleAnswerChange(index, event.target.value)}
+                                disabled={submitting}
+                                onChange={({ content }) => handleAnswerChange(index, content)}
                               />
                               <button
                                 className={correctIndex === index ? "marked" : ""}
@@ -1030,14 +1086,27 @@ export function QuestionForm({
 
             <div className="question-side-preview">
               <span className="side-preview-label">Xem nhanh</span>
-              <p>{question || "Nội dung câu hỏi sẽ hiển thị tại đây."}</p>
-              <div>
+              {isQuestionFilled ? (
+                <RichTextView content={question} contentFormat={FORMAT_BLOCKNOTE} />
+              ) : (
+                <p>Nội dung câu hỏi sẽ hiển thị tại đây.</p>
+              )}
+              <div className="side-preview-answers">
                 {answers.map((answer, index) => (
                   <span
                     className={correctIndex === index ? "side-preview-answer correct" : "side-preview-answer"}
                     key={index}
                   >
-                    {String.fromCharCode(65 + index)}. {answer || "Chưa nhập"}
+                    {String.fromCharCode(65 + index)}.{" "}
+                    {isAnswerFilled(answer) ? (
+                      <RichTextView
+                        content={answer}
+                        contentFormat={FORMAT_BLOCKNOTE}
+                        variant="inline"
+                      />
+                    ) : (
+                      "Chưa nhập"
+                    )}
                   </span>
                 ))}
               </div>

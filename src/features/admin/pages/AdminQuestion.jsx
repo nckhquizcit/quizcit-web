@@ -26,6 +26,7 @@ import RowActions from "../components/ui/RowActions";
 import ErrorState from "../../../components/ui/ErrorState/ErrorState";
 import EmptyState from "../../../components/ui/EmptyState/EmptyState";
 import { useToast } from "../../../components/ui/Toast/Toast";
+import { toPreviewText } from "../../../components/richtext/richTextUtils";
 import {
   deleteQuestion,
   getQuestionById,
@@ -144,7 +145,7 @@ function DeleteQuestionModal({ open, question, onCancel, onConfirm, onClose }) {
 
         {question && (
           <div className="delete-question-preview">
-            <strong>{question.content}</strong>
+            <strong>{toPreviewText(question.content, question.contentFormat)}</strong>
             <span>
               {question.subject?.name} • {question.chapter?.name}
             </span>
@@ -171,7 +172,7 @@ function QuestionSkillsModal({ open, question, onClose }) {
     <Modal open={open} onClose={onClose}>
       <div className="question-modal question-skills-modal">
         <h2>Danh sách kỹ năng</h2>
-        <p>{question?.content || "Câu hỏi"}</p>
+        <p>{toPreviewText(question?.content, question?.contentFormat) || "Câu hỏi"}</p>
 
         <div className="question-skill-popup-list">
           {skills.length ? (
@@ -394,6 +395,7 @@ export default function AdminQuestions() {
       chapterId: formValues.chapterId,
       content: formValues.content,
       explanation: formValues.explanation,
+      contentFormat: formValues.contentFormat,
       difficultyB: Number(formValues.difficultyB),
       skills: normalizeSkillPayload(formValues.skills),
       options: formValues.options,
@@ -620,7 +622,7 @@ export default function AdminQuestions() {
                                 {String(rowNumber).padStart(2, "0")}
                               </span>
                               <div className="bank-question-main">
-                                <strong>{row.content}</strong>
+                                <strong>{toPreviewText(row.content, row.contentFormat)}</strong>
                                 <div className="question-bank-meta">
                                   <span>
                                     <BookOpen size={13} />

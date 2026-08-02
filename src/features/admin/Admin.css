@@ -2264,6 +2264,14 @@
   background: #fff;
 }
 
+.answer-row .answer-rich-text {
+  min-width: 0;
+}
+
+.answer-row .answer-rich-text .bn-container {
+  background: #fff;
+}
+
 .answer-row button {
   border: 1px solid #d8dde6;
   border-radius: 10px;
@@ -2418,7 +2426,7 @@
   overflow-wrap: anywhere;
 }
 
-.question-side-preview > div {
+.question-side-preview .side-preview-answers {
   display: grid;
   gap: 8px;
 }

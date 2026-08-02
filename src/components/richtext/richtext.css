@@ -1,0 +1,170 @@
+.rich-text {
+  color: inherit;
+  font: inherit;
+  overflow-wrap: anywhere;
+}
+
+.rich-text p {
+  margin: 0;
+}
+
+.rich-text > * + * {
+  margin-top: 0.65em;
+}
+
+.rich-text h2,
+.rich-text h3,
+.rich-text h4 {
+  margin: 0;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.rich-text h2 {
+  font-size: 1.25em;
+}
+
+.rich-text h3 {
+  font-size: 1.12em;
+}
+
+.rich-text h4 {
+  font-size: 1em;
+}
+
+.rich-text a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.rich-text__code {
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  background: rgba(100, 116, 139, 0.16);
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.92em;
+}
+
+.rich-text__pre {
+  margin: 0;
+  padding: 0.75em 0.9em;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #e2e8f0;
+  overflow-x: auto;
+}
+
+.rich-text__pre code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.88em;
+  line-height: 1.55;
+  white-space: pre;
+}
+
+.rich-text__quote {
+  margin: 0;
+  padding-left: 0.9em;
+  border-left: 3px solid rgba(100, 116, 139, 0.4);
+  color: inherit;
+  font-style: italic;
+}
+
+.rich-text__list {
+  margin: 0;
+  padding-left: 1.4em;
+}
+
+.rich-text__list li + li {
+  margin-top: 0.3em;
+}
+
+.rich-text__list--check {
+  list-style: none;
+  padding-left: 0.2em;
+}
+
+.rich-text__list--check li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+}
+
+.rich-text__list--check input {
+  margin-top: 0.25em;
+}
+
+.rich-text__children {
+  margin-top: 0.4em;
+  padding-left: 1em;
+}
+
+.rich-text__figure {
+  margin: 0;
+}
+
+.rich-text__figure img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.rich-text__figure figcaption,
+.rich-text__caption {
+  margin-top: 0.35em;
+  color: #64748b;
+  font-size: 0.88em;
+}
+
+.rich-text__table-wrap {
+  overflow-x: auto;
+}
+
+.rich-text__table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.rich-text__table td {
+  padding: 0.4em 0.6em;
+  border: 1px solid rgba(100, 116, 139, 0.35);
+  vertical-align: top;
+}
+
+.rich-text--inline {
+  display: inline;
+}
+
+.rich-text--inline > * + * {
+  margin-top: 0;
+}
+
+.rich-text__inline-image {
+  max-width: 100%;
+  max-height: 8em;
+  vertical-align: middle;
+  border-radius: 6px;
+}
+
+.rich-text-editor .bn-container {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.rich-text-editor .bn-editor {
+  padding: 10px 12px;
+}
+
+.rich-text-editor--block .bn-editor {
+  min-height: 140px;
+}
+
+.rich-text-editor--inline .bn-editor {
+  min-height: 40px;
+  padding: 6px 10px;
+}
+
+.rich-text-editor--inline .bn-container {
+  border-radius: 6px;
+}

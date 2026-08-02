@@ -12,6 +12,7 @@ import {
 } from "../../../../services/quizService";
 import { getErrorMessage, getStoredUser } from "../../../../services/apiClient";
 import { Button, ErrorState, Spinner } from "../../../../components/ui";
+import RichTextView from "../../../../components/richtext/RichTextView";
 import {
   clampQuizPage,
   getPageNavigationTarget,
@@ -443,7 +444,11 @@ export default function QuizTakingPage() {
                     </div>
                   </div>
 
-                  <p className="question-content">{question.content}</p>
+                  <RichTextView
+                    className="question-content"
+                    content={question.content}
+                    contentFormat={question.contentFormat}
+                  />
 
                   <div className="options-list">
                     {(question.options || []).map((option, optIndex) => {
@@ -469,7 +474,12 @@ export default function QuizTakingPage() {
                           <span className="option-marker">
                             {String.fromCharCode(65 + optIndex)}
                           </span>
-                          <span className="option-text">{option.content}</span>
+                          <RichTextView
+                            className="option-text"
+                            variant="inline"
+                            content={option.content}
+                            contentFormat={option.contentFormat}
+                          />
                         </label>
                       );
                     })}
