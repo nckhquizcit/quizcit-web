@@ -1,15 +1,25 @@
 import "./VerifyForgotPasswordForm.css";
-import { useState, useRef } from "react";
-import { Link } from "react-router-dom";
-import { Mail, Info, ArrowLeft } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Mail } from "lucide-react";
 import { useForgotPassword } from "../../../../stores/contexts/ForgotPasswordContext.jsx";
+import { forgotPassword, verifyResetOtp } from "../../../../services/authService";
+import { getErrorMessage } from "../../../../services/apiClient";
 
-export default function VerifyForgotPasswordForm({
-  email = "nhhun@example.com",
-}) {
-  const { setCurrentState } = useForgotPassword();
+export default function VerifyForgotPasswordForm() {
+  const { email, resetToken, setResetToken, setConfirmedToken, setCurrentState } =
+    useForgotPassword();
   const [otp, setOtp] = useState(new Array(6).fill(""));
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
   const inputRefs = useRef([]);
+
+  useEffect(() => {
+    if (cooldown <= 0) return undefined;
+    const timer = setInterval(() => setCooldown((prev) => prev - 1), 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
 
   const handleChange = (element, index) => {
     if (isNaN(element.value)) return false;
@@ -26,19 +36,44 @@ export default function VerifyForgotPasswordForm({
       inputRefs.current[index - 1].focus();
     }
   };
-  const handleVerify = (e) => {
+  const handleVerify = async (e) => {
     e.preventDefault();
-
     const verificationCode = otp.join("");
-
     if (verificationCode.length < 6) {
-      alert("Vui lòng nhập đủ 6 số!");
+      setError("Vui lòng nhập đủ 6 số.");
       return;
     }
+    if (!resetToken) {
+      setError("Phiên đặt lại mật khẩu đã hết hạn. Vui lòng thử lại.");
+      return;
+    }
+    try {
+      setLoading(true);
+      setError("");
+      const res = await verifyResetOtp(resetToken, verificationCode);
+      setConfirmedToken(res.confirmedToken);
+      setCurrentState(3);
+    } catch (apiError) {
+      setError(getErrorMessage(apiError, "Xác minh thất bại."));
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    console.log("Đang gửi mã xác minh:", verificationCode);
-    // Đây là nơi bạn gọi API từ service của QuizCIT
-    setCurrentState(3);
+  const handleResend = async () => {
+    if (!email || cooldown > 0) return;
+    try {
+      setResending(true);
+      setError("");
+      const res = await forgotPassword(email);
+      setResetToken(res.resetToken);
+      setOtp(new Array(6).fill(""));
+      setCooldown(60);
+    } catch (apiError) {
+      setError(getErrorMessage(apiError, "Không thể gửi lại mã."));
+    } finally {
+      setResending(false);
+    }
   };
   return (
     <form className="verify-form-container" onSubmit={handleVerify}>
@@ -50,6 +85,8 @@ export default function VerifyForgotPasswordForm({
         <span>{email}</span>
       </div>
 
+      {error && <div className="auth-form__error">{error}</div>}
+
       <div className="otp-section">
         <p>Nhập 6 số mã xác minh</p>
         <div className="otp-inputs">
@@ -57,6 +94,7 @@ export default function VerifyForgotPasswordForm({
             <input
               key={index}
               type="text"
+              inputMode="numeric"
               maxLength="1"
               ref={(el) => (inputRefs.current[index] = el)}
               value={data}
@@ -67,14 +105,19 @@ export default function VerifyForgotPasswordForm({
         </div>
       </div>
 
-      <button type="submit" className="submit-btn">
-        Xác minh
+      <button type="submit" className="submit-btn" disabled={loading}>
+        {loading ? "Đang xác minh..." : "Xác minh"}
       </button>
 
       <div className="resend-group">
         <span>Không nhận được mã?</span>
-        <button type="button" className="resend-btn">
-          Gửi lại mã
+        <button
+          type="button"
+          className="resend-btn"
+          onClick={handleResend}
+          disabled={resending || cooldown > 0 || !email}
+        >
+          {cooldown > 0 ? `Gửi lại sau ${cooldown}s` : "Gửi lại mã"}
         </button>
       </div>
     </form>

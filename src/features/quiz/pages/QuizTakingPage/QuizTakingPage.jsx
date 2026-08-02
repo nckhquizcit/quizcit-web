@@ -1,170 +1,297 @@
-import { useEffect, useState, useRef, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { getQuizById, getQuestionsByQuiz, startQuiz, submitAttempt } from "../../../../services/quizService";
-
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { AlertCircle, Clock, Flag, X } from "lucide-react";
+import {
+  clearQuizDraft,
+  getQuestionsByQuiz,
+  getQuizById,
+  loadQuizDraft,
+  saveQuizDraft,
+  startQuiz,
+  submitAttempt,
+} from "../../../../services/quizService";
+import { getErrorMessage, getStoredUser } from "../../../../services/apiClient";
+import { Button, ErrorState, Spinner } from "../../../../components/ui";
+import {
+  clampQuizPage,
+  getPageNavigationTarget,
+  getQuestionNavigationTarget,
+  getTotalQuizPages,
+  QUIZ_PAGE_SIZE,
+} from "./QuizTakingPage.logic.js";
 import "./QuizTakingPage.css";
 
-// Task 2: số câu hỏi render mỗi cụm/trang.
-const PAGE_SIZE = 5;
+const PAGE_SIZE = QUIZ_PAGE_SIZE;
+
+const getDurationSeconds = (quizData) => {
+  const durationMinutes = Number(quizData?.duration ?? quizData?.durationMinutes);
+  return Number.isFinite(durationMinutes) && durationMinutes > 0
+    ? Math.floor(durationMinutes * 60)
+    : 0;
+};
 
 export default function QuizTakingPage() {
   const { quizId } = useParams();
   const navigate = useNavigate();
+  const currentUser = useMemo(() => getStoredUser(), []);
   const [quiz, setQuiz] = useState(null);
-  // `questions` là nguồn dữ liệu đầy đủ đã cache (toàn bộ câu hỏi của quiz).
   const [questions, setQuestions] = useState([]);
   const [attempt, setAttempt] = useState(null);
   const [answers, setAnswers] = useState({});
-  // Tập câu hỏi đã cắm cờ (lưu theo questionId để không phụ thuộc index).
   const [flaggedQuestionIds, setFlaggedQuestionIds] = useState(() => new Set());
-  // Trang hiện tại (0-based) của cụm 5 câu.
   const [currentPage, setCurrentPage] = useState(0);
-  // Câu đang mở popup skill (null nếu đóng).
+  const [activeQuestionId, setActiveQuestionId] = useState(null);
+  const [pendingScrollQuestionId, setPendingScrollQuestionId] = useState(null);
   const [activeSkillQuestion, setActiveSkillQuestion] = useState(null);
   const [timeLeft, setTimeLeft] = useState(0);
+  const [hasTimeLimit, setHasTimeLimit] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const submittedRef = useRef(false);
-  // Chỉ khởi tạo attempt một lần cho mỗi quiz; tránh gọi startQuiz lặp lại.
+  const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
   const startedRef = useRef(false);
-
-  // Đọc user một lần với reference ổn định. Nếu parse trực tiếp trong render,
-  // mỗi lần render sẽ tạo object mới -> useEffect chạy lại -> startQuiz bị gọi
-  // liên tục, sinh ra hàng loạt attempt rỗng trong DB.
-  const currentUser = useMemo(
-    () => JSON.parse(localStorage.getItem("user") || "null"),
-    [],
-  );
+  const submittedRef = useRef(false);
+  const timerStartedRef = useRef(false);
+  const autoSubmittedRef = useRef(false);
+  const questionRefs = useRef(new Map());
 
   useEffect(() => {
     if (startedRef.current) return;
     startedRef.current = true;
 
-    const loadQuiz = async () => {
+    async function loadQuiz() {
       if (!currentUser?.userId) {
         navigate("/login");
         return;
       }
 
       try {
+        setLoading(true);
+        setError("");
         const [quizData, questionsData, attemptData] = await Promise.all([
           getQuizById(quizId),
           getQuestionsByQuiz(quizId),
           startQuiz(quizId, currentUser.userId),
         ]);
+        const draft = loadQuizDraft(quizId, currentUser.userId);
+
+        const durationSeconds = getDurationSeconds(quizData);
+        const loadedQuestions = Array.isArray(questionsData)
+          ? questionsData
+          : [];
+        const draftPage = Number(draft?.currentPage ?? 0);
+        const safeDraftPage = clampQuizPage(
+          draftPage,
+          getTotalQuizPages(loadedQuestions.length, PAGE_SIZE),
+        );
+        const initialQuestionId = getPageNavigationTarget(
+          loadedQuestions,
+          safeDraftPage,
+          PAGE_SIZE,
+        ).questionId;
 
         setQuiz(quizData);
-        setQuestions(Array.isArray(questionsData) ? questionsData : []);
+        setQuestions(loadedQuestions);
         setAttempt(attemptData);
-        setTimeLeft(quizData.duration * 60);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error loading quiz:", error);
-        alert("Không thể bắt đầu bài kiểm tra. Vui lòng thử lại.");
-        // Cho phép thử lại nếu khởi tạo thất bại.
+        setCurrentPage(safeDraftPage);
+        setActiveQuestionId(initialQuestionId);
+        setHasTimeLimit(durationSeconds > 0);
+        setTimeLeft(durationSeconds);
+        timerStartedRef.current = durationSeconds > 0;
+        autoSubmittedRef.current = false;
+
+        if (draft) {
+          if (draft.answers) {
+            setAnswers(draft.answers);
+          }
+          setFlaggedQuestionIds(new Set(draft.flaggedQuestionIds || []));
+        }
+      } catch (loadError) {
         startedRef.current = false;
-        navigate("/app/subjects");
+        setError(getErrorMessage(loadError, "Không thể bắt đầu bài kiểm tra."));
+      } finally {
+        setLoading(false);
       }
-    };
+    }
 
     loadQuiz();
-  }, [quizId, currentUser, navigate]);
-
+  }, [currentUser?.userId, navigate, quizId]);
 
   const totalPages = useMemo(
-    () => Math.max(1, Math.ceil(questions.length / PAGE_SIZE)),
+    () => getTotalQuizPages(questions.length, PAGE_SIZE),
     [questions.length],
   );
 
-  // Câu hỏi của trang hiện tại (cụm 5 câu). Toàn bộ questions vẫn được cache
-  // trong state nên chuyển trang không mất đáp án/cờ đã chọn.
   const visibleQuestions = useMemo(() => {
     const start = currentPage * PAGE_SIZE;
     return questions.slice(start, start + PAGE_SIZE);
-  }, [questions, currentPage]);
+  }, [currentPage, questions]);
 
-  const doSubmit = async (currentAnswers) => {
-    if (!attempt || submittedRef.current) return;
-    submittedRef.current = true;
-    setSubmitting(true);
+  const setQuestionCardRef = useCallback((questionId, element) => {
+    if (!questionId) return;
 
-    try {
-      const answerList = Object.entries(currentAnswers).map(([questionId, optionId]) => ({
-        questionId,
-        optionId,
-      }));
-
-      await submitAttempt({
-        quizId,
-        attemptId: attempt.attemptId,
-        answers: answerList,
-      });
-
-      navigate(`/app/quiz/result/${attempt.attemptId}`);
-    } catch (error) {
-      console.error("Error submitting quiz:", error);
-      alert("Có lỗi xảy ra khi nộp bài. Vui lòng thử lại.");
-      submittedRef.current = false;
-      setSubmitting(false);
+    if (element) {
+      questionRefs.current.set(questionId, element);
+    } else {
+      questionRefs.current.delete(questionId);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    if (timeLeft <= 0 || !attempt) return;
+    if (!pendingScrollQuestionId) return undefined;
+
+    const targetIsVisible = visibleQuestions.some(
+      (question) => question.questionId === pendingScrollQuestionId,
+    );
+    if (!targetIsVisible) return undefined;
+
+    const frame = window.requestAnimationFrame(() => {
+      const target = questionRefs.current.get(pendingScrollQuestionId);
+      target?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+        inline: "nearest",
+      });
+      setPendingScrollQuestionId(null);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [pendingScrollQuestionId, visibleQuestions]);
+
+  useEffect(() => {
+    if (visibleQuestions.length === 0) {
+      if (activeQuestionId !== null) setActiveQuestionId(null);
+      return;
+    }
+
+    const activeIsVisible = visibleQuestions.some(
+      (question) => question.questionId === activeQuestionId,
+    );
+    if (!activeIsVisible) {
+      setActiveQuestionId(visibleQuestions[0].questionId);
+    }
+  }, [activeQuestionId, visibleQuestions]);
+
+  useEffect(() => {
+    if (!attempt || submittedRef.current || !currentUser?.userId) return;
+    saveQuizDraft(quizId, currentUser.userId, {
+      answers,
+      currentPage,
+      flaggedQuestionIds: Array.from(flaggedQuestionIds),
+      updatedAt: new Date().toISOString(),
+    });
+  }, [answers, attempt, currentPage, currentUser?.userId, flaggedQuestionIds, quizId]);
+
+  useEffect(() => {
+    const hasWork = Object.keys(answers).length > 0 && !submittedRef.current;
+    if (!hasWork) return undefined;
+
+    const handleBeforeUnload = (event) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [answers]);
+
+  const doSubmit = useCallback(
+    async (currentAnswers) => {
+      if (!attempt || submittedRef.current) return;
+      submittedRef.current = true;
+      setSubmitting(true);
+      setError("");
+
+      try {
+        const answerList = Object.entries(currentAnswers).map(([questionId, optionId]) => ({
+          questionId,
+          optionId,
+        }));
+
+        await submitAttempt({
+          quizId,
+          attemptId: attempt.attemptId,
+          answers: answerList,
+        });
+        clearQuizDraft(quizId, currentUser?.userId);
+        navigate(`/app/quiz/result/${attempt.attemptId}`);
+      } catch (submitError) {
+        submittedRef.current = false;
+        setSubmitting(false);
+        setError(getErrorMessage(submitError, "Có lỗi xảy ra khi nộp bài. Đáp án của bạn vẫn được giữ lại."));
+      }
+    },
+    [attempt, currentUser?.userId, navigate, quizId],
+  );
+
+  useEffect(() => {
+    if (!hasTimeLimit || !attempt || submitting || timeLeft <= 0) return undefined;
 
     const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
+      setTimeLeft((previous) => Math.max(previous - 1, 0));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeLeft, attempt]);
+  }, [attempt, hasTimeLimit, submitting, timeLeft]);
 
   useEffect(() => {
-    if (timeLeft === 0 && attempt && !submittedRef.current) {
+    if (
+      hasTimeLimit &&
+      timerStartedRef.current &&
+      timeLeft === 0 &&
+      attempt &&
+      !submittedRef.current &&
+      !autoSubmittedRef.current
+    ) {
+      autoSubmittedRef.current = true;
       doSubmit(answers);
     }
-  }, [timeLeft]);
+  }, [answers, attempt, doSubmit, hasTimeLimit, timeLeft]);
 
   const handleAnswerChange = (questionId, optionId) => {
-    setAnswers((prev) => ({ ...prev, [questionId]: optionId }));
+    setActiveQuestionId(questionId);
+    setAnswers((current) => ({ ...current, [questionId]: optionId }));
   };
 
   const toggleFlag = (questionId) => {
-    setFlaggedQuestionIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(questionId)) {
-        next.delete(questionId);
-      } else {
-        next.add(questionId);
-      }
+    setFlaggedQuestionIds((current) => {
+      const next = new Set(current);
+      if (next.has(questionId)) next.delete(questionId);
+      else next.add(questionId);
       return next;
     });
   };
 
-  // Click số câu `x` trên navigation -> chuyển tới page chứa câu `x`.
   const goToQuestion = (index) => {
-    setCurrentPage(Math.floor(index / PAGE_SIZE));
+    const target = getQuestionNavigationTarget(questions, index, PAGE_SIZE);
+    if (!target.questionId) return;
+
+    setCurrentPage(target.page);
+    setActiveQuestionId(target.questionId);
+    setPendingScrollQuestionId(target.questionId);
   };
 
   const goToPage = (page) => {
-    setCurrentPage(Math.min(Math.max(page, 0), totalPages - 1));
+    const target = getPageNavigationTarget(questions, page, PAGE_SIZE);
+
+    setCurrentPage(target.page);
+    setActiveQuestionId(target.questionId);
+    setPendingScrollQuestionId(target.questionId);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (submitting) return;
+    setSubmitConfirmOpen(true);
+  };
 
-    const answered = Object.keys(answers).length;
-    const confirmed = window.confirm(
-      `Bạn đã trả lời ${answered}/${questions.length} câu. Xác nhận nộp bài?`,
-    );
-    if (!confirmed) return;
+  const closeSubmitConfirm = () => {
+    if (submitting) return;
+    setSubmitConfirmOpen(false);
+  };
 
+  const confirmSubmit = async () => {
+    if (submitting) return;
+    setSubmitConfirmOpen(false);
     await doSubmit(answers);
   };
 
@@ -174,180 +301,360 @@ export default function QuizTakingPage() {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const timeLimitLabel = hasTimeLimit ? `${quiz?.duration} phút` : "Không giới hạn thời gian";
+  const timerLabel = hasTimeLimit ? formatTime(timeLeft) : "Không giới hạn thời gian";
+
   if (loading) {
-    return <div className="quiz-loading">Đang tải đề thi...</div>;
+    return (
+      <div className="quiz-loading">
+        <Spinner size={32} />
+        <p>Đang tải đề thi...</p>
+      </div>
+    );
+  }
+
+  if (error && !quiz) {
+    return (
+      <div className="quiz-taking-page">
+        <ErrorState
+          title="Không thể bắt đầu bài kiểm tra"
+          description={error}
+          onRetry={() => navigate("/app/subjects")}
+          retryLabel="Quay lại danh sách môn học"
+        />
+      </div>
+    );
   }
 
   if (!quiz || !attempt) {
-    return <div className="quiz-error">Không tìm thấy đề thi</div>;
+    return (
+      <div className="quiz-taking-page">
+        <ErrorState
+          title="Không tìm thấy đề thi"
+          description="Đề thi này không tồn tại hoặc đã bị gỡ."
+          onRetry={() => navigate("/app/subjects")}
+          retryLabel="Quay lại danh sách môn học"
+        />
+      </div>
+    );
   }
+
+  const answeredCount = Object.keys(answers).length;
+  const answeredPercent = questions.length
+    ? Math.round((answeredCount / questions.length) * 100)
+    : 0;
 
   return (
     <div className="quiz-taking-page">
-      <div className="quiz-header">
-        <div>
+      <header className="quiz-header">
+        <div className="quiz-header__info">
           <h1>{quiz.name}</h1>
           <div className="quiz-meta">
-            <span>{quiz.totalQuestion} câu hỏi</span>
-            <span>•</span>
-            <span>{quiz.duration} phút</span>
+            <span>{quiz.totalQuestion || questions.length} câu hỏi</span>
+            <span className="quiz-meta__dot" />
+            <span>{timeLimitLabel}</span>
           </div>
         </div>
-        <div className={`quiz-timer ${timeLeft < 60 ? "time-warning" : ""}`}>
-          ⏱️ {formatTime(timeLeft)}
+        <div
+          className={`quiz-timer ${
+            hasTimeLimit && timeLeft < 60 ? "time-warning" : ""
+          } ${hasTimeLimit ? "" : "quiz-timer--unlimited"}`}
+        >
+          <Clock size={18} />
+          <span>{timerLabel}</span>
+        </div>
+      </header>
+
+      {error && (
+        <div className="quiz-inline-error">
+          <AlertCircle size={16} />
+          <span>{error}</span>
+        </div>
+      )}
+
+      <div className="quiz-progress">
+        <div className="quiz-progress__head">
+          <span>Tiến độ làm bài</span>
+          <strong>
+            {answeredCount}/{questions.length} câu
+          </strong>
+        </div>
+        <div className="quiz-progress__track">
+          <div
+            className="quiz-progress__fill"
+            style={{ width: `${answeredPercent}%` }}
+          />
         </div>
       </div>
 
-      <div className="quiz-progress">
-        Đã trả lời: {Object.keys(answers).length} / {questions.length}
-      </div>
+      <div className="quiz-layout">
+        <div className="quiz-main">
+          <div className="quiz-questions">
+            {visibleQuestions.map((question) => {
+              const questionIndex = questions.findIndex(
+                (item) => item.questionId === question.questionId
+              );
+              const flagged = flaggedQuestionIds.has(question.questionId);
+              const hasSkills =
+                Array.isArray(question.skills) && question.skills.length > 0;
 
-      {/* Thanh điều hướng nhanh theo số câu */}
-      <div className="quiz-nav">
-        {questions.map((question, index) => {
-          const answered = answers[question.questionId] != null;
-          const flagged = flaggedQuestionIds.has(question.questionId);
-          const isCurrentPage =
-            Math.floor(index / PAGE_SIZE) === currentPage;
-          const classes = [
-            "quiz-nav-item",
-            answered ? "answered" : "",
-            flagged ? "flagged" : "",
-            isCurrentPage ? "in-current-page" : "",
-          ]
-            .filter(Boolean)
-            .join(" ");
-          return (
-            <button
-              key={question.questionId}
-              type="button"
-              className={classes}
-              onClick={() => goToQuestion(index)}
-              title={`Câu ${index + 1}${flagged ? " (đã cắm cờ)" : ""}`}
-            >
-              {index + 1}
-              {flagged && <span className="quiz-nav-flag">🚩</span>}
-            </button>
-          );
-        })}
-      </div>
+              return (
+                <article
+                  key={question.questionId}
+                  ref={(element) =>
+                    setQuestionCardRef(question.questionId, element)
+                  }
+                  className={[
+                    "quiz-question-card",
+                    flagged ? "is-flagged" : "",
+                    activeQuestionId === question.questionId
+                      ? "is-active"
+                      : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  tabIndex={-1}
+                  onClick={() => setActiveQuestionId(question.questionId)}
+                  onFocusCapture={() =>
+                    setActiveQuestionId(question.questionId)
+                  }
+                >
+                  <div className="question-top">
+                    <div className="question-number">Câu {questionIndex + 1}</div>
+                    <div className="question-actions">
+                      <button
+                        type="button"
+                        className={`flag-btn ${flagged ? "flag-btn--active" : ""}`}
+                        onClick={() => toggleFlag(question.questionId)}
+                      >
+                        <Flag size={14} />
+                        {flagged ? "Bỏ đánh dấu" : "Đánh dấu"}
+                      </button>
+                      <button
+                        type="button"
+                        className="skill-btn"
+                        disabled={!hasSkills}
+                        onClick={() => setActiveSkillQuestion(question)}
+                      >
+                        {hasSkills
+                          ? `${question.skills.length} kỹ năng`
+                          : "Chưa gắn kỹ năng"}
+                      </button>
+                    </div>
+                  </div>
 
-      <div className="quiz-questions">
-        {visibleQuestions.map((question) => {
-          const questionIndex = questions.findIndex(
-            (q) => q.questionId === question.questionId,
-          );
-          const flagged = flaggedQuestionIds.has(question.questionId);
-          const hasSkills = Array.isArray(question.skills) && question.skills.length > 0;
-          return (
-            <div
-              key={question.questionId}
-              className={`quiz-question-card ${flagged ? "is-flagged" : ""}`}
+                  <p className="question-content">{question.content}</p>
+
+                  <div className="options-list">
+                    {(question.options || []).map((option, optIndex) => {
+                      const selected =
+                        answers[question.questionId] === option.optionId;
+                      return (
+                        <label
+                          key={option.optionId}
+                          className={`option-item ${selected ? "is-selected" : ""}`}
+                        >
+                          <input
+                            type="radio"
+                            name={question.questionId}
+                            checked={selected}
+                            onChange={() =>
+                              handleAnswerChange(
+                                question.questionId,
+                                option.optionId
+                              )
+                            }
+                            disabled={submitting}
+                          />
+                          <span className="option-marker">
+                            {String.fromCharCode(65 + optIndex)}
+                          </span>
+                          <span className="option-text">{option.content}</span>
+                        </label>
+                      );
+                    })}
+                    {(!question.options ||
+                      question.options.length === 0) && (
+                      <p className="quiz-empty-option">
+                        Câu hỏi này chưa có đáp án lựa chọn.
+                      </p>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+
+          <div className="quiz-pagination">
+            <Button
+              variant="ghost"
+              onClick={() => goToPage(currentPage - 1)}
+              disabled={currentPage === 0}
             >
-              <div className="question-top">
-                <div className="question-number">Câu {questionIndex + 1}</div>
-                <div className="question-tools">
-                  {hasSkills && (
-                    <button
-                      type="button"
-                      className="skill-btn"
-                      onClick={() => setActiveSkillQuestion(question)}
-                    >
-                      🧠 Skill
-                    </button>
-                  )}
+              Trước
+            </Button>
+            <span className="page-indicator">
+              Trang {currentPage + 1} / {totalPages}
+            </span>
+            <Button
+              variant="ghost"
+              onClick={() => goToPage(currentPage + 1)}
+              disabled={currentPage >= totalPages - 1}
+            >
+              Sau
+            </Button>
+          </div>
+        </div>
+
+        <aside className="quiz-sidebar">
+          <div className="quiz-sidebar__card">
+            <p className="quiz-sidebar__title">Danh sách câu hỏi</p>
+            <div className="quiz-nav">
+              {questions.map((question, index) => {
+                const answered = answers[question.questionId] != null;
+                const flagged = flaggedQuestionIds.has(question.questionId);
+                const isActive = activeQuestionId === question.questionId;
+                const classes = [
+                  "quiz-nav-item",
+                  answered ? "answered" : "",
+                  flagged ? "flagged" : "",
+                  isActive ? "is-active" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ");
+
+                return (
                   <button
+                    key={question.questionId}
                     type="button"
-                    className={`flag-btn ${flagged ? "active" : ""}`}
-                    onClick={() => toggleFlag(question.questionId)}
+                    className={classes}
+                    onClick={() => goToQuestion(index)}
+                    aria-current={isActive ? "true" : undefined}
+                    aria-label={`Đi tới câu ${index + 1}`}
                   >
-                    {flagged ? "🚩 Đã cắm cờ" : "⚐ Cắm cờ"}
+                    {index + 1}
+                    {flagged && <span className="quiz-nav-flag" />}
                   </button>
-                </div>
-              </div>
-              <div className="question-content">{question.content}</div>
-              <div className="question-options">
-                {question.options?.map((option) => (
-                  <label key={option.optionId} className="option-label">
-                    <input
-                      type="radio"
-                      name={`question-${question.questionId}`}
-                      value={option.optionId}
-                      checked={answers[question.questionId] === option.optionId}
-                      onChange={() => handleAnswerChange(question.questionId, option.optionId)}
-                      disabled={submitting}
-                    />
-                    <span className="option-text">{option.content}</span>
-                  </label>
-                ))}
-              </div>
+                );
+              })}
             </div>
-          );
-        })}
+
+            <div className="quiz-nav-legend">
+              <span>
+                <i className="legend-dot legend-dot--answered" /> Đã trả lời
+              </span>
+              <span>
+                <i className="legend-dot legend-dot--flagged" /> Đánh dấu
+              </span>
+            </div>
+
+            <Button
+              variant="primary"
+              fullWidth
+              loading={submitting}
+              onClick={handleSubmit}
+            >
+              {submitting ? "Đang nộp bài..." : "Nộp bài"}
+            </Button>
+          </div>
+        </aside>
       </div>
 
-      {/* Phân trang cụm 5 câu */}
-      <div className="quiz-pagination">
-        <button
-          type="button"
-          className="page-btn"
-          onClick={() => goToPage(currentPage - 1)}
-          disabled={currentPage === 0}
+      {submitConfirmOpen && (
+        <div
+          className="submit-confirm-overlay"
+          onClick={closeSubmitConfirm}
         >
-          ← Trước
-        </button>
-        <span className="page-indicator">
-          Trang {currentPage + 1} / {totalPages}
-        </span>
-        <button
-          type="button"
-          className="page-btn"
-          onClick={() => goToPage(currentPage + 1)}
-          disabled={currentPage >= totalPages - 1}
-        >
-          Sau →
-        </button>
-      </div>
+          <section
+            className="submit-confirm-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="submit-confirm-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="submit-confirm-header">
+              <h3 id="submit-confirm-title">Xác nhận nộp bài</h3>
+              <button
+                type="button"
+                className="submit-confirm-close"
+                onClick={closeSubmitConfirm}
+                aria-label="Đóng"
+              >
+                <X size={18} />
+              </button>
+            </div>
 
-      <div className="quiz-actions">
-        <button
-          className="submit-btn"
-          onClick={handleSubmit}
-          disabled={submitting}
-        >
-          {submitting ? "Đang nộp bài..." : "Nộp bài"}
-        </button>
-      </div>
+            <div className="submit-confirm-body">
+              <p>
+                Bạn đã trả lời <strong>{answeredCount}/{questions.length}</strong> câu.
+                Sau khi nộp, hệ thống sẽ chấm bài và chuyển sang trang kết quả.
+              </p>
+              {answeredCount < questions.length && (
+                <p className="submit-confirm-warning">
+                  Vẫn còn {questions.length - answeredCount} câu chưa trả lời.
+                </p>
+              )}
+            </div>
 
-      {/* Popup skill của câu hỏi */}
+            <div className="submit-confirm-actions">
+              <Button
+                variant="ghost"
+                onClick={closeSubmitConfirm}
+                disabled={submitting}
+              >
+                Hủy
+              </Button>
+              <Button
+                variant="primary"
+                onClick={confirmSubmit}
+                loading={submitting}
+              >
+                Nộp bài
+              </Button>
+            </div>
+          </section>
+        </div>
+      )}
+
       {activeSkillQuestion && (
         <div
           className="skill-modal-overlay"
           onClick={() => setActiveSkillQuestion(null)}
         >
-          <div className="skill-modal" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="skill-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="skill-modal-header">
-              <h3>Kỹ năng liên quan</h3>
+              <h3>Kỹ năng của câu hỏi</h3>
               <button
                 type="button"
                 className="skill-modal-close"
                 onClick={() => setActiveSkillQuestion(null)}
+                aria-label="Đóng"
               >
-                ✕
+                <X size={18} />
               </button>
             </div>
             <ul className="skill-list">
               {(activeSkillQuestion.skills || []).map((skill) => (
                 <li key={skill.skillId} className="skill-item">
-                  <span className="skill-name">
-                    {skill.name || skill.skillId}
-                    {skill.primary && <span className="skill-primary-badge">Chính</span>}
+                  <span className="skill-item__name">
+                    {skill.name || "Kỹ năng chưa đặt tên"}
                   </span>
-                  <span className="skill-weight">Trọng số: {skill.weight}</span>
+                  {skill.primary && (
+                    <span className="skill-primary-badge">Chính</span>
+                  )}
+                  <span className="skill-weight">
+                    Trọng số: {skill.weight ?? "—"}
+                  </span>
                 </li>
               ))}
-              {(!activeSkillQuestion.skills || activeSkillQuestion.skills.length === 0) && (
-                <li className="skill-item skill-empty">Câu hỏi này chưa gán kỹ năng.</li>
+              {(!activeSkillQuestion.skills ||
+                activeSkillQuestion.skills.length === 0) && (
+                <li className="skill-item skill-empty">
+                  Câu hỏi này chưa gắn kỹ năng.
+                </li>
               )}
             </ul>
           </div>

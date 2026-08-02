@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Eye, EyeOff, LockKeyhole, User } from "lucide-react";
+import { getErrorMessage } from "../../../../services/apiClient";
 import { login } from "../../../../services/authService";
+import { Button, Field, Input } from "../../../../components/ui";
 import "./LoginForm.css";
 
 export default function LoginForm() {
@@ -8,7 +11,9 @@ export default function LoginForm() {
   const [formData, setFormData] = useState({
     username: "",
     password: "",
+    remember: false,
   });
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -30,60 +35,79 @@ export default function LoginForm() {
       localStorage.setItem("user", JSON.stringify(auth));
       navigate(auth.role === "ADMINISTRATOR" ? "/admin" : "/app");
     } catch (apiError) {
-      setError(apiError?.response?.data?.message || "Đăng nhập thất bại.");
+      setError(getErrorMessage(apiError, "Đăng nhập thất bại."));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form className="login-form-container" onSubmit={handleLogin}>
-      <h1>Đăng nhập</h1>
-      <p className="text-gray-500">Nhập thông tin đăng nhập để tiếp tục</p>
-      {error && <p className="text-red-500">{error}</p>}
+    <form className="auth-form" onSubmit={handleLogin}>
+      <div className="auth-form__head">
+        <h1>Đăng nhập</h1>
+        <p>Nhập thông tin đăng nhập để tiếp tục</p>
+      </div>
 
-      <div className="input-container">
-        <label htmlFor="username">Tên đăng nhập</label>
-        <input
+      {error && <div className="auth-form__error">{error}</div>}
+
+      <Field label="Tên đăng nhập" htmlFor="username">
+        <Input
           id="username"
           name="username"
           type="text"
           placeholder="Nhập tên đăng nhập"
           value={formData.username}
           onChange={handleChange}
+          iconLeft={<User size={18} />}
           required
         />
-      </div>
+      </Field>
 
-      <div className="input-container">
-        <label htmlFor="password">Mật khẩu</label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          placeholder="Nhập mật khẩu"
-          value={formData.password}
-          onChange={handleChange}
-          required
-        />
-      </div>
+      <Field label="Mật khẩu" htmlFor="password">
+        <div className="auth-form__pwd">
+          <Input
+            id="password"
+            name="password"
+            type={showPassword ? "text" : "password"}
+            placeholder="Nhập mật khẩu"
+            value={formData.password}
+            onChange={handleChange}
+            iconLeft={<LockKeyhole size={18} />}
+            required
+          />
+          <button
+            type="button"
+            className="auth-form__pwd-toggle"
+            onClick={() => setShowPassword((v) => !v)}
+            aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
+      </Field>
 
-      
-      <div className="forgot-password-section">
-        <p>
+      <div className="auth-form__options">
+        <label className="auth-form__remember">
+          <input
+            type="checkbox"
+            name="remember"
+            checked={formData.remember}
+            onChange={handleChange}
+          />
+          Ghi nhớ đăng nhập
+        </label>
+        <span className="auth-form__hint">
           <Link to="/forgot-password">Quên mật khẩu?</Link>
-        </p>
+        </span>
       </div>
 
-      <button type="submit" className="login-button" disabled={loading}>
-        {loading ? "Đang xử lý..." : "Đăng nhập"}
-      </button>
+      <Button type="submit" variant="primary" fullWidth loading={loading}>
+        Đăng nhập
+      </Button>
 
-      <div className="register-section">
-        <p>
-          Chưa có tài khoản? <Link to="/register">Đăng ký</Link>
-        </p>
-      </div>
+      <p className="auth-form__switch">
+        Chưa có tài khoản? <Link to="/register">Đăng ký</Link>
+      </p>
     </form>
   );
 }

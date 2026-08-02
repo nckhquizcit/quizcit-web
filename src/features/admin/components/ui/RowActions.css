@@ -1,0 +1,36 @@
+.row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.row-actions__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+.row-actions__btn:hover {
+  background: var(--color-surface-3);
+  color: var(--color-text);
+}
+.row-actions__btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.row-actions__btn:disabled:hover {
+  background: transparent;
+  color: var(--color-text-muted);
+}
+.row-actions__btn.is-danger:hover {
+  background: var(--color-error-soft);
+  color: var(--color-error);
+}

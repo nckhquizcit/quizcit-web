@@ -1,7 +1,10 @@
 import { useState } from "react";
-import "./RegisterForm.css";
 import { Link, useNavigate } from "react-router-dom";
+import { AtSign, LockKeyhole, User } from "lucide-react";
+import { getErrorMessage } from "../../../../services/apiClient";
 import { register } from "../../../../services/authService";
+import { Button, Field, Input } from "../../../../components/ui";
+import "./RegisterForm.css";
 
 export default function RegisterForm() {
   const navigate = useNavigate();
@@ -16,10 +19,7 @@ export default function RegisterForm() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleRegister = async (e) => {
@@ -31,89 +31,90 @@ export default function RegisterForm() {
     try {
       setLoading(true);
       setError("");
-      const auth = await register({
+      const res = await register({
         username: formData.username,
         password: formData.password,
         email: formData.email,
         displayName: formData.username,
       });
-      localStorage.setItem("accessToken", auth.accessToken);
-      localStorage.setItem("user", JSON.stringify(auth));
-      navigate("/app");
+      navigate("/verify", {
+        state: { email: res.email, verificationToken: res.verificationToken },
+      });
     } catch (apiError) {
-      setError(apiError?.response?.data?.message || "Đăng ký thất bại.");
+      setError(getErrorMessage(apiError, "Đăng ký thất bại."));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form className="register-form-container" onSubmit={handleRegister}>
-      <h1>Đăng ký</h1>
-      <p className="text-gray-500">Tạo tài khoản mới để bắt đầu ôn tập</p>
-      {error && <p className="text-red-500">{error}</p>}
+    <form className="auth-form" onSubmit={handleRegister}>
+      <div className="auth-form__head">
+        <h1>Đăng ký</h1>
+        <p>Tạo tài khoản mới để bắt đầu ôn tập</p>
+      </div>
 
-      <div className="input-container">
-        <label htmlFor="username">Tên đăng nhập</label>
-        <input
+      {error && <div className="auth-form__error">{error}</div>}
+
+      <Field label="Tên đăng nhập" htmlFor="username">
+        <Input
           id="username"
           name="username"
           type="text"
           placeholder="Nhập tên đăng nhập"
           value={formData.username}
           onChange={handleChange}
+          iconLeft={<User size={18} />}
           required
         />
-      </div>
+      </Field>
 
-      <div className="input-container">
-        <label htmlFor="email">Email</label>
-        <input
+      <Field label="Email" htmlFor="email">
+        <Input
           id="email"
           name="email"
           type="email"
           placeholder="example@gmail.com"
           value={formData.email}
           onChange={handleChange}
+          iconLeft={<AtSign size={18} />}
           required
         />
-      </div>
+      </Field>
 
-      <div className="input-container">
-        <label htmlFor="password">Mật khẩu</label>
-        <input
+      <Field label="Mật khẩu" htmlFor="password">
+        <Input
           id="password"
           name="password"
           type="password"
           placeholder="Nhập mật khẩu"
           value={formData.password}
           onChange={handleChange}
+          iconLeft={<LockKeyhole size={18} />}
           required
         />
-      </div>
+      </Field>
 
-      <div className="input-container">
-        <label htmlFor="confirmPassword">Nhập lại mật khẩu</label>
-        <input
+      <Field label="Nhập lại mật khẩu" htmlFor="confirmPassword">
+        <Input
           id="confirmPassword"
           name="confirmPassword"
           type="password"
           placeholder="Xác nhận lại mật khẩu"
           value={formData.confirmPassword}
           onChange={handleChange}
+          iconLeft={<LockKeyhole size={18} />}
           required
         />
-      </div>
+      </Field>
 
-      <button type="submit" className="register-button" disabled={loading}>
-        {loading ? "Đang xử lý..." : "Đăng ký"}
-      </button>
+      <Button type="submit" variant="primary" fullWidth loading={loading}>
+        Đăng ký
+      </Button>
 
-      <div className="login-section">
-        <p>
-          Đã có tài khoản? <Link to="/login">Đăng nhập ngay</Link>
-        </p>
-      </div>
+      <p className="auth-form__switch">
+        Đã có tài khoản? <Link to="/login">Đăng nhập ngay</Link>
+      </p>
     </form>
   );
 }

@@ -1,81 +1,78 @@
-import { ArrowRight, BookOpen, Clock3, Layers3, Sparkles } from 'lucide-react';
+import { ArrowRight, BookOpen, Layers3, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import ProgressBar from '../../home/components/ProgressBar';
-import './SubjectCard.css';
+import { Badge, Button, Card } from "../../../components/ui";
+import "./SubjectCard.css";
 
 export default function SubjectCard({ subject }) {
   const navigate = useNavigate();
+  const chapterPreview = subject.chapterPreview || [];
+  const targetId = subject.subjectId || subject.subject_id;
+
   return (
-    <article className={`subject-overview-card accent-${subject.accent}`}>
-      <div className="subject-overview-card__header">
-        <div>
-          <p className="subject-overview-card__code">{subject.course_code}</p>
+    <Card className="subject-card" padding="lg">
+      <div className="subject-card__header">
+        <div className="subject-card__heading">
+          {subject.course_code && (
+            <Badge variant="primary" size="sm">
+              {subject.course_code}
+            </Badge>
+          )}
           <h3>{subject.name}</h3>
         </div>
-        <span className="subject-overview-card__badge">{subject.status}</span>
-      </div>
-
-      <p className="subject-overview-card__description">{subject.description}</p>
-
-      <div className="subject-overview-card__meta-grid">
-        <div className="subject-meta-pill">
-          <Layers3 size={16} />
-          <span>{subject.chapterCount} chương</span>
-        </div>
-        <div className="subject-meta-pill">
-          <Clock3 size={16} />
-          <span>{subject.weeklyGoal}</span>
-        </div>
-        <div className="subject-meta-pill">
-          <BookOpen size={16} />
-          <span>{subject.category}</span>
-        </div>
-      </div>
-
-      <div className="subject-overview-card__progress-row">
-        <span>Tiến độ môn học</span>
-        <strong>{subject.progress}%</strong>
-      </div>
-      <ProgressBar value={subject.progress} />
-
-      <div className="subject-overview-card__chapter-progress">
-        <span>
-          Hoàn thành {subject.completedChapters}/{subject.chapterCount} chương
-        </span>
-        <span>
-          {subject.nextChapter ? `Tiếp theo: ${subject.nextChapter.name}` : 'Đã hoàn tất'}
+        <span className="subject-card__icon">
+          <BookOpen size={22} />
         </span>
       </div>
 
-      <div className="subject-overview-card__chapters">
-        {subject.chapterPreview.map((chapter) => (
-          <div className="subject-overview-card__chapter-item" key={chapter.chapter_id}>
-            <BookOpen size={14} />
-            <span>{chapter.name}</span>
-          </div>
-        ))}
+      <p className="subject-card__description">
+        {subject.description || "Chưa có mô tả cho môn học này."}
+      </p>
+
+      <div className="subject-card__meta">
+        <span className="subject-card__meta-pill">
+          <Layers3 size={15} />
+          {subject.chapterCount} chương
+        </span>
       </div>
 
-      <div className="subject-focus-card">
-        <div className="subject-focus-card__icon">
-          <Sparkles size={16} />
+      {chapterPreview.length > 0 && (
+        <div className="subject-card__chapters">
+          <p className="subject-card__chapters-title">Nội dung chính</p>
+          {chapterPreview.map((chapter) => (
+            <div className="subject-card__chapter-item" key={chapter.chapter_id}>
+              <BookOpen size={14} />
+              <span>{chapter.name}</span>
+            </div>
+          ))}
+          {subject.chapterCount > chapterPreview.length && (
+            <p className="subject-card__chapters-more">
+              + {subject.chapterCount - chapterPreview.length} chương khác
+            </p>
+          )}
         </div>
-        <p>{subject.focus}</p>
-      </div>
+      )}
 
-      <div className="subject-overview-card__actions">
-        <button
-          type="button"
-          className="subject-overview-card__primary-button"
-          onClick={() => navigate(`/app/subjects/${subject.subjectId || subject.subject_id}`)}
+      <div className="subject-card__actions">
+        <Button
+          variant="primary"
+          fullWidth
+          iconRight={<ArrowRight size={16} />}
+          onClick={() => navigate(`/app/subjects/${targetId}`)}
+          className="subject-card__cta"
         >
           Vào học
-          <ArrowRight size={16} />
-        </button>
-        <button type="button" className="subject-overview-card__secondary-button">
-          Xem lộ trình
-        </button>
+        </Button>
+        <Button
+          variant="secondary"
+          fullWidth
+          disabled
+          iconLeft={<Plus size={16} />}
+          className="subject-card__enroll"
+          title="Tính năng đăng ký môn học sắp ra mắt"
+        >
+          Đăng ký
+        </Button>
       </div>
-    </article>
+    </Card>
   );
 }

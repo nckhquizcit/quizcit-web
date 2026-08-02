@@ -1,6 +1,7 @@
 @layer theme, base, components, utilities;
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);
+@import "./tokens.css";
 
 html,
 body {
@@ -11,7 +12,7 @@ body {
 body {
   min-height: 100vh;
   width: 100%;
-  background: #ffffff;
+  color: var(--color-text);
   background: linear-gradient(
     131deg,
     rgba(255, 255, 255, 1) 0%,
@@ -33,14 +34,6 @@ figure {
   padding: 0;
 }
 
-:root {
-  --text-base: 1rem;
-  --text-h4: calc(var(--text-base) * 1.618);
-  --text-h3: calc(var(--text-h4) * 1.618);
-  --text-h2: calc(var(--text-h3) * 1.618);
-  --text-h1: calc(var(--text-h2) * 1.618);
-}
-
 *,
 ::after,
 ::before {
@@ -51,14 +44,11 @@ input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {
   -webkit-box-shadow: 0 0 0px 1000px #e9fff6 inset;
-
-  /* Giúp hiệu ứng chuyển mượt mà hơn nếu cần */
   transition: background-color 5000s ease-in-out 0s;
 }
 
 button {
-  transition: all 0.3s ease;
-}
-button:hover {
-  scale: 1.025;
+  font-family: inherit;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease,
+    box-shadow 0.2s ease, transform 0.12s ease;
 }

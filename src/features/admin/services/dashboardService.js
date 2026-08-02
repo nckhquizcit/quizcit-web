@@ -10,22 +10,33 @@ function countItems(items) {
   return Array.isArray(items) ? items.length : 0;
 }
 
+function fulfilledValues(results) {
+  return results
+    .filter((result) => result.status === "fulfilled")
+    .map((result) => result.value);
+}
+
 export const adminDashboardService = {
   async getStats() {
-    const [users, subjects] = await Promise.all([getUsers(), getSubjects()]);
-    const safeSubjects = Array.isArray(subjects) ? subjects : [];
+    const [usersResult, subjectsResult] = await Promise.allSettled([getUsers(), getSubjects()]);
+    const users = usersResult.status === "fulfilled" ? usersResult.value : [];
+    const safeSubjects = subjectsResult.status === "fulfilled" && Array.isArray(subjectsResult.value)
+      ? subjectsResult.value
+      : [];
 
-    const chaptersBySubject = await Promise.all(
+    const chapterResults = await Promise.allSettled(
       safeSubjects.map((subject) => getChaptersBySubject(subject.subjectId)),
     );
-    const chapters = chaptersBySubject.flatMap((items) =>
+    const chapters = fulfilledValues(chapterResults).flatMap((items) =>
       Array.isArray(items) ? items : [],
     );
 
-    const [questionsByChapter, quizzesBySubject] = await Promise.all([
-      Promise.all(chapters.map((chapter) => getQuestionsByChapter(chapter.chapterId))),
-      Promise.all(safeSubjects.map((subject) => getQuizzesBySubject(subject.subjectId))),
+    const [questionResults, quizResults] = await Promise.all([
+      Promise.allSettled(chapters.map((chapter) => getQuestionsByChapter(chapter.chapterId))),
+      Promise.allSettled(safeSubjects.map((subject) => getQuizzesBySubject(subject.subjectId))),
     ]);
+    const questionsByChapter = fulfilledValues(questionResults);
+    const quizzesBySubject = fulfilledValues(quizResults);
 
     return {
       totalUsers: countItems(users),

@@ -1,37 +1,19 @@
-import { useEffect, useState } from "react";
-
-import Modal from "../ui/Modal";
+import { useState } from "react";
 import FormModalLayout from "../ui/FormModalLayout";
+import Modal from "../ui/Modal";
 
 const INITIAL_FORM = {
   name: "",
   description: "",
 };
 
-export default function SkillFormModal({
-  open,
-  mode = "create",
-  initialData,
-  onClose,
-  onSubmit,
-  isSubmitting = false,
-}) {
-  const [formData, setFormData] = useState(INITIAL_FORM);
+function SkillFormContent({ mode, initialData, onClose, onSubmit, isSubmitting }) {
+  const [formData, setFormData] = useState({
+    name: initialData?.name || INITIAL_FORM.name,
+    description: initialData?.description || INITIAL_FORM.description,
+  });
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (!open) {
-      setFormData(INITIAL_FORM);
-      setError("");
-      return;
-    }
-
-    setFormData({
-      name: initialData?.name || "",
-      description: initialData?.description || "",
-    });
-    setError("");
-  }, [initialData, open]);
+  const isEdit = mode === "edit";
 
   const handleChange = (field) => (event) => {
     setFormData((current) => ({
@@ -42,7 +24,6 @@ export default function SkillFormModal({
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-
     if (!formData.name.trim()) {
       setError("Tên kỹ năng không được để trống.");
       return;
@@ -55,54 +36,72 @@ export default function SkillFormModal({
     });
   };
 
-  const isEdit = mode === "edit";
+  return (
+    <form onSubmit={handleSubmit}>
+      <FormModalLayout
+        title={isEdit ? "Cập nhật kỹ năng" : "Thêm kỹ năng"}
+        subtitle={
+          isEdit
+            ? "Chỉnh sửa tên và mô tả kỹ năng."
+            : "Tạo kỹ năng mới để gắn vào câu hỏi và tiến độ học tập."
+        }
+        infoBox={error ? <span style={{ color: "#dc2626" }}>{error}</span> : null}
+        actions={
+          <>
+            <button type="button" className="cancel-btn" onClick={onClose} disabled={isSubmitting}>
+              Hủy
+            </button>
+            <button type="submit" className="add-btn" disabled={isSubmitting}>
+              {isSubmitting ? "Đang lưu..." : isEdit ? "Lưu thay đổi" : "Tạo kỹ năng"}
+            </button>
+          </>
+        }
+      >
+        <label className="quiz-field">
+          <span>Tên kỹ năng</span>
+          <input
+            value={formData.name}
+            onChange={handleChange("name")}
+            maxLength={200}
+            placeholder="Ví dụ: Giải phương trình bậc hai"
+          />
+        </label>
+
+        <label className="quiz-field">
+          <span>Mô tả</span>
+          <textarea
+            value={formData.description}
+            onChange={handleChange("description")}
+            maxLength={2000}
+            rows={5}
+            placeholder="Mô tả ngan ve pham vi va muc tieu cua kỹ năng"
+          />
+        </label>
+      </FormModalLayout>
+    </form>
+  );
+}
+
+export default function SkillFormModal({
+  open,
+  mode = "create",
+  initialData,
+  onClose,
+  onSubmit,
+  isSubmitting = false,
+}) {
+  const formKey = `${mode}-${initialData?.skillId || initialData?.id || "new"}-${open ? "open" : "closed"}`;
 
   return (
     <Modal open={open} onClose={onClose}>
-      <form onSubmit={handleSubmit}>
-        <FormModalLayout
-          title={isEdit ? "Cập nhật kỹ năng" : "Thêm kỹ năng"}
-          subtitle={
-            isEdit
-              ? "Chỉnh sửa tên và mô tả kỹ năng để đồng bộ với hệ thống tiến độ."
-              : "Tạo kỹ năng mới để gán vào chương học và câu hỏi."
-          }
-          infoBox={
-            error ? <span style={{ color: "#dc2626" }}>{error}</span> : null
-          }
-          actions={(
-            <>
-              <button type="button" className="cancel-btn" onClick={onClose} disabled={isSubmitting}>
-                Hủy
-              </button>
-              <button type="submit" className="add-btn" disabled={isSubmitting}>
-                {isSubmitting ? "Đang lưu..." : isEdit ? "Lưu thay đổi" : "Tạo kỹ năng"}
-              </button>
-            </>
-          )}
-        >
-          <label className="quiz-field">
-            <span>Tên kỹ năng</span>
-            <input
-              value={formData.name}
-              onChange={handleChange("name")}
-              maxLength={200}
-              placeholder="Ví dụ: Giải phương trình bậc hai"
-            />
-          </label>
-
-          <label className="quiz-field">
-            <span>Mô tả</span>
-            <textarea
-              value={formData.description}
-              onChange={handleChange("description")}
-              maxLength={2000}
-              rows={5}
-              placeholder="Mô tả ngắn về phạm vi và mục tiêu của kỹ năng"
-            />
-          </label>
-        </FormModalLayout>
-      </form>
+      <SkillFormContent
+        key={formKey}
+        mode={mode}
+        initialData={initialData}
+        onClose={onClose}
+        onSubmit={onSubmit}
+        isSubmitting={isSubmitting}
+      />
     </Modal>
   );
 }

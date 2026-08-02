@@ -1,250 +1,146 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { Suspense, lazy } from "react";
+import { Suspense, lazy } from "react";
 import { createBrowserRouter, Navigate } from "react-router-dom";
-
-// Layouts
 import MainLayout from "../layouts/MainLayout.jsx";
-import AdminLayout from "../features/admin/AdminLayout.jsx";
 import AuthLayout from "../layouts/AuthLayout.jsx";
-
-// Guards & Providers
+import AdminLayout from "../features/admin/AdminLayout.jsx";
 import ProtectedRoute from "../features/admin/components/guard/ProtectedRoute.jsx";
 import { ForgotPasswordProvider } from "../stores/contexts/ForgotPasswordContext.jsx";
 
-
-const HomePage = lazy(
-  () => import("../features/home/pages/HomePage/HomePage.jsx"),
-);
-const SubjectsPage = lazy(
-  () => import("../features/subjects/pages/SubjectsPage/SubjectsPage.jsx"),
-);
+const HomePage = lazy(() => import("../features/home/pages/HomePage/HomePage.jsx"));
+const SubjectsPage = lazy(() => import("../features/subjects/pages/SubjectsPage/SubjectsPage.jsx"));
 const SubjectDetailPage = lazy(
   () => import("../features/subjects/pages/SubjectDetailPage/SubjectDetailPage.jsx"),
 );
-// const HistoryPage = lazy(
-//   () => import("../features/history/pages/HistoryPage/HistoryPage.jsx"),
-// );
-// const ProfilePage = lazy(
-//   () => import("../features/profile/pages/ProfilePage/ProfilePage.jsx"),
-// );
+const ProfilePage = lazy(() => import("../features/profile/pages/ProfilePage/ProfilePage.jsx"));
+const HistoryPage = lazy(() => import("../features/history/pages/HistoryPage/HistoryPage.jsx"));
+const ProgressPage = lazy(() => import("../features/progress/pages/ProgressPage/ProgressPage.jsx"));
+const QuizTakingPage = lazy(() => import("../features/quiz/pages/QuizTakingPage/QuizTakingPage.jsx"));
+const QuizResultPage = lazy(() => import("../features/quiz/pages/QuizResultPage/QuizResultPage.jsx"));
+const AdaptiveQuizPage = lazy(() => import("../features/quiz/pages/AdaptiveQuizPage/AdaptiveQuizPage.jsx"));
 
-// Lazy Loading các Page (Tăng performance)
-const AdminDashboard = lazy(
-  () => import("../features/admin/pages/AdminDashboard"),
-);
-const AdminSubjects = lazy(
-  () => import("../features/admin/pages/AdminSubjects.jsx"),
-);
-const AdminChapters = lazy(
-  () => import("../features/admin/pages/AdminChapter.jsx"),
-);
-const AdminQuestions = lazy(
-  () => import("../features/admin/pages/AdminQuestion.jsx"),
-);
-const AdminQuizzes = lazy(
-  () => import("../features/admin/pages/AdminQuizzes.jsx"),
-);
-const AdminSkills = lazy(
-  () => import("../features/admin/pages/AdminSkills.jsx"),
-);
+const AdminDashboard = lazy(() => import("../features/admin/pages/AdminDashboard.jsx"));
+const AdminSubjects = lazy(() => import("../features/admin/pages/AdminSubjects.jsx"));
+const AdminChapters = lazy(() => import("../features/admin/pages/AdminChapter.jsx"));
+const AdminQuestions = lazy(() => import("../features/admin/pages/AdminQuestion.jsx"));
+const AdminQuestionCreate = lazy(() => import("../features/admin/pages/AdminQuestionCreate.jsx"));
+const AdminQuestionImport = lazy(() => import("../features/admin/pages/AdminQuestionImport.jsx"));
+const AdminQuizzes = lazy(() => import("../features/admin/pages/AdminQuizzes.jsx"));
+const AdminQuizCreate = lazy(() => import("../features/admin/pages/AdminQuizCreate.jsx"));
+const AdminSubjectEdit = lazy(() => import("../features/admin/pages/AdminSubjectEdit.jsx"));
+const AdminChapterEdit = lazy(() => import("../features/admin/pages/AdminChapterEdit.jsx"));
+const AdminQuizEdit = lazy(() => import("../features/admin/pages/AdminQuizEdit.jsx"));
+const AdminQuizQuestions = lazy(() => import("../features/admin/pages/AdminQuizQuestions.jsx"));
+const AdminSkills = lazy(() => import("../features/admin/pages/AdminSkills.jsx"));
 const AdminUsers = lazy(() => import("../features/admin/pages/AdminUsers.jsx"));
-const AdminProfile = lazy(
-  () => import("../features/admin/pages/AdminProfile.jsx"),
-);
+const AdminProfile = lazy(() => import("../features/admin/pages/AdminProfile.jsx"));
 
-const LoginPage = lazy(
-  () => import("../features/auth/pages/LoginPage/LoginPage.jsx"),
-);
-const RegisterPage = lazy(
-  () => import("../features/auth/pages/RegisterPage/RegisterPage"),
-);
-const VerifyPage = lazy(
-  () => import("../features/auth/pages/VerifyPage/VerifyPage.jsx"),
-);
+const LoginPage = lazy(() => import("../features/auth/pages/LoginPage/LoginPage.jsx"));
+const RegisterPage = lazy(() => import("../features/auth/pages/RegisterPage/RegisterPage.jsx"));
+const VerifyPage = lazy(() => import("../features/auth/pages/VerifyPage/VerifyPage.jsx"));
 const ForgotPasswordPage = lazy(
-  () =>
-    import("../features/auth/pages/ForgotPasswordPage/ForgotPasswordPage.jsx"),
-);
-const ProfilePage = lazy(
-  () => import("../features/profile/pages/ProfilePage/ProfilePage.jsx"),
-);
-const HistoryPage = lazy(
-  () => import("../features/history/pages/HistoryPage/HistoryPage.jsx"),
+  () => import("../features/auth/pages/ForgotPasswordPage/ForgotPasswordPage.jsx"),
 );
 
-// Quiz pages
-const QuizTakingPage = lazy(
-  () => import("../features/quiz/pages/QuizTakingPage/QuizTakingPage.jsx"),
-);
-const QuizResultPage = lazy(
-  () => import("../features/quiz/pages/QuizResultPage/QuizResultPage.jsx"),
-);
+function PageLoader() {
+  return <div className="page-loader">Đang tải...</div>;
+}
 
-// Loading Component
-const PageLoader = () => (
-  <div
-    className="page-loader"
-    style={{ padding: "50px", textAlign: "center", fontWeight: "bold" }}
-  >
-    Đang tải hệ thống...
-  </div>
-);
+function AccessDeniedPage() {
+  return (
+    <div className="page-loader">
+      <h1>Không có quyền truy cập</h1>
+      <p>Bạn không có quyền thực hiện thao tác này.</p>
+    </div>
+  );
+}
 
-const withSuspense = (element) => (
-  <Suspense fallback={<PageLoader />}>{element}</Suspense>
-);
-
+const withSuspense = (element) => <Suspense fallback={<PageLoader />}>{element}</Suspense>;
 
 export const router = createBrowserRouter([
-  // 1. Public Routes (Dành cho khách)
   {
     path: "/",
     element: <Navigate to="/login" replace />,
   },
   {
     path: "/app",
-    element: <MainLayout />,
+    element: (
+      <ProtectedRoute>
+        <MainLayout />
+      </ProtectedRoute>
+    ),
     children: [
-      {
-        index: true,
-        element: withSuspense(<HomePage />),
-      },
-      {
-        path: "subjects",
-        element: withSuspense(<SubjectsPage />),
-      },
-      {
-        path: "subjects/:subjectId",
-        element: withSuspense(<SubjectDetailPage />),
-      },
-      {
-        path: "quiz/:quizId",
-        element: withSuspense(<QuizTakingPage />),
-      },
-      {
-        path: "quiz/result/:attemptId",
-        element: withSuspense(<QuizResultPage />),
-      },
-      {
-        path: "profile",
-        element: (
-          <Suspense fallback={<PageLoader></PageLoader>}>
-            <ProfilePage></ProfilePage>
-          </Suspense>
-        ),
-      },
-      {
-        path: "history",
-        element: (
-          <Suspense fallback={<PageLoader></PageLoader>}>
-            <HistoryPage></HistoryPage>
-          </Suspense>
-        ),
-      },
+      { index: true, element: withSuspense(<HomePage />) },
+      { path: "subjects", element: withSuspense(<SubjectsPage />) },
+      { path: "subjects/:subjectId", element: withSuspense(<SubjectDetailPage />) },
+      { path: "quiz/:quizId", element: withSuspense(<QuizTakingPage />) },
+      { path: "adaptive/:attemptId", element: withSuspense(<AdaptiveQuizPage />) },
+      { path: "quiz/result/:attemptId", element: withSuspense(<QuizResultPage />) },
+      { path: "history", element: withSuspense(<HistoryPage />) },
+      { path: "progress", element: withSuspense(<ProgressPage />) },
+      { path: "profile", element: withSuspense(<ProfilePage />) },
     ],
   },
-
-  // 2. Auth Routes (Login, Register...)
   {
     element: <AuthLayout />,
     children: [
-      {
-        path: "login",
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <LoginPage />
-          </Suspense>
-        ),
-      },
-      {
-        path: "register",
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <RegisterPage />
-          </Suspense>
-        ),
-      },
-      {
-        path: "verify",
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <VerifyPage />
-          </Suspense>
-        ),
-      },
+      { path: "login", element: withSuspense(<LoginPage />) },
+      { path: "register", element: withSuspense(<RegisterPage />) },
+      { path: "verify", element: withSuspense(<VerifyPage />) },
       {
         path: "forgot-password",
-        element: (
+        element: withSuspense(
           <ForgotPasswordProvider>
-            <Suspense fallback={<PageLoader />}>
-              <ForgotPasswordPage />
-            </Suspense>
-          </ForgotPasswordProvider>
+            <ForgotPasswordPage />
+          </ForgotPasswordProvider>,
         ),
       },
     ],
   },
-
   {
     path: "/admin",
-    element: <AdminLayout />,
+    element: (
+      <ProtectedRoute roles={["ADMINISTRATOR"]}>
+        <AdminLayout />
+      </ProtectedRoute>
+    ),
     children: [
       { index: true, element: <Navigate to="dashboard" replace /> },
-
+      { path: "dashboard", element: withSuspense(<AdminDashboard />) },
+      { path: "skills", element: withSuspense(<AdminSkills />) },
+      { path: "subjects", element: withSuspense(<AdminSubjects />) },
+      { path: "subjects/:subjectId/edit", element: withSuspense(<AdminSubjectEdit />) },
+      { path: "subjects/:subjectId/chapters", element: withSuspense(<AdminChapters />) },
+      { path: "subjects/:subjectId/chapters/:chapterId/edit", element: withSuspense(<AdminChapterEdit />) },
       {
-        path: "dashboard",
-        element: <AdminDashboard />,
+        path: "subjects/:subjectId/chapters/:chapterId/questions/new",
+        element: withSuspense(<AdminQuestionCreate />),
       },
-
       {
-        path: "subjects",
-        element: <AdminSubjects />,
+        path: "subjects/:subjectId/chapters/:chapterId/questions/import",
+        element: withSuspense(<AdminQuestionImport />),
       },
-
-      {
-        path: "subjects/:subjectId/chapters",
-        element: <AdminChapters />,
-      },
-
       {
         path: "subjects/:subjectId/chapters/:chapterId/questions",
-        element: <AdminQuestions />,
+        element: withSuspense(<AdminQuestions />),
       },
-
-      {
-        path: "questions",
-        element: <AdminQuestions />,
-      },
-
-      {
-        path: "quizzes",
-        element: <AdminQuizzes />,
-      },
-
-      {
-        path: "skills",
-        element: <AdminSkills />,
-      },
-
-      {
-        path: "users",
-        element: <AdminUsers />,
-      },
-
-      {
-        path: "profile",
-        element: <AdminProfile />,
-      },
+      { path: "questions/new", element: withSuspense(<AdminQuestionCreate />) },
+      { path: "questions/import", element: withSuspense(<AdminQuestionImport />) },
+      { path: "questions", element: withSuspense(<AdminQuestions />) },
+      { path: "quizzes/new", element: withSuspense(<AdminQuizCreate />) },
+      { path: "quizzes/:quizId/edit", element: withSuspense(<AdminQuizEdit />) },
+      { path: "quizzes/:quizId/edit/questions", element: withSuspense(<AdminQuizQuestions />) },
+      { path: "quizzes", element: withSuspense(<AdminQuizzes />) },
+      { path: "users", element: withSuspense(<AdminUsers />) },
+      { path: "profile", element: withSuspense(<AdminProfile />) },
     ],
   },
-
-  // 4. Error Routes
   {
-    path: "/forgot-password",
-    element: (
-      <ForgotPasswordProvider>
-        <ForgotPasswordPage></ForgotPasswordPage>
-      </ForgotPasswordProvider>
-    ),
+    path: "/unauthorized",
+    element: <AccessDeniedPage />,
+  },
+  {
+    path: "*",
+    element: <Navigate to="/login" replace />,
   },
 ]);

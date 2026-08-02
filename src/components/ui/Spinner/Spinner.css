@@ -1,0 +1,20 @@
+.ui-spinner {
+  display: inline-block;
+  border-style: solid;
+  border-color: var(--color-primary-100);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: ui-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+.ui-btn--primary .ui-spinner,
+.ui-btn--danger .ui-spinner {
+  border-color: rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+}
+
+@keyframes ui-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

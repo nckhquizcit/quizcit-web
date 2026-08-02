@@ -1,60 +1,75 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Lock, Shield, Trash2, Users } from "lucide-react";
+import { changeUserRole, deleteUser, getUsers, updateUserStatus } from "../../../services/userService";
+import { getErrorMessage, getStoredUser } from "../../../services/apiClient";
 import AdminPageHeader from "../components/AdminPageHeader";
-import SearchBar from "../components/SearchBar";
-import ConfirmActionModal from "../components/modals/ConfirmActionModal";
+import DataTable from "../components/ui/DataTable";
+import RowActions from "../components/ui/RowActions";
+import ErrorState from "../../../components/ui/ErrorState/ErrorState";
+import EmptyState from "../../../components/ui/EmptyState/EmptyState";
+import { useToast } from "../../../components/ui/Toast/Toast";
 import AuthorizationModal from "../components/modals/AuthorizationModal";
-import { getUsers, updateUserStatus } from "../../../services/userService";
-
+import ConfirmActionModal from "../components/modals/ConfirmActionModal";
+import ConfirmDeleteModal from "../components/modals/ConfirmDeleteModal";
 import "../Admin.css";
-import "./AdminUsers.css";
 import "../components/modals/modal.css";
+import "./AdminUsers.css";
+
+const ROLE_LABELS = {
+  ADMINISTRATOR: "Quản trị viên",
+  USER: "Người dùng",
+};
+
+const STATUS_LABELS = {
+  VERIFIED: "Đã xác thực",
+  UNVERIFIED: "Chưa xác thực",
+  BANNED: "Đã khóa",
+};
+
+const STATUS_TONE = {
+  VERIFIED: "success",
+  UNVERIFIED: "warning",
+  BANNED: "error",
+};
+
+const formatRole = (role) => ROLE_LABELS[role] || role || "Chưa có";
+const formatStatus = (status) => STATUS_LABELS[status] || status || "Chưa có";
+const SELF_LOCKOUT_MESSAGE = "Bạn không thể khóa/xóa/thay đổi vai trò tài khoản đang đăng nhập.";
 
 export default function AdminUsers() {
-  const [searchTerm, setSearchTerm] = useState("");
+  const toast = useToast();
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  const [error, setError] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [deletingUser, setDeletingUser] = useState(null);
+  const currentUser = useMemo(() => getStoredUser(), []);
+  const currentUserId = String(currentUser?.userId || currentUser?.user_id || currentUser?.id || "");
 
-  // ===== FILTER =====
-  useEffect(() => {
-    const loadUsers = async () => {
-      try {
-        const data = await getUsers();
-        setUsers(data || []);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadUsers();
+  const loadUsers = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
+      setUsers((await getUsers()) || []);
+    } catch (loadError) {
+      setError(getErrorMessage(loadError, "Không thể tải danh sách người dùng."));
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const filteredUsers = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase();
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
 
-    return users.filter((user) => {
-      const matchSearch =
-        !normalizedSearch ||
-        user.username?.toLowerCase().includes(normalizedSearch) ||
-        user.email?.toLowerCase().includes(normalizedSearch);
-      const matchStatus = filterStatus === "ALL" || user.status === filterStatus;
-      return matchSearch && matchStatus;
-    });
-  }, [users, searchTerm, filterStatus]);
-
-  // ===== ACTIONS =====
-  const openConfirmModal = (user) => {
-    setSelectedUser(user);
-    setIsConfirmModalOpen(true);
-  };
-
-  const openAuthModal = (user) => {
-    setSelectedUser(user);
-    setIsAuthModalOpen(true);
-  };
+  const visibleUsers = useMemo(
+    () =>
+      filterStatus === "ALL" ? users : users.filter((user) => user.status === filterStatus),
+    [users, filterStatus],
+  );
 
   const closeConfirmModal = () => {
     setIsConfirmModalOpen(false);
@@ -66,133 +81,184 @@ export default function AdminUsers() {
     setSelectedUser(null);
   };
 
-  const handleConfirm = async () => {
+  const handleLockUser = async () => {
     if (!selectedUser?.userId) return;
-    const updatedUser = await updateUserStatus(selectedUser.userId, "BANNED");
-    setUsers((currentUsers) =>
-      currentUsers.map((user) =>
-        user.userId === selectedUser.userId
-          ? { ...user, ...(updatedUser || {}), status: "BANNED" }
-          : user,
-      ),
-    );
-    closeConfirmModal();
+    if (String(selectedUser.userId) === currentUserId) {
+      toast.error(SELF_LOCKOUT_MESSAGE);
+      closeConfirmModal();
+      return;
+    }
+    try {
+      const updatedUser = await updateUserStatus(selectedUser.userId, "BANNED");
+      setUsers((currentUsers) =>
+        currentUsers.map((user) =>
+          user.userId === selectedUser.userId ? { ...user, ...(updatedUser || {}), status: "BANNED" } : user,
+        ),
+      );
+      toast.success("Đã khóa người dùng.");
+    } catch (actionError) {
+      toast.error(getErrorMessage(actionError, "Không thể cập nhật trạng thái người dùng."));
+    } finally {
+      closeConfirmModal();
+    }
   };
 
-  const handleAuthSave = (newRole) => {
-    setUsers((currentUsers) =>
-      currentUsers.map((user) =>
-        user.userId === selectedUser?.userId ? { ...user, role: newRole } : user,
-      ),
-    );
-    closeAuthModal();
+  const handleAuthSave = async (newRole) => {
+    if (!selectedUser?.userId) return;
+    if (String(selectedUser.userId) === currentUserId) {
+      toast.error(SELF_LOCKOUT_MESSAGE);
+      closeAuthModal();
+      return;
+    }
+    try {
+      const updatedUser = await changeUserRole(selectedUser.userId, newRole);
+      setUsers((currentUsers) =>
+        currentUsers.map((user) =>
+          user.userId === selectedUser.userId ? { ...user, ...(updatedUser || {}), role: newRole } : user,
+        ),
+      );
+      toast.success("Đã cập nhật vai trò người dùng.");
+    } catch (actionError) {
+      toast.error(getErrorMessage(actionError, "Không thể cập nhật vai trò người dùng."));
+    } finally {
+      closeAuthModal();
+    }
   };
+
+  const handleDeleteUser = async () => {
+    if (!deletingUser?.userId) return;
+    if (String(deletingUser.userId) === currentUserId) {
+      toast.error(SELF_LOCKOUT_MESSAGE);
+      setDeletingUser(null);
+      return;
+    }
+    await deleteUser(deletingUser.userId);
+    setUsers((currentUsers) => currentUsers.filter((item) => item.userId !== deletingUser.userId));
+    setDeletingUser(null);
+    toast.success("Đã xóa người dùng.");
+  };
+
+  const columns = [
+    {
+      key: "username",
+      label: "Tên đăng nhập",
+      sortable: true,
+      render: (user) => <strong>{user.username}</strong>,
+    },
+    { key: "email", label: "Email", sortable: true },
+    {
+      key: "role",
+      label: "Vai trò",
+      sortable: true,
+      sortValue: (user) => formatRole(user.role),
+      render: (user) => formatRole(user.role),
+    },
+    {
+      key: "status",
+      label: "Trạng thái",
+      sortable: true,
+      sortValue: (user) => formatStatus(user.status),
+      render: (user) => (
+        <span className={`status-badge status-badge--${STATUS_TONE[user.status] || "muted"}`}>
+          {formatStatus(user.status)}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      label: "",
+      width: 60,
+      align: "right",
+      render: (user) => {
+        const isSelf = String(user.userId) === currentUserId;
+
+        return (
+          <RowActions
+            items={[
+            {
+              label: "Đổi vai trò",
+              icon: <Shield size={16} />,
+              disabled: isSelf,
+              title: isSelf ? SELF_LOCKOUT_MESSAGE : "Đổi vai trò",
+              onClick: () => {
+                setSelectedUser(user);
+                setIsAuthModalOpen(true);
+              },
+            },
+            ...(user.status === "BANNED"
+              ? []
+              : [
+                  {
+                    label: "Khóa tài khoản",
+                    icon: <Lock size={16} />,
+                    disabled: isSelf,
+                    title: isSelf ? SELF_LOCKOUT_MESSAGE : "Khóa tài khoản",
+                    onClick: () => {
+                      setSelectedUser(user);
+                      setIsConfirmModalOpen(true);
+                    },
+                  },
+                ]),
+            {
+              label: "Xóa",
+              icon: <Trash2 size={16} />,
+              danger: true,
+              disabled: isSelf,
+              title: isSelf ? SELF_LOCKOUT_MESSAGE : "Xóa",
+              onClick: () => setDeletingUser(user),
+            },
+            ]}
+          />
+        );
+      },
+    },
+  ];
 
   return (
     <div className="admin-users-page">
-      {/* ===== HEADER ===== */}
       <AdminPageHeader
+        breadcrumb={["Tổng quan", "Người dùng"]}
         title="Quản lý người dùng"
-        subtitle="Quản lý tài khoản và phân quyền người dùng"
+        subtitle="Quản lý tài khoản, trạng thái và phân quyền người dùng"
+        icon={<Users size={22} />}
       />
 
-      {/* ===== SEARCH + FILTER ===== */}
-      <div className="admin-users-toolbar">
-        <SearchBar
-          placeholder="Tìm kiếm người dùng..."
-          onChange={(value) => setSearchTerm(value)}
+      {error ? (
+        <ErrorState description={error} onRetry={loadUsers} />
+      ) : (
+        <DataTable
+          columns={columns}
+          rows={visibleUsers}
+          getRowKey={(user) => user.userId}
+          loading={loading}
+          searchPlaceholder="Tìm kiếm theo tên hoặc email..."
+          searchKeys={["username", "email"]}
+          emptyState={
+            <EmptyState
+              icon={<Users size={28} />}
+              title="Không có người dùng"
+              description="Không tìm thấy người dùng phù hợp với bộ lọc hiện tại."
+            />
+          }
+          toolbarExtra={
+            <select
+              className="filter-select"
+              value={filterStatus}
+              onChange={(event) => setFilterStatus(event.target.value)}
+            >
+              <option value="ALL">Tất cả trạng thái</option>
+              <option value="VERIFIED">Đã xác thực</option>
+              <option value="UNVERIFIED">Chưa xác thực</option>
+              <option value="BANNED">Đã khóa</option>
+            </select>
+          }
         />
+      )}
 
-        <select
-          className="filter-select"
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-        >
-          <option value="ALL">Tất cả</option>
-          <option value="VERIFIED">VERIFIED</option>
-          <option value="UNVERIFIED">UNVERIFIED</option>
-          <option value="BANNED">BANNED</option>
-        </select>
-      </div>
-
-      {/* ===== TABLE ===== */}
-      <table className="admin-users-table">
-        <thead>
-          <tr>
-            <th>Username</th>
-            <th>Email</th>
-            <th>Role</th>
-            <th>Status</th>
-            <th>User ID</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {loading && (
-            <tr>
-              <td colSpan={6}>Đang tải dữ liệu người dùng...</td>
-            </tr>
-          )}
-          {!loading &&
-            filteredUsers.map((user) => (
-            <tr key={user.userId}>
-              <td>{user.username}</td>
-              <td>{user.email}</td>
-
-              <td>
-                <span
-                  className={`badge ${
-                    user.role === "ADMINISTRATOR"
-                      ? "badge-purple"
-                      : "badge-gray"
-                  }`}
-                >
-                  {user.role}
-                </span>
-              </td>
-
-              <td>
-                <span
-                  className={`badge ${
-                    user.status === "VERIFIED"
-                      ? "badge-green"
-                      : user.status === "UNVERIFIED"
-                      ? "badge-yellow"
-                      : "badge-red"
-                  }`}
-                >
-                  {user.status}
-                </span>
-              </td>
-
-              <td>{user.userId}</td>
-
-              <td>
-                <button
-                  className="action-btn danger-btn"
-                  onClick={() => openConfirmModal(user)}
-                >
-                  Ban
-                </button>
-
-                <button
-                  className="action-btn primary-btn"
-                  onClick={() => openAuthModal(user)}
-                >
-                  Phân quyền
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {/* ===== MODALS ===== */}
       <ConfirmActionModal
         isOpen={isConfirmModalOpen}
         onClose={closeConfirmModal}
-        onConfirm={handleConfirm}
+        onConfirm={handleLockUser}
         user={selectedUser}
       />
 
@@ -201,6 +267,15 @@ export default function AdminUsers() {
         onClose={closeAuthModal}
         onSave={handleAuthSave}
         user={selectedUser}
+      />
+
+      <ConfirmDeleteModal
+        open={Boolean(deletingUser)}
+        onClose={() => setDeletingUser(null)}
+        onConfirm={handleDeleteUser}
+        title="Xóa người dùng"
+        message="Bạn có chắc chắn muốn xóa người dùng này? Hành động này không thể hoàn tác."
+        itemName={deletingUser?.username || ""}
       />
     </div>
   );

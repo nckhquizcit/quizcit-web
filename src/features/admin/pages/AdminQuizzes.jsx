@@ -1,263 +1,259 @@
 import { useEffect, useMemo, useState } from "react";
-import { FileText, LoaderCircle, Plus, RefreshCw, Shuffle, Trash2 } from "lucide-react";
+import { Check, Clock, FileText, GripVertical, ListChecks, ListOrdered, Pencil, Plus, Trash2, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 import "../Admin.css";
+import "./AdminQuizzes.css";
 import AdminPageHeader from "../components/AdminPageHeader";
-import SearchBar from "../components/SearchBar";
+import DataTable from "../components/ui/DataTable";
+import RowActions from "../components/ui/RowActions";
+import EmptyState from "../../../components/ui/EmptyState/EmptyState";
+import ErrorState from "../../../components/ui/ErrorState/ErrorState";
 import ConfirmDeleteModal from "../components/modals/ConfirmDeleteModal";
+import { useToast } from "../../../components/ui/Toast/Toast";
 import { getChaptersBySubject, getSubjects } from "../../../services/contentService";
-import {
-  createQuiz,
-  deleteQuiz,
-  getQuestionsByChapter,
-  getQuizzesByChapter,
-} from "../services/quizService";
+import { getErrorMessage } from "../../../services/apiClient";
+import { deleteQuiz, getQuizzesByChapter, reorderQuizzes } from "../services/quizService";
+import { reorderById } from "../utils/displayOrder";
 
-const getSubjectId = (subject) => subject?.subjectId ?? subject?.id ?? "";
-const getChapterId = (chapter) => chapter?.chapterId ?? chapter?.id ?? "";
-const getQuestionId = (question) => question?.questionId ?? question?.id ?? "";
-const getQuizId = (quiz) => quiz?.quizId ?? quiz?.id ?? "";
+const getSubjectId = (subject) => String(subject?.subjectId ?? subject?.id ?? "");
+const getChapterId = (chapter) => String(chapter?.chapterId ?? chapter?.id ?? "");
+const getQuizId = (quiz) => String(quiz?.quizId ?? quiz?.id ?? "");
 
-const pickRandomIds = (questionIds, count) => {
-  const shuffled = [...questionIds];
-
-  for (let index = shuffled.length - 1; index > 0; index -= 1) {
-    const randomIndex = Math.floor(Math.random() * (index + 1));
-    [shuffled[index], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[index]];
-  }
-
-  return shuffled.slice(0, count);
+const QUIZ_TYPE_LABELS = {
+  CHAPTER: "Theo chương",
+  SUBJECT: "Theo môn học",
+  FINAL: "Đề tổng kết",
 };
 
 export default function AdminQuizzes() {
+  const navigate = useNavigate();
+  const toast = useToast();
   const [subjects, setSubjects] = useState([]);
   const [chapters, setChapters] = useState([]);
-  const [questions, setQuestions] = useState([]);
   const [quizzes, setQuizzes] = useState([]);
-  const [search, setSearch] = useState("");
-  const [deletingQuiz, setDeletingQuiz] = useState(null);
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
   const [selectedChapterId, setSelectedChapterId] = useState("");
-  const [selectedQuestionIds, setSelectedQuestionIds] = useState([]);
-  const [randomCount, setRandomCount] = useState("");
-  const [quizName, setQuizName] = useState("");
-  const [duration, setDuration] = useState(45);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [isLoadingChapters, setIsLoadingChapters] = useState(false);
-  const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
   const [isLoadingQuizzes, setIsLoadingQuizzes] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+  const [deletingQuiz, setDeletingQuiz] = useState(null);
+  const [draggedQuizId, setDraggedQuizId] = useState(null);
+  const [isReordering, setIsReordering] = useState(false);
+  const [isOrdering, setIsOrdering] = useState(false);
+  const [orderSnapshot, setOrderSnapshot] = useState([]);
 
   useEffect(() => {
-    const loadSubjects = async () => {
-      setIsBootstrapping(true);
-      setError("");
-
+    let isMounted = true;
+    async function loadSubjects() {
       try {
-        const subjectRows = (await getSubjects()) || [];
-        setSubjects(subjectRows);
-        setSelectedSubjectId(getSubjectId(subjectRows[0]));
+        setError("");
+        const rows = (await getSubjects()) || [];
+        if (!isMounted) return;
+        setSubjects(rows);
+        setSelectedSubjectId((current) => current || getSubjectId(rows[0]));
       } catch (loadError) {
-        setError(loadError?.message || "Không thể tải danh sách môn học.");
+        if (isMounted) setError(getErrorMessage(loadError, "Không thể tải danh sách môn học."));
       } finally {
-        setIsBootstrapping(false);
+        if (isMounted) setIsBootstrapping(false);
       }
-    };
-
+    }
     loadSubjects();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
     if (!selectedSubjectId) {
       setChapters([]);
       setSelectedChapterId("");
-      return;
+      return undefined;
     }
-
-    const loadChapters = async () => {
-      setIsLoadingChapters(true);
-      setError("");
-
-      try {
-        const chapterRows = (await getChaptersBySubject(selectedSubjectId)) || [];
-        setChapters(chapterRows);
-        setSelectedChapterId((currentChapterId) => {
-          const hasCurrent = chapterRows.some((chapter) => getChapterId(chapter) === currentChapterId);
-          return hasCurrent ? currentChapterId : getChapterId(chapterRows[0]);
+    let isMounted = true;
+    setIsLoadingChapters(true);
+    getChaptersBySubject(selectedSubjectId)
+      .then((rows) => {
+        if (!isMounted) return;
+        const list = rows || [];
+        setChapters(list);
+        setSelectedChapterId((current) => {
+          const has = list.some((chapter) => getChapterId(chapter) === current);
+          return has ? current : getChapterId(list[0]);
         });
-      } catch (loadError) {
-        setError(loadError?.message || "Không thể tải danh sách chương.");
-        setChapters([]);
-        setSelectedChapterId("");
-      } finally {
-        setIsLoadingChapters(false);
-      }
+      })
+      .catch((loadError) => {
+        if (isMounted) {
+          setError(getErrorMessage(loadError, "Không thể tải danh sách chương."));
+          setChapters([]);
+          setSelectedChapterId("");
+        }
+      })
+      .finally(() => {
+        if (isMounted) setIsLoadingChapters(false);
+      });
+    return () => {
+      isMounted = false;
     };
-
-    loadChapters();
   }, [selectedSubjectId]);
 
   useEffect(() => {
     if (!selectedChapterId) {
-      setQuestions([]);
       setQuizzes([]);
-      setSelectedQuestionIds([]);
-      return;
+      return undefined;
     }
-
-    const loadChapterData = async () => {
-      setIsLoadingQuestions(true);
-      setIsLoadingQuizzes(true);
-      setError("");
-
-      try {
-        const [questionRows, quizRows] = await Promise.all([
-          getQuestionsByChapter(selectedChapterId),
-          getQuizzesByChapter(selectedChapterId),
-        ]);
-
-        setQuestions(questionRows || []);
-        setQuizzes(quizRows || []);
-        setSelectedQuestionIds([]);
-        setRandomCount("");
-      } catch (loadError) {
-        setError(loadError?.message || "Không thể tải dữ liệu của chương.");
-        setQuestions([]);
-        setQuizzes([]);
-      } finally {
-        setIsLoadingQuestions(false);
-        setIsLoadingQuizzes(false);
-      }
+    setIsOrdering(false);
+    setOrderSnapshot([]);
+    setDraggedQuizId(null);
+    let isMounted = true;
+    setIsLoadingQuizzes(true);
+    setError("");
+    getQuizzesByChapter(selectedChapterId)
+      .then((rows) => {
+        if (isMounted) setQuizzes(rows || []);
+      })
+      .catch((loadError) => {
+        if (isMounted) {
+          setError(getErrorMessage(loadError, "Không thể tải danh sách đề thi."));
+          setQuizzes([]);
+        }
+      })
+      .finally(() => {
+        if (isMounted) setIsLoadingQuizzes(false);
+      });
+    return () => {
+      isMounted = false;
     };
-
-    loadChapterData();
   }, [selectedChapterId]);
-
-  const filteredQuizzes = useMemo(
-    () => quizzes.filter((quiz) => String(quiz.name || "").toLowerCase().includes(search.toLowerCase())),
-    [search, quizzes],
-  );
-
-  const filteredQuestions = useMemo(() => {
-    const keyword = search.trim().toLowerCase();
-
-    if (!keyword) return questions;
-
-    return questions.filter((question) => String(question.content || "").toLowerCase().includes(keyword));
-  }, [questions, search]);
-
-  const allFilteredQuestionIds = useMemo(
-    () => filteredQuestions.map((question) => getQuestionId(question)).filter(Boolean),
-    [filteredQuestions],
-  );
-
-  const selectedSubject = useMemo(
-    () => subjects.find((subject) => getSubjectId(subject) === selectedSubjectId),
-    [selectedSubjectId, subjects],
-  );
 
   const selectedChapter = useMemo(
     () => chapters.find((chapter) => getChapterId(chapter) === selectedChapterId),
     [chapters, selectedChapterId],
   );
 
-  const toggleQuestion = (questionId) => {
-    setSelectedQuestionIds((currentIds) =>
-      currentIds.includes(questionId)
-        ? currentIds.filter((id) => id !== questionId)
-        : [...currentIds, questionId],
-    );
+  const handleQuizDrop = (event, targetQuiz) => {
+    event.preventDefault();
+    const targetQuizId = getQuizId(targetQuiz);
+    if (!isOrdering || !draggedQuizId || draggedQuizId === targetQuizId || isReordering) return;
+    setQuizzes((current) => reorderById(current, draggedQuizId, targetQuizId, getQuizId));
+    setDraggedQuizId(null);
   };
 
-  const handleSelectAll = () => {
-    setSelectedQuestionIds(allFilteredQuestionIds);
-  };
-
-  const handleClearSelection = () => {
-    setSelectedQuestionIds([]);
-  };
-
-  const handleRandomSelect = () => {
-    const count = Number(randomCount);
-
-    if (!count || count < 1) {
-      setError("Vui lòng nhập số lượng câu hỏi ngẫu nhiên hợp lệ.");
-      return;
-    }
-
-    if (count > allFilteredQuestionIds.length) {
-      setError("Số lượng ngẫu nhiên vượt quá số câu hỏi hiện có.");
-      return;
-    }
-
+  const startOrdering = () => { setOrderSnapshot(quizzes); setIsOrdering(true); };
+  const cancelOrdering = () => { setQuizzes(orderSnapshot); setIsOrdering(false); setDraggedQuizId(null); };
+  const saveOrdering = async () => {
+    setIsReordering(true);
     setError("");
-    setSelectedQuestionIds(pickRandomIds(allFilteredQuestionIds, count));
-  };
-
-  const handleCreateQuiz = async () => {
-    if (!selectedSubjectId || !selectedChapterId) {
-      setError("Vui lòng chọn môn học và chương.");
-      return;
-    }
-
-    if (!quizName.trim()) {
-      setError("Vui lòng nhập tên đề thi.");
-      return;
-    }
-
-    if (!selectedQuestionIds.length) {
-      setError("Vui lòng chọn ít nhất một câu hỏi.");
-      return;
-    }
-
-    setIsCreating(true);
-    setError("");
-    setSuccessMessage("");
-
     try {
-      const createdQuiz = await createQuiz({
-        subjectId: selectedSubjectId,
-        chapterId: selectedChapterId,
-        name: quizName.trim(),
-        duration: Number(duration),
-        totalQuestion: selectedQuestionIds.length,
-        type: "CHAPTER",
-        questionIds: selectedQuestionIds,
-      });
-
-      setQuizzes((currentRows) => [createdQuiz, ...currentRows]);
-      setQuizName("");
-      setSelectedQuestionIds([]);
-      setRandomCount("");
-      setSuccessMessage("Tạo đề thi thành công.");
-    } catch (createError) {
-      setError(createError?.message || "Không thể tạo đề thi.");
+      await reorderQuizzes(selectedChapterId, quizzes);
+      toast.success("Đã cập nhật thứ tự đề thi.");
+      setIsOrdering(false);
+      setOrderSnapshot([]);
+    } catch (reorderError) {
+      setQuizzes(orderSnapshot);
+      setError(getErrorMessage(reorderError, "Không thể cập nhật thứ tự đề thi."));
     } finally {
-      setIsCreating(false);
+      setIsReordering(false);
     }
   };
 
   const handleDeleteQuiz = async () => {
     if (!deletingQuiz) return;
-
-    try {
-      const deletingQuizId = getQuizId(deletingQuiz);
-      await deleteQuiz(deletingQuizId);
-      setQuizzes((currentRows) => currentRows.filter((quiz) => getQuizId(quiz) !== deletingQuizId));
-      setDeletingQuiz(null);
-      setSuccessMessage("Xóa đề thi thành công.");
-    } catch (deleteError) {
-      setError(deleteError?.message || "Không thể xóa đề thi.");
-    }
+    const quizId = getQuizId(deletingQuiz);
+    await deleteQuiz(quizId);
+    setQuizzes((current) => current.filter((quiz) => getQuizId(quiz) !== quizId));
+    setDeletingQuiz(null);
+    toast.success("Xóa đề thi thành công.");
   };
+
+  const columns = [
+    {
+      key: "drag",
+      label: "",
+      width: 42,
+      align: "center",
+      render: () => isOrdering ? <GripVertical className="display-order-drag-handle" size={17} aria-label="Kéo để đổi thứ tự" /> : null,
+    },
+    {
+      key: "displayOrder",
+      label: "Thứ tự",
+      width: 90,
+      align: "center",
+    },
+    {
+      key: "name",
+      label: "Tên đề thi",
+      render: (quiz) => (
+        <div className="quiz-name-cell">
+          <span className="quiz-name-icon">
+            <FileText size={16} />
+          </span>
+          <strong>{quiz.name || "Đề thi chưa đặt tên"}</strong>
+        </div>
+      ),
+    },
+    {
+      key: "type",
+      label: "Loại",
+      width: 140,
+      sortValue: (quiz) => QUIZ_TYPE_LABELS[quiz.type] || "Theo chương",
+      render: (quiz) => (
+        <span className="quiz-type-badge">{QUIZ_TYPE_LABELS[quiz.type] || "Theo chương"}</span>
+      ),
+    },
+    {
+      key: "totalQuestion",
+      label: "Số câu",
+      width: 100,
+      align: "center",
+      sortValue: (quiz) => quiz.totalQuestion ?? 0,
+      render: (quiz) => (
+        <span className="quiz-meta-cell">
+          <ListChecks size={14} /> {quiz.totalQuestion ?? 0}
+        </span>
+      ),
+    },
+    {
+      key: "duration",
+      label: "Thời gian",
+      width: 120,
+      align: "center",
+      sortValue: (quiz) => quiz.durationMinutes ?? quiz.duration ?? 0,
+      render: (quiz) => (
+        <span className="quiz-meta-cell">
+          <Clock size={14} /> {quiz.durationMinutes ?? quiz.duration ?? 0} phút
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      label: "",
+      width: 60,
+      align: "right",
+      render: (quiz) => isOrdering ? null : (
+        <RowActions
+          items={[
+            {
+              label: "Chỉnh sửa",
+              icon: <Pencil size={16} />,
+              onClick: () => navigate(`/admin/quizzes/${getQuizId(quiz)}/edit`),
+            },
+            {
+              label: "Xóa",
+              icon: <Trash2 size={16} />,
+              danger: true,
+              onClick: () => setDeletingQuiz(quiz),
+            },
+          ]}
+        />
+      ),
+    },
+  ];
 
   if (isBootstrapping) {
     return (
-      <div className="admin-loading-state">
-        <LoaderCircle size={20} className="spin" /> Đang tải dữ liệu quản lý đề thi...
-      </div>
+      <DataTable columns={columns} rows={[]} loading searchable={false} pageSize={6} />
     );
   }
 
@@ -266,182 +262,101 @@ export default function AdminQuizzes() {
       <AdminPageHeader
         breadcrumb={["Tổng quan", "Đề thi"]}
         title="Quản lý đề thi"
-        subtitle="Tạo đề theo môn học, chương học và danh sách câu hỏi đã chọn"
-        action={
-          <button className="add-btn" onClick={handleCreateQuiz} disabled={isCreating}>
+        subtitle="Tạo và quản lý đề thi theo môn học và chương"
+        icon={<FileText size={22} />}
+        action={<div className="display-order-actions">
+          {isOrdering ? <>
+            <button className="cancel-btn" onClick={cancelOrdering} disabled={isReordering}><X size={17} /> Hủy</button>
+            <button className="add-btn" onClick={saveOrdering} disabled={isReordering}><Check size={17} /> Lưu thứ tự</button>
+          </> : <button className="cancel-btn" onClick={startOrdering} disabled={!quizzes.length || isLoadingQuizzes}><ListOrdered size={17} /> Chỉnh thứ tự</button>}
+          <button
+            className="add-btn"
+            disabled={isOrdering}
+            onClick={() =>
+              navigate(
+                `/admin/quizzes/new?subjectId=${encodeURIComponent(selectedSubjectId)}&chapterId=${encodeURIComponent(
+                  selectedChapterId,
+                )}`,
+              )
+            }
+          >
             <Plus size={18} />
-            {isCreating ? "Đang tạo..." : "Tạo đề thi"}
+            Tạo đề thi
           </button>
-        }
+        </div>}
       />
 
-      <div className="admin-section-card" style={{ marginBottom: 24 }}>
-        <div className="admin-filter-row" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 16 }}>
-          <label className="quiz-field">
-            <span>Môn học</span>
-            <select value={selectedSubjectId} onChange={(event) => setSelectedSubjectId(event.target.value)}>
-              {subjects.map((subject) => (
-                <option key={getSubjectId(subject)} value={getSubjectId(subject)}>
-                  {subject.name}
-                </option>
-              ))}
-            </select>
-          </label>
+      <div className="admin-section-card quiz-filter-bar">
+        <label className="quiz-field">
+          <span>Môn học</span>
+          <select
+            value={selectedSubjectId}
+            onChange={(event) => setSelectedSubjectId(event.target.value)}
+          >
+            {subjects.map((subject) => (
+              <option key={getSubjectId(subject)} value={getSubjectId(subject)}>
+                {subject.name}
+              </option>
+            ))}
+          </select>
+        </label>
 
-          <label className="quiz-field">
-            <span>Chương</span>
-            <select
-              value={selectedChapterId}
-              onChange={(event) => setSelectedChapterId(event.target.value)}
-              disabled={isLoadingChapters || !chapters.length}
-            >
-              {chapters.map((chapter) => (
-                <option key={getChapterId(chapter)} value={getChapterId(chapter)}>
-                  {chapter.name}
-                </option>
-              ))}
-            </select>
-          </label>
+        <label className="quiz-field">
+          <span>Chương</span>
+          <select
+            value={selectedChapterId}
+            onChange={(event) => setSelectedChapterId(event.target.value)}
+            disabled={isLoadingChapters || !chapters.length}
+          >
+            {chapters.map((chapter) => (
+              <option key={getChapterId(chapter)} value={getChapterId(chapter)}>
+                {chapter.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
 
-          <label className="quiz-field">
-            <span>Tên đề thi</span>
-            <input value={quizName} onChange={(event) => setQuizName(event.target.value)} placeholder="Ví dụ: Kiểm tra chương 1" />
-          </label>
-
-          <label className="quiz-field">
-            <span>Thời gian (phút)</span>
-            <input type="number" min="1" value={duration} onChange={(event) => setDuration(event.target.value)} />
-          </label>
-        </div>
-
-        <div style={{ marginTop: 16 }}>
-          <SearchBar placeholder="Tìm kiếm câu hỏi hoặc đề thi..." onChange={setSearch} />
-        </div>
-
-        {(error || successMessage) && (
-          <div style={{ marginTop: 16, color: error ? "#dc2626" : "#16a34a" }}>
-            {error || successMessage}
-          </div>
-        )}
-
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 16, alignItems: "center" }}>
-          <button className="add-btn small" onClick={handleSelectAll} disabled={!allFilteredQuestionIds.length}>
-            Chọn tất cả
-          </button>
-          <button className="cancel-btn" onClick={handleClearSelection}>
-            Bỏ chọn
-          </button>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <input
-              type="number"
-              min="1"
-              value={randomCount}
-              onChange={(event) => setRandomCount(event.target.value)}
-              placeholder="n câu hỏi"
-              style={{ width: 120 }}
+      {error ? (
+        <ErrorState description={error} onRetry={() => setSelectedChapterId((id) => id)} />
+      ) : (
+        <DataTable
+          columns={columns}
+          rows={quizzes}
+          getRowKey={(quiz) => getQuizId(quiz)}
+          loading={isLoadingQuizzes}
+          rowDraggable={isOrdering && !isReordering}
+          draggedRowKey={draggedQuizId}
+          onRowDragStart={(event, quiz) => {
+            setDraggedQuizId(getQuizId(quiz));
+            event.dataTransfer.effectAllowed = "move";
+          }}
+          onRowDragOver={(event) => event.preventDefault()}
+          onRowDrop={handleQuizDrop}
+          onRowDragEnd={() => setDraggedQuizId(null)}
+          searchPlaceholder="Tìm kiếm đề thi theo tên..."
+          searchKeys={["name"]}
+          emptyState={
+            <EmptyState
+              icon={<FileText size={28} />}
+              title="Chưa có đề thi"
+              description={
+                selectedChapter
+                  ? "Chương này chưa có đề thi. Bấm \"Tạo đề thi\" để thêm mới."
+                  : "Chọn môn học và chương để xem danh sách đề thi."
+              }
             />
-            <button className="add-btn small" onClick={handleRandomSelect}>
-              <Shuffle size={16} />
-              Chọn ngẫu nhiên
-            </button>
-          </div>
-          <span style={{ color: "#64748b" }}>
-            Đã chọn {selectedQuestionIds.length}/{questions.length} câu hỏi • Type: CHAPTER
-          </span>
-        </div>
-      </div>
-
-      <div className="admin-section-card" style={{ marginBottom: 24 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <div>
-            <h3 style={{ margin: 0 }}>Ngân hàng câu hỏi</h3>
-            <p style={{ margin: "6px 0 0", color: "#64748b" }}>
-              {selectedSubject?.name || "Chưa chọn môn học"} • {selectedChapter?.name || "Chưa chọn chương"}
-            </p>
-          </div>
-          {(isLoadingQuestions || isLoadingQuizzes) && <RefreshCw size={18} className="spin" />}
-        </div>
-
-        <div style={{ display: "grid", gap: 12 }}>
-          {filteredQuestions.map((question, index) => {
-            const questionId = getQuestionId(question);
-            const isSelected = selectedQuestionIds.includes(questionId);
-
-            return (
-              <label
-                key={questionId}
-                style={{
-                  display: "flex",
-                  gap: 12,
-                  alignItems: "flex-start",
-                  padding: 16,
-                  border: `1px solid ${isSelected ? "#2563eb" : "#e2e8f0"}`,
-                  borderRadius: 14,
-                  background: isSelected ? "#eff6ff" : "#fff",
-                  cursor: "pointer",
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={isSelected}
-                  onChange={() => toggleQuestion(questionId)}
-                  style={{ marginTop: 4 }}
-                />
-                <div>
-                  <div style={{ fontWeight: 600, marginBottom: 6 }}>Câu {index + 1}</div>
-                  <div>{question.content}</div>
-                </div>
-              </label>
-            );
-          })}
-
-          {!filteredQuestions.length && !isLoadingQuestions && (
-            <div style={{ color: "#64748b" }}>Chưa có câu hỏi nào trong chương này.</div>
-          )}
-        </div>
-      </div>
-
-      <div>
-        <h3 style={{ marginBottom: 16 }}>Danh sách đề thi của chương</h3>
-        <div className="quiz-grid">
-          {filteredQuizzes.map((quiz) => (
-            <div key={getQuizId(quiz)} className="quiz-card">
-            <div className="quiz-card-actions">
-              <button
-                className="icon-btn danger"
-                onClick={() => setDeletingQuiz(quiz)}
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
-
-            <div className="header-icon">
-              <FileText size={22} />
-            </div>
-
-            <div className="quiz-title">{quiz.name}</div>
-            <div className="quiz-desc">Loại: {quiz.type || "CHAPTER"}</div>
-
-            <div className="quiz-footer">
-              <span>{quiz.totalQuestion || 0} câu hỏi</span>
-              <span>{quiz.duration || 0} phút</span>
-            </div>
-          </div>
-        ))}
-        </div>
-
-        {!filteredQuizzes.length && !isLoadingQuizzes && (
-          <div style={{ color: "#64748b", marginTop: 12 }}>Chưa có đề thi nào cho chương này.</div>
-        )}
-      </div>
+          }
+        />
+      )}
 
       <ConfirmDeleteModal
         open={Boolean(deletingQuiz)}
         onClose={() => setDeletingQuiz(null)}
-        title="Xóa đề thi"
-        message={`Bạn có muốn xóa đề thi "${deletingQuiz?.name}" không?`}
-        itemName={deletingQuiz?.name}
         onConfirm={handleDeleteQuiz}
+        title="Xóa đề thi"
+        message="Bạn có chắc chắn muốn xóa đề thi này? Hành động này không thể hoàn tác."
+        itemName={deletingQuiz?.name || ""}
       />
     </>
   );

@@ -4,9 +4,11 @@ import "./RegisterPage.css";
 
 export default function RegisterPage() {
   return (
-    <div className="register-page-container">
-      <LoginCard></LoginCard>
-      <RegisterForm></RegisterForm>
+    <div className="auth-split">
+      <LoginCard />
+      <div className="auth-form-panel">
+        <RegisterForm />
+      </div>
     </div>
   );
 }

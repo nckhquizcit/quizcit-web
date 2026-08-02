@@ -12,6 +12,13 @@ dist
 dist-ssr
 *.local
 
+# Scratch build/dev-server verification output (agent tooling)
+.codex-build-check/
+.codex-dev-*.log
+.codex-vite-*.log
+.codex-verify-*.log
+codex-vite-*.log
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

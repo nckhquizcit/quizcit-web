@@ -1,27 +1,33 @@
 .history-page-wrapper {
-  max-width: 1000px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-8);
+  max-width: 920px;
   margin: 0 auto;
-  padding: 20px;
 }
 
-.history-page-header {
-  margin-bottom: 32px;
+.history-page-header h1 {
+  font-size: var(--fs-2xl);
+  color: var(--color-text);
 }
-
-.history-title {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 8px;
-}
-
 .history-subtitle {
-  color: #64748b;
-  font-size: 1rem;
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--fs-sm);
 }
 
 .history-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--space-4);
+}
+
+@media (max-width: 767px) {
+  .history-page-wrapper {
+    padding: var(--space-5);
+  }
+  .history-page-header h1 {
+    font-size: var(--fs-xl);
+  }
 }

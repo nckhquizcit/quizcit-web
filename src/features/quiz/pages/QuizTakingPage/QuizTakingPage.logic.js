@@ -1,0 +1,81 @@
+export const QUIZ_PAGE_SIZE = 5;
+
+const getSafePageSize = (pageSize = QUIZ_PAGE_SIZE) => {
+  const numericPageSize = Number(pageSize);
+  return Number.isFinite(numericPageSize) && numericPageSize > 0
+    ? Math.floor(numericPageSize)
+    : QUIZ_PAGE_SIZE;
+};
+
+export const getTotalQuizPages = (questionCount, pageSize = QUIZ_PAGE_SIZE) => {
+  const numericQuestionCount = Number(questionCount);
+  const safeQuestionCount =
+    Number.isFinite(numericQuestionCount) && numericQuestionCount > 0
+      ? Math.floor(numericQuestionCount)
+      : 0;
+  const safePageSize = getSafePageSize(pageSize);
+
+  return Math.max(1, Math.ceil(safeQuestionCount / safePageSize));
+};
+
+export const clampQuizPage = (page, totalPages) => {
+  const numericPage = Number(page);
+  const numericTotalPages = Number(totalPages);
+  const safeTotalPages =
+    Number.isFinite(numericTotalPages) && numericTotalPages > 0
+      ? Math.floor(numericTotalPages)
+      : 1;
+  const safePage = Number.isFinite(numericPage) ? Math.floor(numericPage) : 0;
+
+  return Math.min(Math.max(safePage, 0), safeTotalPages - 1);
+};
+
+export const getQuestionPage = (index, pageSize = QUIZ_PAGE_SIZE) => {
+  const numericIndex = Number(index);
+  const safeIndex = Number.isFinite(numericIndex)
+    ? Math.max(Math.floor(numericIndex), 0)
+    : 0;
+
+  return Math.floor(safeIndex / getSafePageSize(pageSize));
+};
+
+export const getPageNavigationTarget = (
+  questions,
+  requestedPage,
+  pageSize = QUIZ_PAGE_SIZE,
+) => {
+  const list = Array.isArray(questions) ? questions : [];
+  const safePageSize = getSafePageSize(pageSize);
+  const page = clampQuizPage(
+    requestedPage,
+    getTotalQuizPages(list.length, safePageSize),
+  );
+
+  return {
+    page,
+    questionId: list[page * safePageSize]?.questionId ?? null,
+  };
+};
+
+export const getQuestionNavigationTarget = (
+  questions,
+  index,
+  pageSize = QUIZ_PAGE_SIZE,
+) => {
+  const list = Array.isArray(questions) ? questions : [];
+
+  if (list.length === 0) {
+    return { page: 0, questionId: null };
+  }
+
+  const numericIndex = Number(index);
+  const safeIndex = Math.min(
+    Math.max(Number.isFinite(numericIndex) ? Math.floor(numericIndex) : 0, 0),
+    list.length - 1,
+  );
+
+  return {
+    page: getQuestionPage(safeIndex, pageSize),
+    questionId: list[safeIndex]?.questionId ?? null,
+  };
+};

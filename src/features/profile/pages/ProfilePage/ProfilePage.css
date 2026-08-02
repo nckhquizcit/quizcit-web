@@ -1,91 +1,134 @@
 .profile-page-wrapper {
-  padding: 20px;
-  max-width: 1200px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-8);
+  max-width: 1080px;
   margin: 0 auto;
 }
 
-.achievements-section {
-  background: white;
-  border-radius: 24px;
-  padding: 32px;
-  border: 1px solid #e2e8f0;
+.profile-inline-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--fs-sm);
 }
 
+.achievements-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
 .section-header {
   display: flex;
+  align-items: flex-end;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 32px;
+  gap: var(--space-4);
 }
-
 .section-title {
-  font-size: 1.4rem;
-  font-weight: 700;
-  margin: 0;
-  color: #1e293b;
+  font-size: var(--fs-xl);
+  color: var(--color-text);
 }
-
 .section-subtitle {
-  font-size: 0.9rem;
-  color: #64748b;
-  margin-top: 4px;
+  margin-top: var(--space-1);
+  font-size: var(--fs-sm);
+  color: var(--color-text-muted);
 }
-
-.badge-count {
-  background: #10b981;
-  color: white;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-weight: 700;
+.profile-stats-inline-state {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--fs-sm);
 }
-
+.profile-stats-inline-error {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-warning);
+  border-radius: var(--radius-md);
+  background: var(--color-warning-soft);
+  color: var(--color-text);
+  font-size: var(--fs-sm);
+}
 .achievements-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-5);
 }
 
-.profile-update-message {
-  margin-bottom: 12px;
-  padding: 10px 14px;
-  border-radius: 10px;
-  border: 1px solid #d1fae5;
-  background: #ecfdf5;
-  color: #065f46;
-  font-size: 0.95rem;
+/* Modal */
+.profile-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--color-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  z-index: var(--z-drawer);
 }
-
-.profile-modal-content {
-  display: grid;
-  gap: 12px;
-}
-
-.profile-modal-content h3 {
-  font-size: 1.1rem;
-  color: #1e293b;
-}
-
-.profile-modal-content input {
+.profile-modal-card {
   width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 10px;
-  font-size: 0.95rem;
-  outline: none;
+  max-width: 440px;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
 }
-
-.profile-modal-content input:focus {
-  border-color: #10b981;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
+.profile-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-border);
 }
-
-.profile-modal-submit {
-  justify-self: end;
+.profile-modal-header h3 {
+  font-size: var(--fs-md);
+  color: var(--color-text);
+}
+.profile-modal-close {
+  display: inline-flex;
   border: none;
-  border-radius: 10px;
-  padding: 10px 16px;
-  background: linear-gradient(135deg, #00d17f 0%, #009e60 100%);
-  color: #fff;
-  font-weight: 600;
+  background: transparent;
+  color: var(--color-text-subtle);
   cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+}
+.profile-modal-close:hover {
+  background: var(--color-surface-3);
+  color: var(--color-text);
+}
+.profile-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+.profile-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+@media (max-width: 900px) {
+  .achievements-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .profile-page-wrapper {
+    padding: var(--space-5);
+  }
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+  .achievements-grid {
+    grid-template-columns: 1fr;
+  }
 }

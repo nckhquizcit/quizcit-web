@@ -5,47 +5,47 @@ export default function AdminPageHeader({
   breadcrumb = [],
   title,
   subtitle,
+  backHref,
   onBack,
   action,
   icon,
 }) {
-  // map route cho breadcrumb
-  const routeMap = {
-    "Tổng quan": "/admin/dashboard",
-    "Môn học": "/admin/subjects",
-    Chương: "/admin/subjects",
-  };
+  const crumbs = Array.isArray(breadcrumb) ? breadcrumb.filter(Boolean) : [];
 
   return (
-    <div className="admin-header">
-      {/* ===== BREADCRUMB ===== */}
-      <div className="breadcrumb">
-        {breadcrumb.map((item, index) => {
-          const isLast = index === breadcrumb.length - 1;
-          const path = routeMap[item];
+    <header className="admin-header admin-page-header">
+      {crumbs.length > 0 && (
+        <nav className="admin-breadcrumb" aria-label="Điều hướng">
+          <ol>
+            {crumbs.map((item, index) => {
+              const isLast = index === crumbs.length - 1;
+              const label = typeof item === "string" ? item : item.label;
+              const href = typeof item === "string" ? "" : item.href;
 
-          return (
-            <span key={index} className="breadcrumb-item">
-              {!isLast && path ? (
-                <Link to={path}>{item}</Link>
-              ) : (
-                <span className="current">{item}</span>
-              )}
+              return (
+                <li key={`${label}-${index}`}>
+                  {href && !isLast ? <Link to={href}>{label}</Link> : <span>{label}</span>}
+                </li>
+              );
+            })}
+          </ol>
+        </nav>
+      )}
 
-              {!isLast && <span className="separator">›</span>}
-            </span>
-          );
-        })}
-      </div>
-
-      {/* ===== HEADER MAIN ===== */}
       <div className="header-main">
         <div className="header-left">
-          {onBack && (
-            <button className="back-btn" onClick={onBack}>
+          {backHref ? (
+            <Link className="back-btn" to={backHref}>
               <ArrowLeft size={16} />
               Quay lại
-            </button>
+            </Link>
+          ) : (
+            onBack && (
+              <button className="back-btn" onClick={onBack} type="button">
+                <ArrowLeft size={16} />
+                Quay lại
+              </button>
+            )
           )}
 
           {icon && <div className="header-icon">{icon}</div>}
@@ -58,6 +58,6 @@ export default function AdminPageHeader({
 
         {action && <div className="header-action">{action}</div>}
       </div>
-    </div>
+    </header>
   );
 }

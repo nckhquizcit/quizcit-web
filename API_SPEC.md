@@ -708,8 +708,7 @@ POST /api/attempts/submit
     "skillResults": [
       {
         "skillId": "string",
-        "theta": "double",
-        "standardError": "double"
+        "theta": "double"
       }
     ]
   }

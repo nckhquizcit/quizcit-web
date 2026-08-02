@@ -1,11 +1,26 @@
-import { useState, useRef } from "react";
-import { Link } from "react-router-dom";
-import { Mail, Info, ArrowLeft } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, Mail } from "lucide-react";
+import { getErrorMessage } from "../../../../services/apiClient";
+import { resendOtp, verifyEmail } from "../../../../services/authService";
+import { Button } from "../../../../components/ui";
 import "./VerifyForm.css";
 
-export default function VerifyForm({ email = "nhhun@example.com" }) {
+export default function VerifyForm({ email = "", verificationToken = "" }) {
+  const navigate = useNavigate();
   const [otp, setOtp] = useState(new Array(6).fill(""));
+  const [token, setToken] = useState(verificationToken);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
   const inputRefs = useRef([]);
+
+  useEffect(() => {
+    if (cooldown <= 0) return undefined;
+    const timer = setInterval(() => setCooldown((prev) => prev - 1), 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
 
   const handleChange = (element, index) => {
     if (isNaN(element.value)) return false;
@@ -22,63 +37,100 @@ export default function VerifyForm({ email = "nhhun@example.com" }) {
       inputRefs.current[index - 1].focus();
     }
   };
-  const handleVerify = (e) => {
+
+  const handleVerify = async (e) => {
     e.preventDefault();
-
-    const verificationCode = otp.join("");
-
-    if (verificationCode.length < 6) {
-      alert("Vui lòng nhập đủ 6 số!");
+    const code = otp.join("");
+    if (code.length !== 6) {
+      setError("Vui lòng nhập đủ 6 số.");
       return;
     }
-
-    console.log("Đang gửi mã xác minh:", verificationCode);
-    // Đây là nơi bạn gọi API từ service của QuizCIT
+    if (!token) {
+      setError("Phiên xác minh đã hết hạn. Vui lòng đăng ký lại.");
+      return;
+    }
+    try {
+      setLoading(true);
+      setError("");
+      const auth = await verifyEmail(token, code);
+      localStorage.setItem("accessToken", auth.accessToken);
+      localStorage.setItem("user", JSON.stringify(auth));
+      navigate("/app");
+    } catch (apiError) {
+      setError(getErrorMessage(apiError, "Xác minh thất bại."));
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleResend = async () => {
+    if (!email || cooldown > 0) return;
+    try {
+      setResending(true);
+      setError("");
+      const res = await resendOtp(email);
+      setToken(res.verificationToken);
+      setOtp(new Array(6).fill(""));
+      setCooldown(60);
+    } catch (apiError) {
+      setError(getErrorMessage(apiError, "Không thể gửi lại mã."));
+    } finally {
+      setResending(false);
+    }
+  };
+
   return (
-    <form className="verify-form-container" onSubmit={handleVerify}>
-      <h2 className="form-title">Xác minh tài khoản</h2>
-      <p className="form-subtitle">Mã xác minh đã được gửi đến</p>
-
-      <div className="email-display">
-        <Mail size={18} />
-        <span>{email}</span>
+    <form className="auth-form verify-form" onSubmit={handleVerify}>
+      <div className="auth-form__head">
+        <h1>Xác minh tài khoản</h1>
+        <p>Nhập mã 6 số được gửi đến email của bạn</p>
       </div>
 
-      <div className="otp-section">
-        <p>Nhập 6 số mã xác minh</p>
-        <div className="otp-inputs">
-          {otp.map((data, index) => (
-            <input
-              key={index}
-              type="text"
-              maxLength="1"
-              ref={(el) => (inputRefs.current[index] = el)}
-              value={data}
-              onChange={(e) => handleChange(e.target, index)}
-              onKeyDown={(e) => handleKeyDown(e, index)}
-            />
-          ))}
+      {email && (
+        <div className="verify-email">
+          <Mail size={16} />
+          <span>{email}</span>
         </div>
+      )}
+
+      {error && <div className="auth-form__error">{error}</div>}
+
+      <div className="verify-otp">
+        {otp.map((data, index) => (
+          <input
+            key={index}
+            type="text"
+            inputMode="numeric"
+            maxLength="1"
+            ref={(el) => (inputRefs.current[index] = el)}
+            value={data}
+            onChange={(e) => handleChange(e.target, index)}
+            onKeyDown={(e) => handleKeyDown(e, index)}
+          />
+        ))}
       </div>
 
-      <button type="submit" className="submit-btn">
+      <Button type="submit" variant="primary" fullWidth loading={loading}>
         Xác minh tài khoản
-      </button>
+      </Button>
 
-      <div className="resend-group">
+      <div className="verify-resend">
         <span>Không nhận được mã?</span>
-        <button type="button" className="resend-btn">
-          Gửi lại mã
+        <button
+          type="button"
+          className="verify-resend__btn"
+          onClick={handleResend}
+          disabled={resending || cooldown > 0 || !email}
+        >
+          {cooldown > 0 ? `Gửi lại sau ${cooldown}s` : "Gửi lại mã"}
         </button>
       </div>
 
-      <div className="form-footer">
-        <Link to="/login" className="back-link">
-          <ArrowLeft size={18} />
-          <span>Quay lại đăng nhập</span>
+      <p className="auth-form__switch">
+        <Link to="/login" className="auth-back-link">
+          <ArrowLeft size={16} /> Quay lại đăng nhập
         </Link>
-      </div>
+      </p>
     </form>
   );
 }

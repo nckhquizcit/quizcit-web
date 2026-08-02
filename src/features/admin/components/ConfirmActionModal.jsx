@@ -5,7 +5,6 @@ export default function ConfirmActionModal({ isOpen, onClose, onConfirm, user })
   if (!isOpen || !user) return null;
 
   const handleConfirm = () => {
-    console.log(`Delete user ${user.userId || user.user_id}`);
     onConfirm();
   };
 
@@ -20,10 +19,10 @@ export default function ConfirmActionModal({ isOpen, onClose, onConfirm, user })
         </div>
         <div className="modal-footer">
           <button className="modal-btn primary" onClick={handleConfirm}>
-            Yes
+            Có
           </button>
           <button className="modal-btn secondary" onClick={onClose}>
-            No
+            Không
           </button>
         </div>
       </div>
