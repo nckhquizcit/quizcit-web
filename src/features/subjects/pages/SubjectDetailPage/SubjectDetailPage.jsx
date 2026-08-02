@@ -39,14 +39,14 @@ export default function SubjectDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [adaptiveOpen, setAdaptiveOpen] = useState(false);
-  const [adaptiveCount, setAdaptiveCount] = useState(40);
+  const [adaptiveCount, setAdaptiveCount] = useState(15);
   const [startingAdaptive, setStartingAdaptive] = useState(false);
   const [adaptiveError, setAdaptiveError] = useState("");
 
   const handleStartAdaptive = async () => {
     const count = Number(adaptiveCount);
     if (!isValidAdaptiveQuestionCount(count)) {
-      setAdaptiveError("Số câu của bài thích ứng phải từ 40 trở lên và chia hết cho 5.");
+      setAdaptiveError("Số câu của bài thích ứng phải từ 15 trở lên và chia hết cho 5.");
       return;
     }
     try {
@@ -185,11 +185,11 @@ export default function SubjectDetailPage() {
         <div className="adaptive-dialog-backdrop" onClick={() => setAdaptiveOpen(false)}>
           <section className="adaptive-dialog" onClick={(event) => event.stopPropagation()}>
             <h2>Tạo bài kiểm tra thích ứng</h2>
-            <p>Nhập số câu (tối thiểu 40 và chia hết cho 5).</p>
+            <p>Nhập số câu (tối thiểu 15 và chia hết cho 5).</p>
             {adaptiveError && <p className="adaptive-dialog__error">{adaptiveError}</p>}
             <input
               type="number"
-              min="40"
+              min="15"
               step="5"
               value={adaptiveCount}
               onChange={(event) => setAdaptiveCount(event.target.value)}

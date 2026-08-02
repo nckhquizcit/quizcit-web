@@ -7,10 +7,10 @@ import {
 } from "./AdaptiveQuizPage.logic.js";
 
 describe("adaptive quiz logic", () => {
-  it("accepts only counts from 40 that are divisible by five", () => {
-    assert.equal(isValidAdaptiveQuestionCount(35), false);
-    assert.equal(isValidAdaptiveQuestionCount(42), false);
-    assert.equal(isValidAdaptiveQuestionCount(40), true);
+  it("accepts only counts from 15 that are divisible by five", () => {
+    assert.equal(isValidAdaptiveQuestionCount(10), false);
+    assert.equal(isValidAdaptiveQuestionCount(17), false);
+    assert.equal(isValidAdaptiveQuestionCount(15), true);
     assert.equal(isValidAdaptiveQuestionCount("75"), true);
   });
 

@@ -1,5 +1,5 @@
 export const ADAPTIVE_PAGE_SIZE = 5;
-export const ADAPTIVE_MIN_QUESTION_COUNT = 40;
+export const ADAPTIVE_MIN_QUESTION_COUNT = 15;
 
 export function isValidAdaptiveQuestionCount(value) {
   const count = Number(value);
