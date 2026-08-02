@@ -8,6 +8,7 @@ import {
   FORMAT_BLOCKNOTE,
   serializeRichTextContent,
 } from "./richTextUtils";
+import { richTextSchema } from "./richTextSchema";
 import "./richtext.css";
 
 /**
@@ -29,7 +30,7 @@ export default function RichTextEditor({
   className = "",
 }) {
   const [initialBlocks] = useState(() => deserializeRichTextContent(value, contentFormat));
-  const editor = useCreateBlockNote({ initialContent: initialBlocks });
+  const editor = useCreateBlockNote({ initialContent: initialBlocks, schema: richTextSchema });
   const inline = variant === "inline";
 
   const handleChange = useCallback(

@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+import { Fragment, useEffect, useState } from "react";
 import {
   blockToPlainText,
   groupBlocks,
@@ -9,10 +9,11 @@ import {
 } from "./richTextBlocks";
 import {
   FORMAT_BLOCKNOTE,
-  normalizeContentFormat,
   parseRichTextContent,
+  resolveContentFormat,
   splitPlainParagraphs,
 } from "./richTextUtils";
+import { highlightCode } from "./syntaxHighlight";
 import "./richtext.css";
 
 function styleFromProps(props) {
@@ -99,6 +100,47 @@ function BlockChildren({ block }) {
   );
 }
 
+function HighlightedCode({ code, language }) {
+  const [highlighted, setHighlighted] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+
+    highlightCode(code, language)
+      .then((result) => {
+        if (active) setHighlighted({ code, language, result });
+      })
+      .catch(() => {
+        if (active) setHighlighted({ code, language, result: null });
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [code, language]);
+
+  const className = language ? `language-${language}` : undefined;
+  const result = highlighted?.code === code && highlighted.language === language
+    ? highlighted.result
+    : null;
+  if (!result) return <code className={className}>{code}</code>;
+
+  return (
+    <code className={className} data-highlighted={language} style={{ color: result.fg }}>
+      {result.tokens.map((line, lineIndex) => (
+        <Fragment key={lineIndex}>
+          {lineIndex > 0 && "\n"}
+          {line.map((token, tokenIndex) => (
+            <span key={tokenIndex} style={{ color: token.color }}>
+              {token.content}
+            </span>
+          ))}
+        </Fragment>
+      ))}
+    </code>
+  );
+}
+
 function Block({ block }) {
   const segments = toInlineSegments(block.content);
   const style = styleFromProps(block.props);
@@ -114,11 +156,10 @@ function Block({ block }) {
 
   if (block.type === "codeBlock") {
     const language = String(block.props?.language ?? "").trim();
+    const code = blockToPlainText(block);
     return (
       <pre className="rich-text__pre">
-        <code className={language ? `language-${language}` : undefined}>
-          {blockToPlainText(block)}
-        </code>
+        <HighlightedCode code={code} language={language} />
       </pre>
     );
   }
@@ -243,7 +284,7 @@ export default function RichTextView({
   className = "",
   variant = "block",
 }) {
-  const format = normalizeContentFormat(contentFormat);
+  const format = resolveContentFormat(content, contentFormat);
   const inline = variant === "inline";
 
   const blocks =

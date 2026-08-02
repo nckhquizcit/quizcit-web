@@ -3,6 +3,23 @@ import { blocksToPlainText } from "./richTextBlocks.js";
 export const FORMAT_PLAIN = "plain";
 export const FORMAT_BLOCKNOTE = "blocknote";
 
+const BLOCKNOTE_BLOCK_TYPES = new Set([
+  "audio",
+  "bulletListItem",
+  "checkListItem",
+  "codeBlock",
+  "divider",
+  "file",
+  "heading",
+  "image",
+  "numberedListItem",
+  "paragraph",
+  "quote",
+  "table",
+  "toggleListItem",
+  "video",
+]);
+
 export function normalizeContentFormat(value) {
   return String(value ?? "").toLowerCase() === FORMAT_BLOCKNOTE ? FORMAT_BLOCKNOTE : FORMAT_PLAIN;
 }
@@ -27,12 +44,38 @@ export function parseRichTextContent(value) {
   }
 }
 
+export function isSerializedBlockNoteContent(value) {
+  const blocks = parseRichTextContent(value);
+
+  const isBlockNoteBlock = (block) =>
+    block &&
+    typeof block === "object" &&
+    !Array.isArray(block) &&
+    typeof block.id === "string" &&
+    block.id.length > 0 &&
+    BLOCKNOTE_BLOCK_TYPES.has(block.type) &&
+    block.props &&
+    typeof block.props === "object" &&
+    !Array.isArray(block.props) &&
+    Array.isArray(block.children) &&
+    block.children.every(isBlockNoteBlock);
+
+  return blocks.length > 0 && blocks.every(isBlockNoteBlock);
+}
+
+export function resolveContentFormat(content, format) {
+  const normalizedFormat = normalizeContentFormat(format);
+  return normalizedFormat === FORMAT_BLOCKNOTE || isSerializedBlockNoteContent(content)
+    ? FORMAT_BLOCKNOTE
+    : FORMAT_PLAIN;
+}
+
 /**
  * Nội dung cũ dạng plain text được nâng thành các block paragraph để mở được
  * trong trình soạn thảo mà không cần migrate dữ liệu.
  */
 export function deserializeRichTextContent(content, format = FORMAT_PLAIN) {
-  if (normalizeContentFormat(format) === FORMAT_BLOCKNOTE) {
+  if (resolveContentFormat(content, format) === FORMAT_BLOCKNOTE) {
     const blocks = parseRichTextContent(content);
     return blocks.length ? blocks : [{ type: "paragraph" }];
   }
@@ -48,7 +91,7 @@ export function serializeRichTextContent(blocks) {
 }
 
 export function extractPlainText(content, format = FORMAT_BLOCKNOTE) {
-  if (normalizeContentFormat(format) === FORMAT_PLAIN) {
+  if (resolveContentFormat(content, format) === FORMAT_PLAIN) {
     return normalizePlainText(content);
   }
 

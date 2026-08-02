@@ -66,6 +66,37 @@ test("extracts plain text from both formats", () => {
   );
 });
 
+test("recovers legacy BlockNote content mislabeled as plain", () => {
+  const blocks = [
+    {
+      id: "legacy-code",
+      type: "codeBlock",
+      props: { language: "c" },
+      content: [{ type: "text", text: 'printf("Hello");', styles: {} }],
+      children: [],
+    },
+    {
+      id: "legacy-question",
+      type: "paragraph",
+      props: {},
+      content: [{ type: "text", text: "Kết quả?", styles: {} }],
+      children: [],
+    },
+  ];
+  const content = JSON.stringify(blocks);
+
+  assert.equal(toPreviewText(content, "plain"), 'printf("Hello"); Kết quả?');
+  assert.deepEqual(deserializeRichTextContent(content, "plain"), blocks);
+});
+
+test("does not treat arbitrary object arrays as BlockNote", () => {
+  const content = JSON.stringify([
+    { id: "invoice-1", type: "invoice", props: {}, content: [], children: [] },
+  ]);
+
+  assert.equal(extractPlainText(content, "plain"), content);
+});
+
 test("treats whitespace-only and structurally-empty content as empty", () => {
   assert.equal(isRichTextEmpty("", "plain"), true);
   assert.equal(isRichTextEmpty("   ", "plain"), true);

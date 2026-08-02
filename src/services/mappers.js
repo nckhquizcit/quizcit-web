@@ -1,3 +1,5 @@
+import { resolveContentFormat } from "../components/richtext/richTextUtils.js";
+
 const pick = (source, keys, fallback = undefined) => {
   for (const key of keys) {
     if (source?.[key] !== undefined && source?.[key] !== null) {
@@ -223,7 +225,11 @@ export function mapQuestion(raw = {}) {
   const questionId = pick(raw, ["questionId", "question_id", "id"]);
   const subjectId = pick(raw, ["subjectId", "subject_id"]);
   const chapterId = pick(raw, ["chapterId", "chapter_id"]);
-  const contentFormat = pick(raw, ["contentFormat", "content_format"], "plain");
+  const content = pick(raw, ["content"], "");
+  const contentFormat = resolveContentFormat(
+    content,
+    pick(raw, ["contentFormat", "content_format"], "plain"),
+  );
   const options = toArray(pick(raw, ["options", "answers"], [])).map((option) =>
     mapOption(option, contentFormat),
   );
@@ -242,7 +248,7 @@ export function mapQuestion(raw = {}) {
     subject_id: subjectId,
     chapterId,
     chapter_id: chapterId,
-    content: pick(raw, ["content"], ""),
+    content,
     explanation: pick(raw, ["explanation", "explaination"], ""),
     contentFormat,
     difficultyB,
@@ -304,7 +310,11 @@ export function mapQuestionResult(raw = {}) {
   const questionId = pick(raw, ["questionId", "question_id", "id"]);
   const selectedOptionId = pick(raw, ["selectedOptionId", "selected_option_id"], null);
   const correctOptionId = pick(raw, ["correctOptionId", "correct_option_id"], null);
-  const contentFormat = pick(raw, ["contentFormat", "content_format"], "plain");
+  const content = pick(raw, ["content"], "");
+  const contentFormat = resolveContentFormat(
+    content,
+    pick(raw, ["contentFormat", "content_format"], "plain"),
+  );
   const options = toArray(pick(raw, ["options"], [])).map((option) =>
     mapOption(option, contentFormat),
   );
@@ -317,7 +327,7 @@ export function mapQuestionResult(raw = {}) {
     questionId,
     question_id: questionId,
     questionNumber: toNumber(pick(raw, ["questionNumber", "question_number"], 0)),
-    content: pick(raw, ["content"], ""),
+    content,
     explanation: pick(raw, ["explanation", "explaination"], ""),
     contentFormat,
     selectedOptionId,
