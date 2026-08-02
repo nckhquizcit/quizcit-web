@@ -17,8 +17,8 @@ import {
 import ProgressBar from "../../../home/components/ProgressBar";
 import "./ProgressPage.css";
 
-const getSkillDisplayName = (skillNameById, skillId) =>
-  skillNameById.get(skillId) || "Kỹ năng chưa đặt tên";
+const getSkillDisplayName = (skillNameById, skillId, rowName) =>
+  skillNameById.get(String(skillId ?? "").trim()) || rowName || "Kỹ năng chưa đặt tên";
 
 export default function ProgressPage() {
   const [abilities, setAbilities] = useState([]);
@@ -129,7 +129,7 @@ export default function ProgressPage() {
                 >
                   <div className="skill-progress-card__head">
                     <span className="skill-progress-card__name">
-                      {getSkillDisplayName(skillNameById, ability.skillId)}
+                      {getSkillDisplayName(skillNameById, ability.skillId, ability.name)}
                     </span>
                     <strong className="skill-progress-card__theta">
                       {formatThetaValue(thetaRaw)}
@@ -165,7 +165,7 @@ export default function ProgressPage() {
               return (
                 <div className="progress-history-row" key={item.id}>
                   <span className="progress-history-row__name">
-                    {getSkillDisplayName(skillNameById, item.skillId)}
+                    {getSkillDisplayName(skillNameById, item.skillId, item.name)}
                   </span>
                   <span className="progress-history-row__theta">
                     {formatThetaValue(thetaRaw)}

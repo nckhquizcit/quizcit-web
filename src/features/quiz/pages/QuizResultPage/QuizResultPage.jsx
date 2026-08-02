@@ -3,7 +3,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { BookOpen, CalendarDays, CheckCircle2, History, TrendingUp, XCircle } from "lucide-react";
 import { getErrorMessage } from "../../../../services/apiClient";
 import { getAttemptResult, getQuizById } from "../../../../services/quizService";
-import { getSkills } from "../../../../services/skillService";
 import { getSubjectById } from "../../../../services/subjectService";
 import { formatThetaValue } from "../../../../services/mappers";
 import {
@@ -18,7 +17,6 @@ import "./QuizResultPage.css";
 const FALLBACK_QUIZ_NAME = "Bài kiểm tra";
 const MISSING_QUIZ_NAME = "Chưa có tên bài quiz";
 const FALLBACK_SUBJECT_NAME = "Không rõ môn học";
-const MISSING_SKILL_NAME = "Kỹ năng chưa đặt tên";
 const FALLBACK_DATE = "—";
 const submittedAtFormatter = new Intl.DateTimeFormat("vi-VN", {
   dateStyle: "short",
@@ -38,8 +36,7 @@ const isMissingName = (value) => {
   const trimmed = value.trim();
   return (
     trimmed === MISSING_QUIZ_NAME ||
-    trimmed === FALLBACK_SUBJECT_NAME ||
-    trimmed === MISSING_SKILL_NAME
+    trimmed === FALLBACK_SUBJECT_NAME
   );
 };
 
@@ -61,20 +58,7 @@ async function resolveResultMetadata(result) {
     }
   }
 
-  const needsSkillNames = (result.skillResults || []).some((skill) => isMissingName(skill.name));
-  let skillResults = result.skillResults;
-
-  if (needsSkillNames) {
-    const skills = await getSkills().catch(() => []);
-    const skillNameById = new Map(skills.map((skill) => [skill.skillId, skill.name]));
-    skillResults = (result.skillResults || []).map((skill) =>
-      isMissingName(skill.name)
-        ? { ...skill, name: skillNameById.get(skill.skillId) || skill.name }
-        : skill,
-    );
-  }
-
-  return { ...result, quizName, subjectName, skillResults };
+  return { ...result, quizName, subjectName };
 }
 
 export default function QuizResultPage() {

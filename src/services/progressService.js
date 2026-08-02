@@ -1,20 +1,26 @@
 import { request } from "./apiClient";
 import { mapAbilityHistory, mapUserSkillAbility } from "./mappers";
+import { enrichSkillNames, getSkills } from "./skillService";
+
+async function enrichProgressRows(rows) {
+  const skills = await getSkills().catch(() => []);
+  return enrichSkillNames(rows, skills);
+}
 
 export async function getUserSkillAbilities(userId) {
   const abilities = await request({ method: "GET", url: `/api/users/${userId}/skills` });
-  return (abilities || []).map(mapUserSkillAbility);
+  return enrichProgressRows((abilities || []).map(mapUserSkillAbility));
 }
 
 export async function getUserSkillAbility(userId, skillId) {
-  return mapUserSkillAbility(
+  return (await enrichProgressRows([mapUserSkillAbility(
     await request({ method: "GET", url: `/api/users/${userId}/skills/${skillId}` }),
-  );
+  )]))[0];
 }
 
 export async function getAbilityHistories(userId) {
   const histories = await request({ method: "GET", url: `/api/users/${userId}/abilities/history` });
-  return (histories || []).map(mapAbilityHistory);
+  return enrichProgressRows((histories || []).map(mapAbilityHistory));
 }
 
 export async function getAbilityHistoriesBySkill(userId, skillId) {
@@ -22,7 +28,7 @@ export async function getAbilityHistoriesBySkill(userId, skillId) {
     method: "GET",
     url: `/api/users/${userId}/skills/${skillId}/history`,
   });
-  return (histories || []).map(mapAbilityHistory);
+  return enrichProgressRows((histories || []).map(mapAbilityHistory));
 }
 
 export async function getAverageAbility(userId) {

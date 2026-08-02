@@ -1,5 +1,6 @@
 import { request } from "./apiClient";
 import { mapAttempt, mapQuiz, mapQuizResult } from "./mappers";
+import { enrichSkillNames, getSkills } from "./skillService";
 import {
   createQuestion,
   deleteQuestion,
@@ -10,6 +11,13 @@ import {
 } from "./questionService";
 
 const QUIZ_DRAFT_PREFIX = "quizcit:quiz-draft:";
+
+async function mapResultWithSkillNames(rawResult) {
+  const result = mapQuizResult(rawResult);
+  if (!result.skillResults.length) return result;
+  const skills = await getSkills().catch(() => []);
+  return { ...result, skillResults: enrichSkillNames(result.skillResults, skills) };
+}
 
 function mapQuizPayload(payload = {}) {
   return {
@@ -106,11 +114,13 @@ export async function submitAttempt(payload) {
         })
       : await request({ method: "POST", url: "/api/attempts/submit", data });
 
-  return mapQuizResult(result);
+  return mapResultWithSkillNames(result);
 }
 
 export async function getAttemptResult(attemptId) {
-  return mapQuizResult(await request({ method: "GET", url: `/api/attempts/${attemptId}/result` }));
+  return mapResultWithSkillNames(
+    await request({ method: "GET", url: `/api/attempts/${attemptId}/result` }),
+  );
 }
 
 export async function getUserAttempts(userId) {

@@ -1,5 +1,15 @@
 import { request } from "./apiClient";
 import { mapQuestion } from "./mappers";
+import { enrichSkillNames, getSkills } from "./skillService";
+
+async function mapQuestionsWithSkillNames(rawQuestions = []) {
+  const questions = (rawQuestions || []).map(mapQuestion);
+  const skills = await getSkills().catch(() => []);
+  return questions.map((question) => ({
+    ...question,
+    skills: enrichSkillNames(question.skills, skills),
+  }));
+}
 
 function mapQuestionPayload(payload = {}) {
   return {
@@ -22,16 +32,19 @@ function mapQuestionPayload(payload = {}) {
 
 export async function getQuestionsByChapter(chapterId) {
   const questions = await request({ method: "GET", url: `/api/chapters/${chapterId}/questions` });
-  return (questions || []).map(mapQuestion);
+  return mapQuestionsWithSkillNames(questions);
 }
 
 export async function getQuestionById(questionId) {
-  return mapQuestion(await request({ method: "GET", url: `/api/questions/${questionId}` }));
+  const [question] = await mapQuestionsWithSkillNames([
+    await request({ method: "GET", url: `/api/questions/${questionId}` }),
+  ]);
+  return question;
 }
 
 export async function getQuestionsByQuiz(quizId) {
   const questions = await request({ method: "GET", url: `/api/quizzes/${quizId}/questions` });
-  return (questions || []).map(mapQuestion);
+  return mapQuestionsWithSkillNames(questions);
 }
 
 export async function createQuestion(payload) {
