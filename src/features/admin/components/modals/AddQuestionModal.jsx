@@ -2,9 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Eye, EyeOff, Search } from "lucide-react";
 
 import Modal from "../ui/Modal";
-import { getSkills } from "../../services/skillService";
 import { getErrorMessage } from "../../../../services/apiClient";
-import { getChaptersBySubject, getSubjects } from "../../../../services/contentService";
+import { getChapterById, getChaptersBySubject, getSubjects } from "../../../../services/contentService";
 
 const MIN_ANSWER_COUNT = 2;
 const MAX_ANSWER_COUNT = 10;
@@ -190,7 +189,7 @@ export function QuestionForm({
   }, [chapters, subject]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !selectedChapterId) { setAvailableSkills([]); return; }
 
     let cancelled = false;
 
@@ -198,10 +197,12 @@ export function QuestionForm({
       setLoadingSkills(true);
 
       try {
-        const skillData = await getSkills();
+        const selectedChapter = await getChapterById(selectedChapterId);
         if (cancelled) return;
 
-        setAvailableSkills((skillData || []).map(normalizeSkill));
+        const skillData = selectedChapter?.skills || [];
+        setAvailableSkills(skillData.map(normalizeSkill));
+        setSelectedSkills((current) => current.filter((item) => skillData.some((available) => normalizeId(getSkillId(available)) === item.skillId)));
       } catch {
         if (!cancelled) {
           setAvailableSkills([]);
@@ -218,7 +219,7 @@ export function QuestionForm({
     return () => {
       cancelled = true;
     };
-  }, [open]);
+  }, [open, selectedChapterId]);
 
   useEffect(() => {
     if (!open) return;
