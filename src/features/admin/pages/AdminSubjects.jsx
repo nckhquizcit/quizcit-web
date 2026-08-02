@@ -8,7 +8,7 @@ import SearchBar from "../components/SearchBar";
 import AddSubjectModal from "../components/modals/AddSubjectModal";
 import ConfirmDeleteModal from "../components/modals/ConfirmDeleteModal";
 import EmptyState from "../../../components/ui/EmptyState/EmptyState";
-import { createSubject, deleteSubject, getChaptersBySubject, getSubjects, reorderSubjects } from "../../../services/contentService";
+import { createSubject, deleteSubject, getAllChapters, getSubjects, reorderSubjects } from "../../../services/contentService";
 import { getErrorMessage } from "../../../services/apiClient";
 import { reorderById } from "../utils/displayOrder";
 
@@ -35,13 +35,9 @@ export default function AdminSubjects() {
       try {
         setLoading(true);
         setLoadError("");
-        const data = (await getSubjects()) || [];
-        const chapterEntries = await Promise.all(
-          data.map(async (subject) => [
-            subject.subjectId,
-            ((await getChaptersBySubject(subject.subjectId)) || []).length,
-          ]),
-        );
+        const [data = [], chapters = []] = await Promise.all([getSubjects(), getAllChapters()]);
+        const chapterEntries = data.map((subject) => [subject.subjectId,
+          chapters.filter((chapter) => chapter.subjectId === subject.subjectId).length]);
 
         if (!alive) return;
         setSubjects(data);

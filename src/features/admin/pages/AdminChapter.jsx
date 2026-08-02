@@ -19,7 +19,7 @@ import {
   updateTheory,
   deleteTheory,
 } from "../../../services/contentService";
-import { getQuestionsByChapter } from "../../../services/quizService";
+import { getAllQuestions } from "../../../services/quizService";
 import { getErrorMessage } from "../../../services/apiClient";
 import { reorderById } from "../utils/displayOrder";
 
@@ -57,14 +57,11 @@ export default function AdminChapters() {
       try {
         setLoading(true);
         setLoadError("");
-        const subjectData = await getSubjectById(subjectId);
-        const chapters = (await getChaptersBySubject(subjectId)) || [];
-        const entries = await Promise.all(
-          chapters.map(async (chapter) => [
-            chapter.chapterId,
-            ((await getQuestionsByChapter(chapter.chapterId)) || []).length,
-          ]),
-        );
+        const [subjectData, chapters = [], questions = []] = await Promise.all([
+          getSubjectById(subjectId), getChaptersBySubject(subjectId), getAllQuestions(),
+        ]);
+        const entries = chapters.map((chapter) => [chapter.chapterId,
+          questions.filter((question) => question.chapterId === chapter.chapterId).length]);
 
         if (!alive) return;
         setSubject(subjectData);

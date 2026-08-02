@@ -3,6 +3,7 @@ import { clearUserPreview, isUserPreviewActive } from "./userPreviewMode";
 
 const AUTH_CHANGED_EVENT = "quizcit:auth-changed";
 export const ACCESS_DENIED_MESSAGE = "Bạn không có quyền thực hiện thao tác này.";
+const inFlightGets = new Map();
 
 export class ApiError extends Error {
   constructor({ status = 0, message, data = null, validation = null, originalError = null }) {
@@ -119,7 +120,7 @@ apiClient.interceptors.response.use(
   },
 );
 
-export async function request(config) {
+async function executeRequest(config) {
   const response = await apiClient(config);
   const body = response.data;
 
@@ -128,6 +129,23 @@ export async function request(config) {
   }
 
   return body;
+}
+
+export function request(config) {
+  const method = String(config?.method || "GET").toUpperCase();
+  if (method !== "GET") return executeRequest(config);
+
+  const key = JSON.stringify([
+    config.url,
+    config.params || null,
+    localStorage.getItem("accessToken") || "",
+    isUserPreviewActive(getStoredUser()),
+  ]);
+  if (!inFlightGets.has(key)) {
+    const pending = executeRequest(config).finally(() => inFlightGets.delete(key));
+    inFlightGets.set(key, pending);
+  }
+  return inFlightGets.get(key);
 }
 
 export function getErrorMessage(error, fallback = "Đã có lỗi xảy ra. Vui lòng thử lại.") {

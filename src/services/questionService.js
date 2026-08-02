@@ -37,6 +37,12 @@ export async function getQuestionsByChapter(chapterId) {
   return mapQuestionsWithSkillNames(questions);
 }
 
+export async function getAllQuestions() {
+  return mapQuestionsWithSkillNames(
+    await request({ method: "GET", url: "/api/questions" }),
+  );
+}
+
 export async function getQuestionById(questionId) {
   const [question] = await mapQuestionsWithSkillNames([
     await request({ method: "GET", url: `/api/questions/${questionId}` }),

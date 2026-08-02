@@ -29,12 +29,12 @@ import { useToast } from "../../../components/ui/Toast/Toast";
 import { toPreviewText } from "../../../components/richtext/richTextUtils";
 import {
   deleteQuestion,
+  getAllQuestions,
   getQuestionById,
-  getQuestionsByChapter,
   updateQuestion,
 } from "../../../services/quizService";
 import { getErrorMessage } from "../../../services/apiClient";
-import { getChaptersBySubject, getSubjects } from "../../../services/contentService";
+import { getAllChapters, getSubjects } from "../../../services/contentService";
 import {
   filterQuestionBankQuestions,
   getQuestionSkillOptions,
@@ -111,7 +111,7 @@ const enrichQuestion = (question, chapterMap, subjectMap) => {
   };
 };
 
-const loadQuestionsFromChapters = async (chapterList, selectedSubjectId, selectedChapterId) => {
+const loadQuestionsFromChapters = (chapterList, allQuestions, selectedSubjectId, selectedChapterId) => {
   const normalizedChapters = (chapterList || []).map(normalizeChapter);
   const chaptersToLoad = selectedChapterId
     ? normalizedChapters.filter((chapter) => chapter.chapterId === selectedChapterId)
@@ -123,16 +123,12 @@ const loadQuestionsFromChapters = async (chapterList, selectedSubjectId, selecte
     return { chapters: normalizedChapters, questions: [] };
   }
 
-  const questionGroups = await Promise.all(
-    chaptersToLoad.map(async (chapter) => {
-      const questions = (await getQuestionsByChapter(chapter.chapterId)) || [];
-      return questions.map((question) => ({ ...question, chapterId: question.chapterId ?? chapter.chapterId }));
-    }),
-  );
+  const chapterIds = new Set(chaptersToLoad.map((chapter) => chapter.chapterId));
+  const questions = (allQuestions || []).filter((question) => chapterIds.has(getQuestionChapterId(question)));
 
   return {
     chapters: normalizedChapters,
-    questions: questionGroups.flat(),
+    questions,
   };
 };
 
@@ -226,17 +222,13 @@ export default function AdminQuestions() {
     try {
       setLoading(true);
       setError("");
-      const subjectData = await getSubjects();
+      const [subjectData, allChapters, allQuestions] = await Promise.all([
+        getSubjects(), getAllChapters(), getAllQuestions(),
+      ]);
       const normalizedSubjects = (subjectData || []).map(normalizeSubject);
-      const chapterGroups = await Promise.all(
-        normalizedSubjects.map(async (subject) => ({
-          subjectId: subject.subjectId,
-          chapters: (await getChaptersBySubject(subject.subjectId)) || [],
-        })),
-      );
-      const allChapters = chapterGroups.flatMap((group) => group.chapters || []);
-      const { chapters: normalizedChapters, questions } = await loadQuestionsFromChapters(
+      const { chapters: normalizedChapters, questions } = loadQuestionsFromChapters(
         allChapters,
+        allQuestions,
         subjectId,
         chapterId,
       );

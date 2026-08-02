@@ -1,6 +1,5 @@
-import { getUserById, getUsers } from "../../../services/userService";
-import { getChaptersBySubject, getSubjects } from "../../../services/contentService";
-import { getQuestionsByChapter, getUserAttempts } from "../../../services/quizService";
+import { getUserById } from "../../../services/userService";
+import { request } from "../../../services/apiClient";
 
 const fallbackAdmin = {
   username: "admin",
@@ -8,20 +7,6 @@ const fallbackAdmin = {
   displayName: "Admin",
   role: "ADMINISTRATOR",
 };
-
-function countItems(items) {
-  return Array.isArray(items) ? items.length : 0;
-}
-
-function countFulfilledItems(results) {
-  return results.reduce((total, result) => {
-    if (result.status !== "fulfilled") {
-      return total;
-    }
-
-    return total + countItems(result.value);
-  }, 0);
-}
 
 function getStoredUser() {
   try {
@@ -45,32 +30,12 @@ export const adminProfileService = {
   },
 
   async getAdminProfileStats() {
-    const [users, subjects] = await Promise.all([getUsers(), getSubjects()]);
-    const safeUsers = Array.isArray(users) ? users : [];
-    const safeSubjects = Array.isArray(subjects) ? subjects : [];
-
-    const chaptersBySubject = await Promise.all(
-      safeSubjects.map((subject) => getChaptersBySubject(subject.subjectId)),
-    );
-    const chapters = chaptersBySubject.flatMap((items) =>
-      Array.isArray(items) ? items : [],
-    );
-
-    const usersWithId = safeUsers.filter((user) => user?.userId);
-
-    const [questionsByChapter, attemptsByUser] = await Promise.all([
-      Promise.all(chapters.map((chapter) => getQuestionsByChapter(chapter.chapterId))),
-      Promise.allSettled(usersWithId.map((user) => getUserAttempts(user.userId))),
-    ]);
-
+    const stats = await request({ method: "GET", url: "/api/admin/data-stats" });
     return {
-      totalUsers: safeUsers.length,
-      totalSubjects: safeSubjects.length,
-      totalQuestions: questionsByChapter.reduce(
-        (total, questions) => total + countItems(questions),
-        0,
-      ),
-      totalAttempts: countFulfilledItems(attemptsByUser),
+      totalUsers: Number(stats?.totalUsers || 0),
+      totalSubjects: Number(stats?.totalSubjects || 0),
+      totalQuestions: Number(stats?.totalQuestions || 0),
+      totalAttempts: Number(stats?.totalAttempts || 0),
     };
   },
 };
