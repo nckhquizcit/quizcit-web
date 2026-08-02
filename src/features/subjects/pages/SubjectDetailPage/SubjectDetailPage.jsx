@@ -13,6 +13,7 @@ import {
   getTheoriesByChapter,
 } from "../../../../services/contentService";
 import { getQuizzesByChapter } from "../../../../services/quizService";
+import { startAdaptiveQuiz } from "../../../../services/quizService";
 import {
   Badge,
   Button,
@@ -35,6 +36,28 @@ export default function SubjectDetailPage() {
   const [activeChapterId, setActiveChapterId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [adaptiveOpen, setAdaptiveOpen] = useState(false);
+  const [adaptiveCount, setAdaptiveCount] = useState(40);
+  const [startingAdaptive, setStartingAdaptive] = useState(false);
+  const [adaptiveError, setAdaptiveError] = useState("");
+
+  const handleStartAdaptive = async () => {
+    const count = Number(adaptiveCount);
+    if (!Number.isInteger(count) || count < 40 || count % 5 !== 0) {
+      setAdaptiveError("Số câu của bài thích ứng phải từ 40 trở lên và chia hết cho 5.");
+      return;
+    }
+    try {
+      setStartingAdaptive(true);
+      setAdaptiveError("");
+      const state = await startAdaptiveQuiz(subjectId, count);
+      navigate(`/app/adaptive/${state.attemptId}`);
+    } catch (err) {
+      setAdaptiveError(getErrorMessage(err, "Không thể tạo bài kiểm tra thích ứng."));
+    } finally {
+      setStartingAdaptive(false);
+    }
+  };
 
   useEffect(() => {
     let alive = true;
@@ -152,8 +175,34 @@ export default function SubjectDetailPage() {
           <span>
             <BookOpen size={16} /> {chapters.length} chương
           </span>
+          <Button variant="primary" onClick={() => setAdaptiveOpen(true)}>
+            Làm bài thích ứng
+          </Button>
         </div>
       </header>
+
+      {adaptiveOpen && (
+        <div className="adaptive-dialog-backdrop" onClick={() => setAdaptiveOpen(false)}>
+          <section className="adaptive-dialog" onClick={(event) => event.stopPropagation()}>
+            <h2>Tạo bài kiểm tra thích ứng</h2>
+            <p>Nhập số câu (tối thiểu 40 và chia hết cho 5).</p>
+            {adaptiveError && <p className="adaptive-dialog__error">{adaptiveError}</p>}
+            <input
+              type="number"
+              min="40"
+              step="5"
+              value={adaptiveCount}
+              onChange={(event) => setAdaptiveCount(event.target.value)}
+            />
+            <div className="adaptive-dialog__actions">
+              <Button variant="ghost" onClick={() => setAdaptiveOpen(false)}>Hủy</Button>
+              <Button variant="primary" loading={startingAdaptive} onClick={handleStartAdaptive}>
+                Bắt đầu
+              </Button>
+            </div>
+          </section>
+        </div>
+      )}
 
       {chapters.length === 0 ? (
         <EmptyState

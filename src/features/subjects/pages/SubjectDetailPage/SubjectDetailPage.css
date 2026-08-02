@@ -273,3 +273,18 @@
     grid-template-columns: 1fr;
   }
 }
+.adaptive-dialog-backdrop {
+  position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center;
+  background: rgba(15, 23, 42, .55); padding: 20px;
+}
+.adaptive-dialog {
+  width: min(420px, 100%); background: var(--color-surface, #fff); border-radius: 16px;
+  padding: 24px; box-shadow: 0 20px 50px rgba(15, 23, 42, .25);
+}
+.adaptive-dialog h2 { margin: 0 0 8px; }
+.adaptive-dialog__error { color: var(--color-danger, #dc2626); }
+.adaptive-dialog input {
+  width: 100%; box-sizing: border-box; margin: 12px 0 20px; padding: 10px 12px;
+  border: 1px solid var(--color-border, #d7dce5); border-radius: 8px;
+}
+.adaptive-dialog__actions { display: flex; justify-content: flex-end; gap: 8px; }

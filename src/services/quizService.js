@@ -73,6 +73,26 @@ export async function startQuiz(quizId, userId) {
   return request({ method: "POST", url: `/api/quizzes/${quizId}/start`, params: { userId } });
 }
 
+export async function startAdaptiveQuiz(subjectId, totalQuestion) {
+  return request({
+    method: "POST",
+    url: `/api/subjects/${subjectId}/adaptive-attempts`,
+    data: { totalQuestion: Number(totalQuestion) },
+  });
+}
+
+export async function getAdaptiveAttempt(attemptId) {
+  return request({ method: "GET", url: `/api/adaptive-attempts/${attemptId}` });
+}
+
+export async function submitAdaptiveBatch(attemptId, answers) {
+  return request({
+    method: "POST",
+    url: `/api/adaptive-attempts/${attemptId}/answers`,
+    data: { answers },
+  });
+}
+
 export async function submitAttempt(payload) {
   const { quizId, attemptId, answers = [] } = payload || {};
   const data = { quizId, attemptId, answers };

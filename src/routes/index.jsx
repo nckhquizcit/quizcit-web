@@ -17,6 +17,7 @@ const HistoryPage = lazy(() => import("../features/history/pages/HistoryPage/His
 const ProgressPage = lazy(() => import("../features/progress/pages/ProgressPage/ProgressPage.jsx"));
 const QuizTakingPage = lazy(() => import("../features/quiz/pages/QuizTakingPage/QuizTakingPage.jsx"));
 const QuizResultPage = lazy(() => import("../features/quiz/pages/QuizResultPage/QuizResultPage.jsx"));
+const AdaptiveQuizPage = lazy(() => import("../features/quiz/pages/AdaptiveQuizPage/AdaptiveQuizPage.jsx"));
 
 const AdminDashboard = lazy(() => import("../features/admin/pages/AdminDashboard.jsx"));
 const AdminSubjects = lazy(() => import("../features/admin/pages/AdminSubjects.jsx"));
@@ -73,6 +74,7 @@ export const router = createBrowserRouter([
       { path: "subjects", element: withSuspense(<SubjectsPage />) },
       { path: "subjects/:subjectId", element: withSuspense(<SubjectDetailPage />) },
       { path: "quiz/:quizId", element: withSuspense(<QuizTakingPage />) },
+      { path: "adaptive/:attemptId", element: withSuspense(<AdaptiveQuizPage />) },
       { path: "quiz/result/:attemptId", element: withSuspense(<QuizResultPage />) },
       { path: "history", element: withSuspense(<HistoryPage />) },
       { path: "progress", element: withSuspense(<ProgressPage />) },
