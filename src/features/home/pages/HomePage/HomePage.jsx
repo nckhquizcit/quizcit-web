@@ -10,7 +10,7 @@ import {
   ErrorState,
   SkeletonCard,
 } from "../../../../components/ui";
-import { getChaptersBySubject } from "../../../../services/chapterService";
+import { getAllChapters } from "../../../../services/chapterService";
 import { getSubjects } from "../../../../services/subjectService";
 import {
   getAverageAbility,
@@ -41,12 +41,9 @@ export default function HomePage() {
       try {
         setLoading(true);
         setError("");
-        const subjectData = (await getSubjects()) || [];
-        const chaptersData = (
-          await Promise.all(
-            subjectData.map((subject) => getChaptersBySubject(subject.subjectId))
-          )
-        ).flat();
+        const [subjectData = [], chaptersData = []] = await Promise.all([
+          getSubjects(), getAllChapters(),
+        ]);
 
         if (!alive) return;
         setSubjects(subjectData);

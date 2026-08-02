@@ -11,6 +11,7 @@ export {
   createChapter,
   deleteChapter,
   getChapterById,
+  getAllChapters,
   getChaptersBySubject,
   updateChapter,
   reorderChapters,
@@ -20,6 +21,7 @@ export {
   createTheory,
   deleteTheory,
   getTheoriesByChapter,
+  getTheoriesBySubject,
   getTheoryById,
   updateTheory,
 } from "./theoryService";

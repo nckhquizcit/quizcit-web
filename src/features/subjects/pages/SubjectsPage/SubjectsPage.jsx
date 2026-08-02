@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { BookOpen, GraduationCap, Layers3, Library, Search } from "lucide-react";
 import {
-  getChaptersBySubject,
+  getAllChapters,
   getSubjects,
 } from "../../../../services/contentService";
 import {
@@ -27,11 +27,9 @@ export default function SubjectsPage() {
       try {
         setLoading(true);
         setError("");
-        const subjects = (await getSubjects()) || [];
-        const withChapters = await Promise.all(
-          subjects.map(async (subject) => {
-            const chapters =
-              (await getChaptersBySubject(subject.subjectId)) || [];
+        const [subjects = [], allChapters = []] = await Promise.all([getSubjects(), getAllChapters()]);
+        const withChapters = subjects.map((subject) => {
+            const chapters = allChapters.filter((chapter) => chapter.subjectId === subject.subjectId);
             return {
               ...subject,
               subject_id: subject.subjectId,
@@ -42,8 +40,7 @@ export default function SubjectsPage() {
                 name: chapter.name,
               })),
             };
-          })
-        );
+          });
         if (alive) setSubjectCollection(withChapters);
       } catch (loadError) {
         if (alive)

@@ -5,6 +5,7 @@ import {
   createQuestion,
   deleteQuestion,
   getQuestionById,
+  getAllQuestions,
   getQuestionsByChapter,
   getQuestionsByQuiz,
   updateQuestion,
@@ -153,4 +154,4 @@ export function clearQuizDraft(quizId, userId) {
   sessionStorage.removeItem(getQuizDraftKey(quizId, userId));
 }
 
-export { createQuestion, deleteQuestion, getQuestionById, getQuestionsByChapter, getQuestionsByQuiz, updateQuestion };
+export { createQuestion, deleteQuestion, getAllQuestions, getQuestionById, getQuestionsByChapter, getQuestionsByQuiz, updateQuestion };

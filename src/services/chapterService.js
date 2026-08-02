@@ -6,6 +6,11 @@ export async function getChaptersBySubject(subjectId) {
   return (chapters || []).map(mapChapter).sort((a, b) => a.displayOrder - b.displayOrder);
 }
 
+export async function getAllChapters() {
+  const chapters = await request({ method: "GET", url: "/api/chapters" });
+  return (chapters || []).map(mapChapter).sort((a, b) => a.displayOrder - b.displayOrder);
+}
+
 export async function getChapterById(chapterId) {
   return mapChapter(await request({ method: "GET", url: `/api/chapters/${chapterId}` }));
 }

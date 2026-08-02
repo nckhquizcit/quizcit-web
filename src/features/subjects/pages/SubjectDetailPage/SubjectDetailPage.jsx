@@ -10,9 +10,9 @@ import {
 import {
   getChaptersBySubject,
   getSubjectById,
-  getTheoriesByChapter,
+  getTheoriesBySubject,
 } from "../../../../services/contentService";
-import { getQuizzesByChapter } from "../../../../services/quizService";
+import { getQuizzesBySubject } from "../../../../services/quizService";
 import { startAdaptiveQuiz } from "../../../../services/quizService";
 import {
   Badge,
@@ -75,27 +75,18 @@ export default function SubjectDetailPage() {
       try {
         setLoading(true);
         setError(null);
-        const subjectData = await getSubjectById(subjectId);
-        const chapterData = (await getChaptersBySubject(subjectId)) || [];
-
-        const [theoryEntries, quizEntries] = await Promise.all([
-          Promise.all(
-            chapterData.map(async (chapter) => [
-              chapter.chapterId || chapter.chapter_id,
-              (await getTheoriesByChapter(
-                chapter.chapterId || chapter.chapter_id
-              )) || [],
-            ])
-          ),
-          Promise.all(
-            chapterData.map(async (chapter) => [
-              chapter.chapterId || chapter.chapter_id,
-              (await getQuizzesByChapter(
-                chapter.chapterId || chapter.chapter_id
-              )) || [],
-            ])
-          ),
+        const [subjectData, chapterData = [], theories = [], quizzes = []] = await Promise.all([
+          getSubjectById(subjectId), getChaptersBySubject(subjectId),
+          getTheoriesBySubject(subjectId), getQuizzesBySubject(subjectId),
         ]);
+        const theoryEntries = chapterData.map((chapter) => {
+          const id = chapter.chapterId || chapter.chapter_id;
+          return [id, theories.filter((theory) => theory.chapterId === id)];
+        });
+        const quizEntries = chapterData.map((chapter) => {
+          const id = chapter.chapterId || chapter.chapter_id;
+          return [id, quizzes.filter((quiz) => quiz.chapterId === id)];
+        });
 
         if (!alive) return;
         setSubject(subjectData);

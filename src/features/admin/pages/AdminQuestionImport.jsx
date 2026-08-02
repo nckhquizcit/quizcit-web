@@ -5,7 +5,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import ErrorState from "../../../components/ui/ErrorState/ErrorState";
 import { useToast } from "../../../components/ui/Toast/Toast";
 import { getErrorMessage } from "../../../services/apiClient";
-import { getChaptersBySubject, getSubjects } from "../../../services/contentService";
+import { getAllChapters, getSubjects } from "../../../services/contentService";
 import { createQuestion } from "../../../services/quizService";
 import AdminPageHeader from "../components/AdminPageHeader";
 import ImportQuestionsModal from "../components/modals/ImportQuestionsModal";
@@ -38,18 +38,11 @@ export default function AdminQuestionImport() {
     try {
       setLoading(true);
       setError("");
-      const subjectData = (await getSubjects()) || [];
+      const [subjectData = [], chapterData = []] = await Promise.all([getSubjects(), getAllChapters()]);
       const normalizedSubjects = subjectData.map(normalizeSubject);
-      const chapterGroups = await Promise.all(
-        normalizedSubjects.map(async (subject) =>
-          ((await getChaptersBySubject(subject.subjectId)) || []).map((chapter) =>
-            normalizeChapter(chapter, subject.subjectId),
-          ),
-        ),
-      );
 
       setSubjects(normalizedSubjects);
-      setChapters(chapterGroups.flat());
+      setChapters(chapterData.map((chapter) => normalizeChapter(chapter, chapter.subjectId)));
     } catch (loadError) {
       setError(getErrorMessage(loadError, "Không thể tải môn học và chương."));
     } finally {

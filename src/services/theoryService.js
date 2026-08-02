@@ -6,6 +6,11 @@ export async function getTheoriesByChapter(chapterId) {
   return (theories || []).map(mapTheory);
 }
 
+export async function getTheoriesBySubject(subjectId) {
+  const theories = await request({ method: "GET", url: `/api/subjects/${subjectId}/theories` });
+  return (theories || []).map(mapTheory);
+}
+
 export async function getTheoryById(theoryId) {
   return mapTheory(await request({ method: "GET", url: `/api/theories/${theoryId}` }));
 }
