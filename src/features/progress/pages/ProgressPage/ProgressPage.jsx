@@ -96,7 +96,8 @@ export default function ProgressPage() {
           <p className="progress-eyebrow">Tiến độ học tập</p>
           <h1>Năng lực theo kỹ năng</h1>
           <p className="progress-header__desc">
-            Theta được cập nhật sau mỗi bài kiểm tra bạn hoàn thành.
+            Theta được cập nhật sau mỗi bài kiểm tra, và sau từng nhóm 5 câu
+            trong bài thích ứng.
           </p>
         </div>
         <div className="progress-header__ring">

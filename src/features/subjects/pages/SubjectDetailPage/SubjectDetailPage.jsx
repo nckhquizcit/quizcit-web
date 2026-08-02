@@ -24,6 +24,7 @@ import {
 } from "../../../../components/ui";
 import { getErrorMessage } from "../../../../services/apiClient";
 import TheoryContent from "../../../content/components/TheoryContent";
+import { isValidAdaptiveQuestionCount } from "../../../quiz/pages/AdaptiveQuizPage/AdaptiveQuizPage.logic.js";
 import "./SubjectDetailPage.css";
 
 export default function SubjectDetailPage() {
@@ -43,7 +44,7 @@ export default function SubjectDetailPage() {
 
   const handleStartAdaptive = async () => {
     const count = Number(adaptiveCount);
-    if (!Number.isInteger(count) || count < 40 || count % 5 !== 0) {
+    if (!isValidAdaptiveQuestionCount(count)) {
       setAdaptiveError("Số câu của bài thích ứng phải từ 40 trở lên và chia hết cho 5.");
       return;
     }

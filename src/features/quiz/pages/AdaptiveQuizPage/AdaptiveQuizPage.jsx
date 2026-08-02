@@ -4,6 +4,10 @@ import { AlertCircle } from "lucide-react";
 import { Button, ErrorState, Spinner } from "../../../../components/ui";
 import { getErrorMessage } from "../../../../services/apiClient";
 import { getAdaptiveAttempt, submitAdaptiveBatch } from "../../../../services/quizService";
+import {
+  buildAdaptiveBatchAnswers,
+  hasAnsweredAdaptiveBatch,
+} from "./AdaptiveQuizPage.logic.js";
 import "../QuizTakingPage/QuizTakingPage.css";
 
 export default function AdaptiveQuizPage() {
@@ -27,17 +31,17 @@ export default function AdaptiveQuizPage() {
 
   const submitPage = async () => {
     const questions = state?.questions || [];
-    if (questions.some((question) => !answers[question.questionId])) {
+    if (!hasAnsweredAdaptiveBatch(questions, answers)) {
       setError("Vui lòng trả lời đủ 5 câu trước khi tiếp tục.");
       return;
     }
     try {
       setSubmitting(true);
       setError("");
-      const next = await submitAdaptiveBatch(attemptId, questions.map((question) => ({
-        questionId: question.questionId,
-        optionId: answers[question.questionId],
-      })));
+      const next = await submitAdaptiveBatch(
+        attemptId,
+        buildAdaptiveBatchAnswers(questions, answers),
+      );
       if (next.completed) {
         navigate(`/app/quiz/result/${attemptId}`);
         return;
