@@ -5236,3 +5236,12 @@
     grid-template-columns: 1fr;
   }
 }
+.subject-hidden-badge {
+  align-self: flex-start;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 3px 8px;
+}

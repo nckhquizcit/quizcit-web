@@ -97,6 +97,7 @@ export function mapSubject(raw = {}) {
     course_code: courseCode,
     name: normalizeVietnameseDisplayText(pick(raw, ["name"], "")),
     description: normalizeVietnameseDisplayText(pick(raw, ["description"], "")),
+    visible: Boolean(pick(raw, ["visible", "isVisible", "is_visible"], true)),
     createdAt: pick(raw, ["createdAt", "created_at"], null),
     chapterCount: toNumber(pick(raw, ["chapterCount", "chapter_count"], 0)),
     progress: toNumber(pick(raw, ["progress", "progressPercent"], 0)),

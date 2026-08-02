@@ -323,3 +323,22 @@
   border-radius: var(--admin-radius-control, 8px);
   background: var(--admin-danger-soft, #fef2f2);
 }
+.subject-visibility-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.subject-visibility-checkbox input {
+  margin-top: 3px;
+}
+
+.subject-visibility-checkbox span {
+  display: grid;
+  gap: 3px;
+}
+
+.subject-visibility-checkbox small {
+  color: var(--text-secondary, #64748b);
+}

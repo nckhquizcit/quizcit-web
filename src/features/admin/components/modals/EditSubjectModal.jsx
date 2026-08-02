@@ -7,6 +7,7 @@ export default function EditSubjectModal({ open, onClose, subject, onSubmit }) {
   const [name, setName] = useState("");
   const [courseCode, setCourseCode] = useState("");
   const [description, setDescription] = useState("");
+  const [hidden, setHidden] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -14,6 +15,7 @@ export default function EditSubjectModal({ open, onClose, subject, onSubmit }) {
       setName(subject.name || "");
       setCourseCode(subject.courseCode || "");
       setDescription(subject.description || "");
+      setHidden(subject.visible === false);
     }
   }, [subject]);
 
@@ -24,7 +26,7 @@ export default function EditSubjectModal({ open, onClose, subject, onSubmit }) {
     setIsLoading(true);
     
     try {
-      await onSubmit({ name, courseCode, description });
+      await onSubmit({ name, courseCode, description, visible: !hidden });
       handleClose();
     } catch (error) {
       console.error("Failed to update subject:", error);
@@ -38,6 +40,7 @@ export default function EditSubjectModal({ open, onClose, subject, onSubmit }) {
     setName("");
     setCourseCode("");
     setDescription("");
+    setHidden(false);
     onClose();
   };
 
@@ -83,6 +86,18 @@ export default function EditSubjectModal({ open, onClose, subject, onSubmit }) {
               rows="4"
             />
           </div>
+
+          <label className="subject-visibility-checkbox">
+            <input
+              type="checkbox"
+              checked={hidden}
+              onChange={(e) => setHidden(e.target.checked)}
+            />
+            <span>
+              <strong>Ẩn môn học</strong>
+              <small>Người dùng thường sẽ không thể xem môn học và nội dung liên quan.</small>
+            </span>
+          </label>
 
           <div className="modal-footer">
             <button type="button" className="cancel-btn" onClick={handleClose}>

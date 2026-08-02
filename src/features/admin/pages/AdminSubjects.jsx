@@ -198,6 +198,8 @@ export default function AdminSubjects() {
 
             <div className="subject-title">{subject.name}</div>
 
+            {subject.visible === false && <span className="subject-hidden-badge">Đang ẩn</span>}
+
             <div className="subject-code">Mã môn: {subject.courseCode}</div>
 
             <div className="subject-desc">{subject.description}</div>
