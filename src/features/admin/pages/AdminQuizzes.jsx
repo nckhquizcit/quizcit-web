@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Clock, FileText, ListChecks, Pencil, Plus, Trash2 } from "lucide-react";
+import { Check, Clock, FileText, GripVertical, ListChecks, ListOrdered, Pencil, Plus, Trash2, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import "../Admin.css";
@@ -10,11 +10,11 @@ import RowActions from "../components/ui/RowActions";
 import EmptyState from "../../../components/ui/EmptyState/EmptyState";
 import ErrorState from "../../../components/ui/ErrorState/ErrorState";
 import ConfirmDeleteModal from "../components/modals/ConfirmDeleteModal";
-import EditQuizModal from "../components/modals/EditQuizModal";
 import { useToast } from "../../../components/ui/Toast/Toast";
 import { getChaptersBySubject, getSubjects } from "../../../services/contentService";
 import { getErrorMessage } from "../../../services/apiClient";
-import { deleteQuiz, getQuizzesByChapter } from "../services/quizService";
+import { deleteQuiz, getQuizzesByChapter, reorderQuizzes } from "../services/quizService";
+import { reorderById } from "../utils/displayOrder";
 
 const getSubjectId = (subject) => String(subject?.subjectId ?? subject?.id ?? "");
 const getChapterId = (chapter) => String(chapter?.chapterId ?? chapter?.id ?? "");
@@ -38,8 +38,11 @@ export default function AdminQuizzes() {
   const [isLoadingChapters, setIsLoadingChapters] = useState(false);
   const [isLoadingQuizzes, setIsLoadingQuizzes] = useState(false);
   const [error, setError] = useState("");
-  const [editingQuiz, setEditingQuiz] = useState(null);
   const [deletingQuiz, setDeletingQuiz] = useState(null);
+  const [draggedQuizId, setDraggedQuizId] = useState(null);
+  const [isReordering, setIsReordering] = useState(false);
+  const [isOrdering, setIsOrdering] = useState(false);
+  const [orderSnapshot, setOrderSnapshot] = useState([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -100,6 +103,9 @@ export default function AdminQuizzes() {
       setQuizzes([]);
       return undefined;
     }
+    setIsOrdering(false);
+    setOrderSnapshot([]);
+    setDraggedQuizId(null);
     let isMounted = true;
     setIsLoadingQuizzes(true);
     setError("");
@@ -126,12 +132,30 @@ export default function AdminQuizzes() {
     [chapters, selectedChapterId],
   );
 
-  const handleQuizUpdated = (updatedQuiz) => {
-    setQuizzes((current) =>
-      current.map((quiz) => (getQuizId(quiz) === getQuizId(updatedQuiz) ? updatedQuiz : quiz)),
-    );
-    setEditingQuiz(null);
-    toast.success("Cập nhật đề thi thành công.");
+  const handleQuizDrop = (event, targetQuiz) => {
+    event.preventDefault();
+    const targetQuizId = getQuizId(targetQuiz);
+    if (!isOrdering || !draggedQuizId || draggedQuizId === targetQuizId || isReordering) return;
+    setQuizzes((current) => reorderById(current, draggedQuizId, targetQuizId, getQuizId));
+    setDraggedQuizId(null);
+  };
+
+  const startOrdering = () => { setOrderSnapshot(quizzes); setIsOrdering(true); };
+  const cancelOrdering = () => { setQuizzes(orderSnapshot); setIsOrdering(false); setDraggedQuizId(null); };
+  const saveOrdering = async () => {
+    setIsReordering(true);
+    setError("");
+    try {
+      await reorderQuizzes(selectedChapterId, quizzes);
+      toast.success("Đã cập nhật thứ tự đề thi.");
+      setIsOrdering(false);
+      setOrderSnapshot([]);
+    } catch (reorderError) {
+      setQuizzes(orderSnapshot);
+      setError(getErrorMessage(reorderError, "Không thể cập nhật thứ tự đề thi."));
+    } finally {
+      setIsReordering(false);
+    }
   };
 
   const handleDeleteQuiz = async () => {
@@ -145,9 +169,21 @@ export default function AdminQuizzes() {
 
   const columns = [
     {
+      key: "drag",
+      label: "",
+      width: 42,
+      align: "center",
+      render: () => isOrdering ? <GripVertical className="display-order-drag-handle" size={17} aria-label="Kéo để đổi thứ tự" /> : null,
+    },
+    {
+      key: "displayOrder",
+      label: "Thứ tự",
+      width: 90,
+      align: "center",
+    },
+    {
       key: "name",
       label: "Tên đề thi",
-      sortable: true,
       render: (quiz) => (
         <div className="quiz-name-cell">
           <span className="quiz-name-icon">
@@ -161,7 +197,6 @@ export default function AdminQuizzes() {
       key: "type",
       label: "Loại",
       width: 140,
-      sortable: true,
       sortValue: (quiz) => QUIZ_TYPE_LABELS[quiz.type] || "Theo chương",
       render: (quiz) => (
         <span className="quiz-type-badge">{QUIZ_TYPE_LABELS[quiz.type] || "Theo chương"}</span>
@@ -172,7 +207,6 @@ export default function AdminQuizzes() {
       label: "Số câu",
       width: 100,
       align: "center",
-      sortable: true,
       sortValue: (quiz) => quiz.totalQuestion ?? 0,
       render: (quiz) => (
         <span className="quiz-meta-cell">
@@ -185,7 +219,6 @@ export default function AdminQuizzes() {
       label: "Thời gian",
       width: 120,
       align: "center",
-      sortable: true,
       sortValue: (quiz) => quiz.durationMinutes ?? quiz.duration ?? 0,
       render: (quiz) => (
         <span className="quiz-meta-cell">
@@ -198,13 +231,13 @@ export default function AdminQuizzes() {
       label: "",
       width: 60,
       align: "right",
-      render: (quiz) => (
+      render: (quiz) => isOrdering ? null : (
         <RowActions
           items={[
             {
               label: "Chỉnh sửa",
               icon: <Pencil size={16} />,
-              onClick: () => setEditingQuiz(quiz),
+              onClick: () => navigate(`/admin/quizzes/${getQuizId(quiz)}/edit`),
             },
             {
               label: "Xóa",
@@ -231,9 +264,14 @@ export default function AdminQuizzes() {
         title="Quản lý đề thi"
         subtitle="Tạo và quản lý đề thi theo môn học và chương"
         icon={<FileText size={22} />}
-        action={
+        action={<div className="display-order-actions">
+          {isOrdering ? <>
+            <button className="cancel-btn" onClick={cancelOrdering} disabled={isReordering}><X size={17} /> Hủy</button>
+            <button className="add-btn" onClick={saveOrdering} disabled={isReordering}><Check size={17} /> Lưu thứ tự</button>
+          </> : <button className="cancel-btn" onClick={startOrdering} disabled={!quizzes.length || isLoadingQuizzes}><ListOrdered size={17} /> Chỉnh thứ tự</button>}
           <button
             className="add-btn"
+            disabled={isOrdering}
             onClick={() =>
               navigate(
                 `/admin/quizzes/new?subjectId=${encodeURIComponent(selectedSubjectId)}&chapterId=${encodeURIComponent(
@@ -245,7 +283,7 @@ export default function AdminQuizzes() {
             <Plus size={18} />
             Tạo đề thi
           </button>
-        }
+        </div>}
       />
 
       <div className="admin-section-card quiz-filter-bar">
@@ -287,9 +325,17 @@ export default function AdminQuizzes() {
           rows={quizzes}
           getRowKey={(quiz) => getQuizId(quiz)}
           loading={isLoadingQuizzes}
+          rowDraggable={isOrdering && !isReordering}
+          draggedRowKey={draggedQuizId}
+          onRowDragStart={(event, quiz) => {
+            setDraggedQuizId(getQuizId(quiz));
+            event.dataTransfer.effectAllowed = "move";
+          }}
+          onRowDragOver={(event) => event.preventDefault()}
+          onRowDrop={handleQuizDrop}
+          onRowDragEnd={() => setDraggedQuizId(null)}
           searchPlaceholder="Tìm kiếm đề thi theo tên..."
           searchKeys={["name"]}
-          initialSort={{ key: "name", dir: "asc" }}
           emptyState={
             <EmptyState
               icon={<FileText size={28} />}
@@ -303,13 +349,6 @@ export default function AdminQuizzes() {
           }
         />
       )}
-
-      <EditQuizModal
-        open={Boolean(editingQuiz)}
-        quiz={editingQuiz}
-        onClose={() => setEditingQuiz(null)}
-        onUpdated={handleQuizUpdated}
-      />
 
       <ConfirmDeleteModal
         open={Boolean(deletingQuiz)}

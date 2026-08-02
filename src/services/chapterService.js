@@ -3,7 +3,7 @@ import { mapChapter } from "./mappers";
 
 export async function getChaptersBySubject(subjectId) {
   const chapters = await request({ method: "GET", url: `/api/subjects/${subjectId}/chapters` });
-  return (chapters || []).map(mapChapter);
+  return (chapters || []).map(mapChapter).sort((a, b) => a.displayOrder - b.displayOrder);
 }
 
 export async function getChapterById(chapterId) {
@@ -23,4 +23,12 @@ export async function updateChapter(chapterId, payload) {
 
 export async function deleteChapter(chapterId) {
   return request({ method: "DELETE", url: `/api/chapters/${chapterId}` });
+}
+
+export async function reorderChapters(subjectId, chapters) {
+  return request({
+    method: "PUT",
+    url: `/api/subjects/${subjectId}/chapters/display-order`,
+    data: { items: chapters.map((chapter) => ({ id: chapter.chapterId, displayOrder: chapter.displayOrder })) },
+  });
 }

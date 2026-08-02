@@ -20,17 +20,18 @@ function mapQuizPayload(payload = {}) {
     duration: Number(payload.duration ?? payload.durationMinutes ?? 0),
     type: payload.type || "CHAPTER",
     questionIds: payload.questionIds || [],
+    displayOrder: payload.displayOrder ? Number(payload.displayOrder) : null,
   };
 }
 
 export async function getQuizzesByChapter(chapterId) {
   const quizzes = await request({ method: "GET", url: `/api/chapters/${chapterId}/quizzes` });
-  return (quizzes || []).map(mapQuiz);
+  return (quizzes || []).map(mapQuiz).sort((a, b) => a.displayOrder - b.displayOrder);
 }
 
 export async function getQuizzesBySubject(subjectId) {
   const quizzes = await request({ method: "GET", url: `/api/subjects/${subjectId}/quizzes` });
-  return (quizzes || []).map(mapQuiz);
+  return (quizzes || []).map(mapQuiz).sort((a, b) => a.displayOrder - b.displayOrder);
 }
 
 export async function getQuizById(quizId) {
@@ -49,6 +50,8 @@ export async function updateQuiz(quizId, payload) {
       name: payload.name,
       duration: payload.duration ?? payload.durationMinutes,
       chapterId: payload.chapterId,
+      displayOrder: payload.displayOrder ? Number(payload.displayOrder) : null,
+      questionIds: payload.questionIds,
     },
   });
   return result ? mapQuiz(result) : mapQuiz({ quizId, ...payload });
@@ -56,6 +59,14 @@ export async function updateQuiz(quizId, payload) {
 
 export async function deleteQuiz(quizId) {
   return request({ method: "DELETE", url: `/api/quizzes/${quizId}` });
+}
+
+export async function reorderQuizzes(chapterId, quizzes) {
+  return request({
+    method: "PUT",
+    url: `/api/chapters/${chapterId}/quizzes/display-order`,
+    data: { items: quizzes.map((quiz) => ({ id: quiz.quizId, displayOrder: quiz.displayOrder })) },
+  });
 }
 
 export async function startQuiz(quizId, userId) {

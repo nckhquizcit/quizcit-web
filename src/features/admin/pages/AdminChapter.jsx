@@ -1,8 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, ChevronDown, ChevronRight, FileText, Plus, Pencil, Trash2 } from "lucide-react";
+import { BookOpen, Check, ChevronDown, ChevronRight, FileText, GripVertical, ListOrdered, Plus, Pencil, Trash2, X } from "lucide-react";
 import AddChapterModal from "../components/modals/AddChapterModal";
-import EditChapterModal from "../components/modals/EditChapterModal";
 import ConfirmDeleteModal from "../components/modals/ConfirmDeleteModal";
 import AddTheoryModal from "../components/modals/AddTheoryModal";
 import EditTheoryModal from "../components/modals/EditTheoryModal";
@@ -13,7 +12,7 @@ import {
   createChapter,
   getChaptersBySubject,
   getSubjectById,
-  updateChapter,
+  reorderChapters,
   deleteChapter,
   getTheoriesByChapter,
   createTheory,
@@ -22,13 +21,13 @@ import {
 } from "../../../services/contentService";
 import { getQuestionsByChapter } from "../../../services/quizService";
 import { getErrorMessage } from "../../../services/apiClient";
+import { reorderById } from "../utils/displayOrder";
 
 export default function AdminChapters() {
   const { subjectId } = useParams();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [openAddChapter, setOpenAddChapter] = useState(false);
-  const [editingChapter, setEditingChapter] = useState(null);
   const [deletingChapter, setDeletingChapter] = useState(null);
   const [subject, setSubject] = useState(null);
   const [subjectChapters, setSubjectChapters] = useState([]);
@@ -37,6 +36,9 @@ export default function AdminChapters() {
   const [loadError, setLoadError] = useState("");
   const [actionError, setActionError] = useState("");
   const [pendingAction, setPendingAction] = useState("");
+  const [draggedChapterId, setDraggedChapterId] = useState(null);
+  const [isOrdering, setIsOrdering] = useState(false);
+  const [orderSnapshot, setOrderSnapshot] = useState([]);
   
   // Theory management
   const [expandedChapter, setExpandedChapter] = useState(null);
@@ -138,24 +140,12 @@ export default function AdminChapters() {
   const handleAddChapter = async (payload) => {
     await runAction("create-chapter", async () => {
       const created = await createChapter(subjectId, payload);
-      setSubjectChapters((current) => [...current, created]);
+      setSubjectChapters((current) => [...current, created].sort((a, b) => a.displayOrder - b.displayOrder));
       setQuestionCountByChapter((current) => ({
         ...current,
         [created.chapterId]: 0,
       }));
       setOpenAddChapter(false);
-    });
-  };
-
-  const handleUpdateChapter = async (payload) => {
-    if (!editingChapter) return;
-
-    await runAction("update-chapter", async () => {
-      await updateChapter(editingChapter.chapterId, payload);
-      setSubjectChapters((current) =>
-        current.map((c) => (c.chapterId === editingChapter.chapterId ? { ...c, ...payload } : c)),
-      );
-      setEditingChapter(null);
     });
   };
 
@@ -213,6 +203,25 @@ export default function AdminChapters() {
     }));
   };
 
+  const handleChapterDrop = (event, targetChapterId) => {
+    event.preventDefault();
+    if (!isOrdering || !draggedChapterId || draggedChapterId === targetChapterId || pendingAction) return;
+    setSubjectChapters((current) => reorderById(current, draggedChapterId, targetChapterId, (item) => item.chapterId));
+    setDraggedChapterId(null);
+  };
+
+  const startOrdering = () => { setOrderSnapshot(subjectChapters); setExpandedChapter(null); setIsOrdering(true); };
+  const cancelOrdering = () => { setSubjectChapters(orderSnapshot); setIsOrdering(false); setDraggedChapterId(null); };
+  const saveOrdering = async () => {
+    try {
+      await runAction("reorder-chapters", () => reorderChapters(subjectId, subjectChapters));
+      setIsOrdering(false);
+      setOrderSnapshot([]);
+    } catch {
+      setSubjectChapters(orderSnapshot);
+    }
+  };
+
   const isMutating = Boolean(pendingAction);
 
   if (loading) return <div className="admin-page-state">Đang tải danh sách chương...</div>;
@@ -229,12 +238,16 @@ export default function AdminChapters() {
         subtitle={`Mã môn: ${subject.courseCode} • ${subjectChapters.length} chương`}
         icon={<BookOpen size={22} />}
         onBack={() => navigate("/admin/subjects")}
-        action={
-          <button className="add-btn" onClick={() => setOpenAddChapter(true)} disabled={isMutating}>
+        action={<div className="display-order-actions">
+          {isOrdering ? <>
+            <button className="cancel-btn" onClick={cancelOrdering} disabled={isMutating}><X size={17} /> Hủy</button>
+            <button className="add-btn" onClick={saveOrdering} disabled={isMutating}><Check size={17} /> Lưu thứ tự</button>
+          </> : <button className="cancel-btn" onClick={startOrdering} disabled={isMutating || !subjectChapters.length}><ListOrdered size={17} /> Chỉnh thứ tự</button>}
+          <button className="add-btn" onClick={() => setOpenAddChapter(true)} disabled={isMutating || isOrdering}>
             <Plus size={18} />
             Thêm chương
           </button>
-        }
+        </div>}
       />
 
       <SearchBar placeholder="Tìm kiếm chương..." onChange={setSearch} />
@@ -253,9 +266,21 @@ export default function AdminChapters() {
             <div key={chapter.chapterId} className="chapter-card-wrapper">
               <div
                 className="chapter-card"
-                onClick={() => handleExpandChapter(chapter.chapterId)}
+                draggable={isOrdering && !pendingAction}
+                onDragStart={(event) => {
+                  setDraggedChapterId(chapter.chapterId);
+                  event.dataTransfer.effectAllowed = "move";
+                }}
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={(event) => handleChapterDrop(event, chapter.chapterId)}
+                onDragEnd={() => setDraggedChapterId(null)}
+                data-dragging={draggedChapterId === chapter.chapterId || undefined}
+                onClick={() => !isOrdering && handleExpandChapter(chapter.chapterId)}
               >
                 <div className="chapter-left">
+                  {isOrdering && <span className="display-order-drag-handle" title="Kéo để đổi thứ tự" aria-label="Kéo để đổi thứ tự">
+                    <GripVertical size={17} />
+                  </span>}
                   <div className="chapter-index">{index + 1}</div>
 
                   <div>
@@ -269,18 +294,18 @@ export default function AdminChapters() {
                 <div className="chapter-actions">
                   <button
                     className="icon-btn"
-                    disabled={isMutating}
+                    disabled={isMutating || isOrdering}
                     aria-label={`Chỉnh sửa ${chapter.name}`}
                     onClick={(e) => {
                       e.stopPropagation();
-                      setEditingChapter(chapter);
+                      navigate(`/admin/subjects/${subjectId}/chapters/${chapter.chapterId}/edit`);
                     }}
                   >
                     <Pencil size={16} />
                   </button>
                   <button
                     className="icon-btn danger"
-                    disabled={isMutating}
+                    disabled={isMutating || isOrdering}
                     aria-label={`Xóa ${chapter.name}`}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -400,12 +425,6 @@ export default function AdminChapters() {
         onSubmit={handleAddChapter}
       />
 
-      <EditChapterModal
-        open={Boolean(editingChapter)}
-        onClose={() => setEditingChapter(null)}
-        chapter={editingChapter}
-        onSubmit={handleUpdateChapter}
-      />
 
       <ConfirmDeleteModal
         open={Boolean(deletingChapter)}

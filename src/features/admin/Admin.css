@@ -495,6 +495,45 @@
   transform: translateY(-5px);
   box-shadow: 0 14px 35px rgba(0, 0, 0, 0.08);
 }
+
+.display-order-drag-handle {
+  color: var(--text-muted, #7b8794);
+  cursor: grab;
+  flex: 0 0 auto;
+}
+
+.display-order-drag-handle:active {
+  cursor: grabbing;
+}
+
+.display-order-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.standalone-edit-form {
+  display: grid;
+  gap: 18px;
+  max-width: 760px;
+}
+
+.standalone-edit-form textarea {
+  width: 100%;
+  resize: vertical;
+}
+
+.subject-card[data-dragging="true"],
+.chapter-card[data-dragging="true"] {
+  opacity: 0.45;
+}
+
+.subject-card > .display-order-drag-handle {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+}
 .subject-title {
   font-size: 18px;
   font-weight: 600;

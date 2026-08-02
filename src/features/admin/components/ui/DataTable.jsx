@@ -25,6 +25,12 @@ export default function DataTable({
   density = "comfortable",
   getRowClassName,
   initialSort = null,
+  rowDraggable = false,
+  draggedRowKey = null,
+  onRowDragStart,
+  onRowDragOver,
+  onRowDrop,
+  onRowDragEnd,
 }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState(initialSort);
@@ -142,10 +148,21 @@ export default function DataTable({
               ))}
 
             {!loading &&
-              paged.map((row, index) => (
+              paged.map((row, index) => {
+                const rowKey = getRowKey ? getRowKey(row, index) : index;
+                const baseClassName = getRowClassName ? getRowClassName(row, index) : "";
+                const rowClassName = [baseClassName, rowDraggable ? "is-draggable" : "", draggedRowKey === rowKey ? "is-dragging" : ""]
+                  .filter(Boolean)
+                  .join(" ");
+                return (
                 <tr
-                  key={getRowKey ? getRowKey(row, index) : index}
-                  className={getRowClassName ? getRowClassName(row, index) : undefined}
+                  key={rowKey}
+                  className={rowClassName || undefined}
+                  draggable={rowDraggable}
+                  onDragStart={(event) => onRowDragStart?.(event, row, index)}
+                  onDragOver={(event) => onRowDragOver?.(event, row, index)}
+                  onDrop={(event) => onRowDrop?.(event, row, index)}
+                  onDragEnd={(event) => onRowDragEnd?.(event, row, index)}
                 >
                   {columns.map((col) => (
                     <td key={col.key} style={{ textAlign: col.align || "left" }}>
@@ -153,7 +170,8 @@ export default function DataTable({
                     </td>
                   ))}
                 </tr>
-              ))}
+                );
+              })}
           </tbody>
         </table>
 

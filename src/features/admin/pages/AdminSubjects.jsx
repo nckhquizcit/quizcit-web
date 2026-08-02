@@ -1,23 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, Plus, BookOpen, Pencil, Trash2 } from "lucide-react";
+import { ChevronRight, Plus, BookOpen, Check, GripVertical, ListOrdered, Pencil, Trash2, X } from "lucide-react";
 
 import "../Admin.css";
 import AdminPageHeader from "../components/AdminPageHeader";
 import SearchBar from "../components/SearchBar";
 import AddSubjectModal from "../components/modals/AddSubjectModal";
-import EditSubjectModal from "../components/modals/EditSubjectModal";
 import ConfirmDeleteModal from "../components/modals/ConfirmDeleteModal";
 import EmptyState from "../../../components/ui/EmptyState/EmptyState";
-import { createSubject, updateSubject, deleteSubject, getChaptersBySubject, getSubjects } from "../../../services/contentService";
+import { createSubject, deleteSubject, getChaptersBySubject, getSubjects, reorderSubjects } from "../../../services/contentService";
 import { getErrorMessage } from "../../../services/apiClient";
+import { reorderById } from "../utils/displayOrder";
 
 export default function AdminSubjects() {
   const navigate = useNavigate();
 
   const [search, setSearch] = useState("");
   const [openAddSubject, setOpenAddSubject] = useState(false);
-  const [editingSubject, setEditingSubject] = useState(null);
   const [deletingSubject, setDeletingSubject] = useState(null);
   const [subjects, setSubjects] = useState([]);
   const [chapterCountBySubject, setChapterCountBySubject] = useState({});
@@ -25,6 +24,9 @@ export default function AdminSubjects() {
   const [loadError, setLoadError] = useState("");
   const [actionError, setActionError] = useState("");
   const [pendingAction, setPendingAction] = useState("");
+  const [draggedSubjectId, setDraggedSubjectId] = useState(null);
+  const [isOrdering, setIsOrdering] = useState(false);
+  const [orderSnapshot, setOrderSnapshot] = useState([]);
 
   useEffect(() => {
     let alive = true;
@@ -87,26 +89,12 @@ export default function AdminSubjects() {
   const handleCreateSubject = async (payload) => {
     await runAction("create-subject", async () => {
       const created = await createSubject(payload);
-      setSubjects((current) => [created, ...current]);
+      setSubjects((current) => [...current, created].sort((a, b) => a.displayOrder - b.displayOrder));
       setChapterCountBySubject((current) => ({
         ...current,
         [created.subjectId]: 0,
       }));
       setOpenAddSubject(false);
-    });
-  };
-
-  const handleUpdateSubject = async (payload) => {
-    if (!editingSubject) return;
-
-    await runAction("update-subject", async () => {
-      await updateSubject(editingSubject.subjectId, payload);
-      setSubjects((current) =>
-        current.map((s) =>
-          s.subjectId === editingSubject.subjectId ? { ...s, ...payload } : s,
-        ),
-      );
-      setEditingSubject(null);
     });
   };
 
@@ -129,6 +117,34 @@ export default function AdminSubjects() {
 
   const isMutating = Boolean(pendingAction);
 
+  const handleSubjectDrop = (event, targetSubjectId) => {
+    event.preventDefault();
+    if (!isOrdering || !draggedSubjectId || draggedSubjectId === targetSubjectId || isMutating) return;
+    setSubjects((current) => reorderById(current, draggedSubjectId, targetSubjectId, (item) => item.subjectId));
+    setDraggedSubjectId(null);
+  };
+
+  const startOrdering = () => {
+    setOrderSnapshot(subjects);
+    setIsOrdering(true);
+  };
+
+  const cancelOrdering = () => {
+    setSubjects(orderSnapshot);
+    setIsOrdering(false);
+    setDraggedSubjectId(null);
+  };
+
+  const saveOrdering = async () => {
+    try {
+      await runAction("reorder-subjects", () => reorderSubjects(subjects));
+      setIsOrdering(false);
+      setOrderSnapshot([]);
+    } catch {
+      setSubjects(orderSnapshot);
+    }
+  };
+
   return (
     <>
       {/* ===== HEADER ===== */}
@@ -136,12 +152,16 @@ export default function AdminSubjects() {
         breadcrumb={["Tổng quan", "Môn học"]}
         title="Quản lý môn học"
         subtitle="Quản lý danh sách môn học và chương học"
-        action={
-          <button className="add-btn" onClick={() => setOpenAddSubject(true)} disabled={loading || isMutating}>
+        action={<div className="display-order-actions">
+          {isOrdering ? <>
+            <button className="cancel-btn" onClick={cancelOrdering} disabled={isMutating}><X size={17} /> Hủy</button>
+            <button className="add-btn" onClick={saveOrdering} disabled={isMutating}><Check size={17} /> Lưu thứ tự</button>
+          </> : <button className="cancel-btn" onClick={startOrdering} disabled={loading || isMutating || !subjects.length}><ListOrdered size={17} /> Chỉnh thứ tự</button>}
+          <button className="add-btn" onClick={() => setOpenAddSubject(true)} disabled={loading || isMutating || isOrdering}>
             <Plus size={18} />
             Thêm môn học
           </button>
-        }
+        </div>}
       />
 
       {/* ===== SEARCH ===== */}
@@ -165,23 +185,33 @@ export default function AdminSubjects() {
           <div
             key={subject.subjectId}
             className="subject-card"
-            onClick={() => navigate(`/admin/subjects/${subject.subjectId}/chapters`)}
+            draggable={isOrdering && !isMutating}
+            onDragStart={(event) => {
+              setDraggedSubjectId(subject.subjectId);
+              event.dataTransfer.effectAllowed = "move";
+            }}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => handleSubjectDrop(event, subject.subjectId)}
+            onDragEnd={() => setDraggedSubjectId(null)}
+            data-dragging={draggedSubjectId === subject.subjectId || undefined}
+            onClick={() => !isOrdering && navigate(`/admin/subjects/${subject.subjectId}/chapters`)}
           >
+            {isOrdering && <span className="display-order-drag-handle" title="Kéo để đổi thứ tự" aria-label="Kéo để đổi thứ tự"><GripVertical size={17} /></span>}
             <div className="subject-card-actions">
               <button
                 className="icon-btn"
-                disabled={isMutating}
+                disabled={isMutating || isOrdering}
                 aria-label={`Chỉnh sửa ${subject.name}`}
                 onClick={(e) => {
                   e.stopPropagation();
-                  setEditingSubject(subject);
+                  navigate(`/admin/subjects/${subject.subjectId}/edit`);
                 }}
               >
                 <Pencil size={16} />
               </button>
               <button
                 className="icon-btn danger"
-                disabled={isMutating}
+                disabled={isMutating || isOrdering}
                 aria-label={`Xóa ${subject.name}`}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -223,12 +253,6 @@ export default function AdminSubjects() {
         onSubmit={handleCreateSubject}
       />
 
-      <EditSubjectModal
-        open={Boolean(editingSubject)}
-        onClose={() => setEditingSubject(null)}
-        subject={editingSubject}
-        onSubmit={handleUpdateSubject}
-      />
 
       <ConfirmDeleteModal
         open={Boolean(deletingSubject)}

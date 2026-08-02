@@ -8,6 +8,7 @@ export default function AddSubjectModal({ open, onClose, onSubmit }) {
   const [name, setName] = useState("");
   const [courseCode, setCourseCode] = useState("");
   const [description, setDescription] = useState("");
+  const [displayOrder, setDisplayOrder] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
@@ -17,6 +18,7 @@ export default function AddSubjectModal({ open, onClose, onSubmit }) {
     setName("");
     setCourseCode("");
     setDescription("");
+    setDisplayOrder("");
     setSubmitError("");
     setSubmitting(false);
   }, [open]);
@@ -32,10 +34,11 @@ export default function AddSubjectModal({ open, onClose, onSubmit }) {
     try {
       setSubmitting(true);
       setSubmitError("");
-      await onSubmit?.({ name, courseCode, description });
+      await onSubmit?.({ name, courseCode, description, displayOrder: displayOrder ? Number(displayOrder) : null });
       setName("");
       setCourseCode("");
       setDescription("");
+      setDisplayOrder("");
     } catch (error) {
       setSubmitError(getErrorMessage(error, "Không thể lưu môn học. Vui lòng thử lại."));
     } finally {
@@ -76,6 +79,7 @@ export default function AddSubjectModal({ open, onClose, onSubmit }) {
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
+        <input type="number" min="1" placeholder="Thứ tự (để trống để xếp cuối)" value={displayOrder} onChange={(e) => setDisplayOrder(e.target.value)} />
       </FormModalLayout>
     </Modal>
   );

@@ -26,6 +26,10 @@ const AdminQuestionCreate = lazy(() => import("../features/admin/pages/AdminQues
 const AdminQuestionImport = lazy(() => import("../features/admin/pages/AdminQuestionImport.jsx"));
 const AdminQuizzes = lazy(() => import("../features/admin/pages/AdminQuizzes.jsx"));
 const AdminQuizCreate = lazy(() => import("../features/admin/pages/AdminQuizCreate.jsx"));
+const AdminSubjectEdit = lazy(() => import("../features/admin/pages/AdminSubjectEdit.jsx"));
+const AdminChapterEdit = lazy(() => import("../features/admin/pages/AdminChapterEdit.jsx"));
+const AdminQuizEdit = lazy(() => import("../features/admin/pages/AdminQuizEdit.jsx"));
+const AdminQuizQuestions = lazy(() => import("../features/admin/pages/AdminQuizQuestions.jsx"));
 const AdminSkills = lazy(() => import("../features/admin/pages/AdminSkills.jsx"));
 const AdminUsers = lazy(() => import("../features/admin/pages/AdminUsers.jsx"));
 const AdminProfile = lazy(() => import("../features/admin/pages/AdminProfile.jsx"));
@@ -103,7 +107,9 @@ export const router = createBrowserRouter([
       { path: "dashboard", element: withSuspense(<AdminDashboard />) },
       { path: "skills", element: withSuspense(<AdminSkills />) },
       { path: "subjects", element: withSuspense(<AdminSubjects />) },
+      { path: "subjects/:subjectId/edit", element: withSuspense(<AdminSubjectEdit />) },
       { path: "subjects/:subjectId/chapters", element: withSuspense(<AdminChapters />) },
+      { path: "subjects/:subjectId/chapters/:chapterId/edit", element: withSuspense(<AdminChapterEdit />) },
       {
         path: "subjects/:subjectId/chapters/:chapterId/questions/new",
         element: withSuspense(<AdminQuestionCreate />),
@@ -120,6 +126,8 @@ export const router = createBrowserRouter([
       { path: "questions/import", element: withSuspense(<AdminQuestionImport />) },
       { path: "questions", element: withSuspense(<AdminQuestions />) },
       { path: "quizzes/new", element: withSuspense(<AdminQuizCreate />) },
+      { path: "quizzes/:quizId/edit", element: withSuspense(<AdminQuizEdit />) },
+      { path: "quizzes/:quizId/edit/questions", element: withSuspense(<AdminQuizQuestions />) },
       { path: "quizzes", element: withSuspense(<AdminQuizzes />) },
       { path: "users", element: withSuspense(<AdminUsers />) },
       { path: "profile", element: withSuspense(<AdminProfile />) },

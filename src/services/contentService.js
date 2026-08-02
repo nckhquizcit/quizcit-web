@@ -4,6 +4,7 @@ export {
   getSubjectById,
   getSubjects,
   updateSubject,
+  reorderSubjects,
 } from "./subjectService";
 
 export {
@@ -12,6 +13,7 @@ export {
   getChapterById,
   getChaptersBySubject,
   updateChapter,
+  reorderChapters,
 } from "./chapterService";
 
 export {

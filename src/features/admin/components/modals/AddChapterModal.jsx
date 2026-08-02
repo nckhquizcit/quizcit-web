@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 
 export default function AddChapterModal({ open, onClose, subject, onSubmit }) {
   const [name, setName] = useState("");
+  const [displayOrder, setDisplayOrder] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
@@ -13,6 +14,7 @@ export default function AddChapterModal({ open, onClose, subject, onSubmit }) {
     if (open) return;
 
     setName("");
+    setDisplayOrder("");
     setSubmitError("");
     setSubmitting(false);
   }, [open]);
@@ -28,7 +30,7 @@ export default function AddChapterModal({ open, onClose, subject, onSubmit }) {
     try {
       setSubmitting(true);
       setSubmitError("");
-      await onSubmit?.({ name: name.trim() });
+      await onSubmit?.({ name: name.trim(), displayOrder: displayOrder ? Number(displayOrder) : null });
       setName("");
     } catch (error) {
       setSubmitError(getErrorMessage(error, "Không thể lưu chương. Vui lòng thử lại."));
@@ -67,6 +69,7 @@ export default function AddChapterModal({ open, onClose, subject, onSubmit }) {
       >
         {submitError && <div className="modal-inline-error">{submitError}</div>}
         <input placeholder="Tên chương" value={name} onChange={(e) => setName(e.target.value)} />
+        <input type="number" min="1" placeholder="Thứ tự (để trống để xếp cuối)" value={displayOrder} onChange={(e) => setDisplayOrder(e.target.value)} />
       </FormModalLayout>
     </Modal>
   );

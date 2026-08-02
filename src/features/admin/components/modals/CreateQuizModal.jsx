@@ -4,11 +4,12 @@ import Modal from "../ui/Modal";
 import FormModalLayout from "../ui/FormModalLayout";
 import { getChaptersBySubject } from "../../../../services/contentService";
 import { getErrorMessage } from "../../../../services/apiClient";
-import { createQuiz, getQuestionsByChapter } from "../../services/quizService";
+import { createQuiz, getQuestionsByChapter, updateQuiz } from "../../services/quizService";
 
 const getSubjectId = (subject) => String(subject?.subjectId ?? subject?.id ?? "");
 const getChapterId = (chapter) => String(chapter?.chapterId ?? chapter?.id ?? "");
 const getQuestionId = (question) => String(question?.questionId ?? question?.id ?? "");
+const EMPTY_LIST = [];
 
 function pickRandomIds(questionIds, count) {
   const shuffled = [...questionIds];
@@ -27,7 +28,12 @@ export function CreateQuizForm({
   defaultSubjectId = "",
   defaultChapterId = "",
   onCreated,
+  initialQuiz = null,
+  initialQuestionIds = EMPTY_LIST,
+  onUpdated,
+  showQuestions = true,
 }) {
+  const isEdit = Boolean(initialQuiz);
   const handleCancel = onCancel || onClose;
   const [subjectId, setSubjectId] = useState(defaultSubjectId);
   const [chapterId, setChapterId] = useState(defaultChapterId);
@@ -36,6 +42,7 @@ export function CreateQuizForm({
   const [selectedQuestionIds, setSelectedQuestionIds] = useState([]);
   const [quizName, setQuizName] = useState("");
   const [duration, setDuration] = useState(30);
+  const [displayOrder, setDisplayOrder] = useState("");
   const [randomCount, setRandomCount] = useState("");
   const [isLoadingChapters, setIsLoadingChapters] = useState(false);
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
@@ -44,14 +51,15 @@ export function CreateQuizForm({
 
   useEffect(() => {
     if (!open) return;
-    setSubjectId(defaultSubjectId || getSubjectId(subjects[0]));
-    setChapterId(defaultChapterId);
-    setQuizName("");
-    setDuration(30);
-    setSelectedQuestionIds([]);
+    setSubjectId(initialQuiz?.subjectId || defaultSubjectId || getSubjectId(subjects[0]));
+    setChapterId(initialQuiz?.chapterId || defaultChapterId);
+    setQuizName(initialQuiz?.name || "");
+    setDuration(initialQuiz?.durationMinutes || initialQuiz?.duration || 30);
+    setDisplayOrder(initialQuiz?.displayOrder || "");
+    setSelectedQuestionIds(initialQuestionIds);
     setRandomCount("");
     setError("");
-  }, [open, defaultSubjectId, defaultChapterId, subjects]);
+  }, [open, defaultSubjectId, defaultChapterId, subjects, initialQuiz, initialQuestionIds]);
 
   useEffect(() => {
     if (!open || !subjectId) {
@@ -82,7 +90,7 @@ export function CreateQuizForm({
   }, [open, subjectId]);
 
   useEffect(() => {
-    if (!open || !chapterId) {
+    if (!open || !chapterId || !showQuestions) {
       setQuestions([]);
       setSelectedQuestionIds([]);
       return undefined;
@@ -93,7 +101,12 @@ export function CreateQuizForm({
       .then((rows) => {
         if (!active) return;
         setQuestions(rows || []);
-        setSelectedQuestionIds([]);
+        const availableIds = new Set((rows || []).map((question) => getQuestionId(question)));
+        setSelectedQuestionIds(
+          initialQuiz?.chapterId === chapterId
+            ? initialQuestionIds.filter((id) => availableIds.has(id))
+            : [],
+        );
       })
       .catch(() => {
         if (active) setQuestions([]);
@@ -104,7 +117,7 @@ export function CreateQuizForm({
     return () => {
       active = false;
     };
-  }, [open, chapterId]);
+  }, [open, chapterId, initialQuiz, initialQuestionIds, showQuestions]);
 
   const allQuestionIds = useMemo(
     () => questions.map((question) => getQuestionId(question)).filter(Boolean),
@@ -143,7 +156,7 @@ export function CreateQuizForm({
       setError("Vui lòng nhập tên đề thi.");
       return;
     }
-    if (!selectedQuestionIds.length) {
+    if (showQuestions && !selectedQuestionIds.length) {
       setError("Vui lòng chọn ít nhất một câu hỏi.");
       return;
     }
@@ -151,16 +164,23 @@ export function CreateQuizForm({
     try {
       setIsSubmitting(true);
       setError("");
-      const created = await createQuiz({
+      const payload = {
         subjectId,
         chapterId,
         name: quizName.trim(),
         duration: Number(duration),
-        totalQuestion: selectedQuestionIds.length,
+        totalQuestion: showQuestions ? selectedQuestionIds.length : initialQuiz?.totalQuestion,
         type: "CHAPTER",
-        questionIds: selectedQuestionIds,
-      });
-      onCreated?.(created, { subjectId, chapterId });
+        questionIds: showQuestions ? selectedQuestionIds : undefined,
+        displayOrder: displayOrder ? Number(displayOrder) : null,
+      };
+      if (isEdit) {
+        const updated = await updateQuiz(initialQuiz.quizId, payload);
+        onUpdated?.(updated, { subjectId, chapterId });
+      } else {
+        const created = await createQuiz(payload);
+        onCreated?.(created, { subjectId, chapterId });
+      }
       onClose?.();
     } catch (createError) {
       setError(getErrorMessage(createError, "Không thể tạo đề thi."));
@@ -171,15 +191,15 @@ export function CreateQuizForm({
 
   return (
     <FormModalLayout
-        title="Tạo đề thi mới"
-        subtitle="Chọn môn học, chương và các câu hỏi để tạo đề thi"
+        title={isEdit ? "Chỉnh sửa đề thi" : "Tạo đề thi mới"}
+        subtitle={isEdit ? "Cập nhật thông tin và danh sách câu hỏi" : "Chọn môn học, chương và các câu hỏi để tạo đề thi"}
         actions={
           <>
             <button className="cancel-btn" onClick={handleCancel} disabled={isSubmitting}>
               Hủy
             </button>
             <button className="add-btn" onClick={handleSubmit} disabled={isSubmitting}>
-              {isSubmitting ? "Đang tạo..." : "Tạo đề thi"}
+              {isSubmitting ? "Đang lưu..." : isEdit ? "Lưu thay đổi" : "Tạo đề thi"}
             </button>
           </>
         }
@@ -189,7 +209,7 @@ export function CreateQuizForm({
         <div className="quiz-modal-grid">
           <label className="quiz-field">
             <span>Môn học</span>
-            <select value={subjectId} onChange={(event) => setSubjectId(event.target.value)}>
+            <select value={subjectId} onChange={(event) => setSubjectId(event.target.value)} disabled={isEdit}>
               {subjects.map((subject) => (
                 <option key={getSubjectId(subject)} value={getSubjectId(subject)}>
                   {subject.name}
@@ -231,9 +251,13 @@ export function CreateQuizForm({
               onChange={(event) => setDuration(event.target.value)}
             />
           </label>
+          <label className="quiz-field">
+            <span>Thứ tự hiển thị</span>
+            <input type="number" min="1" value={displayOrder} onChange={(event) => setDisplayOrder(event.target.value)} placeholder="Để trống để xếp cuối" />
+          </label>
         </div>
 
-        <div className="quiz-picker">
+        {showQuestions && <div className="quiz-picker">
           <div className="quiz-question-head">
             <strong>Chọn câu hỏi ({selectedQuestionIds.length}/{questions.length})</strong>
             <div className="quiz-picker-tools">
@@ -296,7 +320,7 @@ export function CreateQuizForm({
               )}
             </div>
           )}
-        </div>
+        </div>}
     </FormModalLayout>
   );
 }

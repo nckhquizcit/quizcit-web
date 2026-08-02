@@ -4,4 +4,5 @@ export {
   getQuestionsByChapter,
   getQuizzesByChapter,
   updateQuiz,
+  reorderQuizzes,
 } from "../../../services/quizService";

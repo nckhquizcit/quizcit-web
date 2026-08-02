@@ -99,6 +99,7 @@ export function mapSubject(raw = {}) {
     description: normalizeVietnameseDisplayText(pick(raw, ["description"], "")),
     visible: Boolean(pick(raw, ["visible", "isVisible", "is_visible"], true)),
     createdAt: pick(raw, ["createdAt", "created_at"], null),
+    displayOrder: toNumber(pick(raw, ["displayOrder", "display_order"], 0)),
     chapterCount: toNumber(pick(raw, ["chapterCount", "chapter_count"], 0)),
     progress: toNumber(pick(raw, ["progress", "progressPercent"], 0)),
     category: pick(raw, ["category"], "Nen tang"),
@@ -119,6 +120,7 @@ export function mapChapter(raw = {}) {
     subject_id: subjectId,
     name: normalizeVietnameseDisplayText(pick(raw, ["name"], "")),
     createdAt: pick(raw, ["createdAt", "created_at"], null),
+    displayOrder: toNumber(pick(raw, ["displayOrder", "display_order"], 0)),
   };
 }
 
@@ -233,6 +235,8 @@ export function mapQuiz(raw = {}) {
     totalQuestion: toNumber(pick(raw, ["totalQuestion", "total_question"], 0)),
     duration,
     durationMinutes: duration,
+    displayOrder: toNumber(pick(raw, ["displayOrder", "display_order"], 0)),
+    createdAt: pick(raw, ["createdAt", "created_at"], null),
   };
 }
 
