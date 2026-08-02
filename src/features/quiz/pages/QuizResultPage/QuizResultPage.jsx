@@ -18,6 +18,7 @@ import "./QuizResultPage.css";
 const FALLBACK_QUIZ_NAME = "Bài kiểm tra";
 const MISSING_QUIZ_NAME = "Chưa có tên bài quiz";
 const FALLBACK_SUBJECT_NAME = "Không rõ môn học";
+const MISSING_SKILL_NAME = "Kỹ năng chưa đặt tên";
 const FALLBACK_DATE = "—";
 const submittedAtFormatter = new Intl.DateTimeFormat("vi-VN", {
   dateStyle: "short",
@@ -35,7 +36,11 @@ const formatSubmittedAt = (value) => {
 const isMissingName = (value) => {
   if (typeof value !== "string" || !value.trim()) return true;
   const trimmed = value.trim();
-  return trimmed === MISSING_QUIZ_NAME || trimmed === FALLBACK_SUBJECT_NAME;
+  return (
+    trimmed === MISSING_QUIZ_NAME ||
+    trimmed === FALLBACK_SUBJECT_NAME ||
+    trimmed === MISSING_SKILL_NAME
+  );
 };
 
 async function resolveResultMetadata(result) {
