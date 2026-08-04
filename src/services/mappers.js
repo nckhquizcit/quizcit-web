@@ -288,6 +288,7 @@ export function mapQuiz(raw = {}) {
 export function mapSkillResult(raw = {}) {
   const skillId = pick(raw, ["skillId", "skill_id", "id"]);
   const theta = toNumber(pick(raw, ["theta", "ability"], 0));
+  const delta = toNumber(pick(raw, ["delta"], 0));
   const skillName = pickText(
     raw,
     ["skillName", "skill_name", "name"],
@@ -303,6 +304,7 @@ export function mapSkillResult(raw = {}) {
     skillName,
     theta,
     thetaScaled: pickThetaScaled(raw, theta),
+    delta,
   };
 }
 

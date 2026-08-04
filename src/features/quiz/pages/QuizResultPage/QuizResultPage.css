@@ -374,3 +374,32 @@
     justify-content: flex-start;
   }
 }
+.result-skill-item__delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.result-skill-item__delta--up {
+  color: #16a34a;
+}
+
+.result-skill-item__delta--down {
+  color: #dc2626;
+}
+
+.result-skill-item__delta--flat {
+  color: #6b7280;
+}
+
+.result-advice-section {
+  margin-top: 1rem;
+}
+
+.result-advice-text {
+  white-space: pre-wrap;
+  line-height: 1.6;
+  color: #374151;
+}

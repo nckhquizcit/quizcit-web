@@ -24,6 +24,7 @@ import {
 } from "../../../../components/ui";
 import { getErrorMessage } from "../../../../services/apiClient";
 import TheoryContent from "../../../content/components/TheoryContent";
+import ChatBox from "../../../../components/ChatBox/ChatBox";
 import { isValidAdaptiveQuestionCount } from "../../../quiz/pages/AdaptiveQuizPage/AdaptiveQuizPage.logic.js";
 import "./SubjectDetailPage.css";
 
@@ -333,6 +334,9 @@ export default function SubjectDetailPage() {
             </Card>
           </div>
         </div>
+      )}
+      {theories.length > 0 && (
+        <ChatBox key={subjectId} subjectId={subjectId} chapterId={activeChapterId} />
       )}
     </div>
   );

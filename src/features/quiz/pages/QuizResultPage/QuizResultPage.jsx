@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { BookOpen, CalendarDays, CheckCircle2, History, TrendingUp, XCircle } from "lucide-react";
+import { BookOpen, CalendarDays, CheckCircle2, History, TrendingUp, TrendingDown, Minus, XCircle, Sparkles } from "lucide-react";
 import { getErrorMessage } from "../../../../services/apiClient";
 import { getAttemptResult, getQuizById } from "../../../../services/quizService";
 import { getSubjectById } from "../../../../services/subjectService";
@@ -216,10 +216,21 @@ export default function QuizResultPage() {
           <div className="result-skill-list">
             {result.skillResults.map((skill) => {
               const level = getAbilityLevel(skill.theta);
+              const delta = skill.delta ?? 0;
+              const DeltaIcon = delta > 0.001 ? TrendingUp : delta < -0.001 ? TrendingDown : Minus;
+              const deltaClass =
+                delta > 0.001 ? "result-skill-item__delta--up"
+                  : delta < -0.001 ? "result-skill-item__delta--down"
+                  : "result-skill-item__delta--flat";
               return (
               <div className="result-skill-item" key={skill.skillId}>
                 <span className="result-skill-item__name">
                   {skill.name || "Kỹ năng chưa đặt tên"}
+                </span>
+                <span className={`result-skill-item__delta ${deltaClass}`}>
+                  <DeltaIcon size={14} />
+                  {delta > 0 ? "+" : ""}
+                  {delta.toFixed(2)}
                 </span>
                 <strong className="result-skill-item__theta">
                   {formatScaledThetaValue(skill.theta)}
@@ -235,6 +246,16 @@ export default function QuizResultPage() {
           </p>
         )}
       </Card>
+
+      {result.overallAdvice ? (
+        <Card padding="lg" className="result-advice-section">
+          <h2>
+            <Sparkles size={18} style={{ marginRight: 6 }} />
+            Lời khuyên cải thiện
+          </h2>
+          <p className="result-advice-text">{result.overallAdvice}</p>
+        </Card>
+      ) : null}
 
       <Card padding="lg" className="result-question-section">
         <h2>Chi tiết câu trả lời</h2>
