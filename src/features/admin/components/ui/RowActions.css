@@ -76,10 +76,9 @@
 }
 
 .row-actions__menu {
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
-  z-index: 20;
+  /* Toạ độ do RowActions.jsx set inline (portal + fixed) để không bị bảng cắt. */
+  position: fixed;
+  z-index: var(--z-dropdown, 90); /* dưới modal (100) để không nổi lên trên hộp thoại */
   min-width: 190px;
   padding: 6px;
   display: flex;

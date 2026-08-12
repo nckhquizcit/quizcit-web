@@ -61,13 +61,13 @@ export default function AddChapterModal({ open, onClose, subject, onSubmit }) {
               <b>Môn:</b> {subject.name}
             </div>
             <div>
-              <b>Mã:</b> {subject.code}
+              <b>Mã:</b> {subject.courseCode}
             </div>
           </>
         }
         actions={
           <>
-            <button className="cancel-btn" onClick={handleClose}>
+            <button className="cancel-btn" onClick={handleClose} disabled={submitting}>
               Hủy
             </button>
             <button className="add-btn" onClick={handleSubmit} disabled={submitting || !name.trim()}>
@@ -77,8 +77,26 @@ export default function AddChapterModal({ open, onClose, subject, onSubmit }) {
         }
       >
         {submitError && <div className="modal-inline-error">{submitError}</div>}
-        <input placeholder="Tên chương" value={name} onChange={(e) => setName(e.target.value)} />
-        <input type="number" min="1" placeholder="Thứ tự (để trống để xếp cuối)" value={displayOrder} onChange={(e) => setDisplayOrder(e.target.value)} />
+        <label className="quiz-field" htmlFor="add-chapter-name">
+          <span>Tên chương</span>
+          <input
+            id="add-chapter-name"
+            placeholder="Tên chương"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </label>
+        <label className="quiz-field" htmlFor="add-chapter-display-order">
+          <span>Thứ tự hiển thị</span>
+          <input
+            id="add-chapter-display-order"
+            type="number"
+            min="1"
+            placeholder="Thứ tự (để trống để xếp cuối)"
+            value={displayOrder}
+            onChange={(e) => setDisplayOrder(e.target.value)}
+          />
+        </label>
         <ChapterSkillsField skills={skills} value={selectedSkills} onChange={setSelectedSkills} />
       </FormModalLayout>
     </Modal>

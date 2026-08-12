@@ -84,8 +84,8 @@ export default function AdminUsers() {
 
   const statTiles = [
     { key: "total", label: "Tổng tài khoản", icon: <Users size={18} />, tone: "gray", value: userStats.total },
-    { key: "verified", label: "Đã xác minh", icon: <ShieldCheck size={18} />, tone: "emerald", value: userStats.verified },
-    { key: "unverified", label: "Chưa xác minh", icon: <ShieldAlert size={18} />, tone: "amber", value: userStats.unverified },
+    { key: "verified", label: STATUS_LABELS.VERIFIED, icon: <ShieldCheck size={18} />, tone: "emerald", value: userStats.verified },
+    { key: "unverified", label: STATUS_LABELS.UNVERIFIED, icon: <ShieldAlert size={18} />, tone: "amber", value: userStats.unverified },
     { key: "banned", label: "Đã khóa", icon: <Lock size={18} />, tone: "red", value: userStats.banned },
   ];
 

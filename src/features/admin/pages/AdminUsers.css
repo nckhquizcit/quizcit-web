@@ -98,24 +98,6 @@
   white-space: nowrap;
 }
 
-.danger-btn {
-  background: #fee2e2;
-  color: #dc2626;
-}
-
-.danger-btn:hover {
-  background: #fecaca;
-}
-
-.primary-btn {
-  background: #e0f2fe;
-  color: #0284c7;
-}
-
-.primary-btn:hover {
-  background: #bae6fd;
-}
-
 .admin-users-actions {
   display: flex;
   flex-wrap: wrap;

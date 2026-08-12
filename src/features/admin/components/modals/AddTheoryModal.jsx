@@ -52,7 +52,7 @@ export default function AddTheoryModal({ open, onClose, chapter, onSubmit }) {
         subtitle={`Chương: ${chapter.name}`}
         actions={
           <>
-            <button className="cancel-btn" onClick={handleClose}>Hủy</button>
+            <button className="cancel-btn" onClick={handleClose} disabled={submitting}>Hủy</button>
             <button
               className="add-btn"
               onClick={handleSubmit}

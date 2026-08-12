@@ -29,7 +29,7 @@ export default function AddSubjectModal({ open, onClose, onSubmit }) {
   };
 
   const handleSubmit = async () => {
-    if (submitting) return;
+    if (submitting || !name.trim() || !courseCode.trim()) return;
 
     try {
       setSubmitting(true);
@@ -53,13 +53,13 @@ export default function AddSubjectModal({ open, onClose, onSubmit }) {
         subtitle="Nhập thông tin môn học để thêm vào hệ thống"
         actions={
           <>
-            <button className="cancel-btn" onClick={handleClose}>
+            <button className="cancel-btn" onClick={handleClose} disabled={submitting}>
               Hủy
             </button>
             <button
               className="add-btn"
               onClick={handleSubmit}
-              disabled={submitting}
+              disabled={submitting || !name.trim() || !courseCode.trim()}
             >
               {submitting ? "Đang lưu..." : "Thêm môn học"}
             </button>
@@ -67,19 +67,45 @@ export default function AddSubjectModal({ open, onClose, onSubmit }) {
         }
       >
         {submitError && <div className="modal-inline-error">{submitError}</div>}
-        <input placeholder="Tên môn học" value={name} onChange={(e) => setName(e.target.value)} />
-        <input
-          placeholder="Mã môn học"
-          value={courseCode}
-          onChange={(e) => setCourseCode(e.target.value)}
-        />
-        <textarea
-          placeholder="Mô tả môn học"
-          rows={4}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-        <input type="number" min="1" placeholder="Thứ tự (để trống để xếp cuối)" value={displayOrder} onChange={(e) => setDisplayOrder(e.target.value)} />
+        <label className="quiz-field" htmlFor="add-subject-name">
+          <span>Tên môn học</span>
+          <input
+            id="add-subject-name"
+            placeholder="Tên môn học"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </label>
+        <label className="quiz-field" htmlFor="add-subject-code">
+          <span>Mã môn học</span>
+          <input
+            id="add-subject-code"
+            placeholder="Mã môn học"
+            value={courseCode}
+            onChange={(e) => setCourseCode(e.target.value)}
+          />
+        </label>
+        <label className="quiz-field" htmlFor="add-subject-description">
+          <span>Mô tả</span>
+          <textarea
+            id="add-subject-description"
+            placeholder="Mô tả môn học"
+            rows={4}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        </label>
+        <label className="quiz-field" htmlFor="add-subject-display-order">
+          <span>Thứ tự hiển thị</span>
+          <input
+            id="add-subject-display-order"
+            type="number"
+            min="1"
+            placeholder="Thứ tự (để trống để xếp cuối)"
+            value={displayOrder}
+            onChange={(e) => setDisplayOrder(e.target.value)}
+          />
+        </label>
       </FormModalLayout>
     </Modal>
   );

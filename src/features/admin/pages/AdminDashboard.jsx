@@ -56,8 +56,8 @@ const statCards = [
 ];
 
 const quickActions = [
-  { label: "Tạo đề thi", icon: <Plus size={18} />, to: "/admin/quizzes" },
-  { label: "Import câu hỏi", icon: <Upload size={18} />, to: "/admin/questions" },
+  { label: "Tạo đề thi", icon: <Plus size={18} />, to: "/admin/quizzes/new" },
+  { label: "Import câu hỏi", icon: <Upload size={18} />, to: "/admin/questions/import" },
   { label: "Thêm môn học", icon: <BookOpen size={18} />, to: "/admin/subjects" },
   { label: "Quản lý câu hỏi", icon: <ListChecks size={18} />, to: "/admin/questions" },
 ];

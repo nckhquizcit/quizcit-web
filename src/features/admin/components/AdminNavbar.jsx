@@ -47,7 +47,7 @@ export default function AdminNavbar({ onOpenMenu }) {
       <div className="admin-user">
         <button type="button" className="preview-user-btn" onClick={handleEnterUserPreview}>
           <Eye size={16} strokeWidth={2} />
-          <span>Xem như user</span>
+          <span>Xem như người dùng</span>
         </button>
         <Link to="/admin/profile" className="profile-btn">
           <User size={16} strokeWidth={2} />

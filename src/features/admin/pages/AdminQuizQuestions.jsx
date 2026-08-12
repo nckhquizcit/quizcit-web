@@ -62,6 +62,25 @@ export default function AdminQuizQuestions() {
 
   useEffect(() => { void Promise.resolve().then(load); }, [load]);
 
+  const closeQuestionBank = useCallback(() => setBankOpen(false), []);
+
+  useEffect(() => {
+    if (!bankOpen) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") closeQuestionBank();
+    };
+
+    const previousOverflow = document.body.style.overflow;
+    document.addEventListener("keydown", handleKeyDown);
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [bankOpen, closeQuestionBank]);
+
   const openQuestionBank = async () => {
     if (!quiz) return;
     setBankOpen(true);
@@ -103,7 +122,7 @@ export default function AdminQuizQuestions() {
     const selected = bankQuestions.filter((question) => bankSelection.includes(getQuestionId(question)));
     setQuizQuestions((current) => [...current, ...selected]);
     setBankSelection([]);
-    setBankOpen(false);
+    closeQuestionBank();
   };
 
   const removeQuestion = (questionId) => {
@@ -176,9 +195,9 @@ export default function AdminQuizQuestions() {
       </div>
     </div>
 
-    {bankOpen && <div className="quiz-bank-overlay" role="presentation" onClick={() => setBankOpen(false)}>
-      <section className="quiz-bank-dialog" role="dialog" aria-modal="true" aria-labelledby="quiz-bank-title" onClick={(event) => event.stopPropagation()}>
-        <header className="quiz-bank-header"><div><h2 id="quiz-bank-title">Ngân hàng chương</h2><p>Có thể chọn nhiều câu hỏi trong một lần.</p></div><button className="quiz-bank-close" type="button" onClick={() => setBankOpen(false)} aria-label="Đóng"><X size={18} /></button></header>
+    {bankOpen && <div className="quiz-bank-overlay" role="presentation" onClick={(event) => { if (event.target === event.currentTarget) closeQuestionBank(); }}>
+      <section className="quiz-bank-dialog" role="dialog" aria-modal="true" aria-labelledby="quiz-bank-title">
+        <header className="quiz-bank-header"><div><h2 id="quiz-bank-title">Ngân hàng chương</h2><p>Có thể chọn nhiều câu hỏi trong một lần.</p></div><button className="quiz-bank-close" type="button" onClick={closeQuestionBank} aria-label="Đóng"><X size={18} /></button></header>
         <div className="quiz-bank-body">
           {bankError && <div className="modal-inline-error">{bankError}</div>}
           <label className="quiz-bank-search"><Search size={17} /><input value={bankQuery} onChange={(event) => setBankQuery(event.target.value)} placeholder="Tìm nội dung câu hỏi..." /><span className="sr-only">Tìm nội dung câu hỏi</span></label>

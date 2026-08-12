@@ -97,7 +97,10 @@ export default function AdminSubjects() {
   const handleDeleteSubject = async () => {
     if (!deletingSubject) return;
 
-    await runAction("delete-subject", async () => {
+    // Delete failures are shown inside ConfirmDeleteModal, so skip the
+    // page-level actionError and let the error propagate to the modal.
+    setPendingAction("delete-subject");
+    try {
       await deleteSubject(deletingSubject.subjectId);
       setSubjects((current) =>
         current.filter((s) => s.subjectId !== deletingSubject.subjectId),
@@ -108,7 +111,9 @@ export default function AdminSubjects() {
         return next;
       });
       setDeletingSubject(null);
-    });
+    } finally {
+      setPendingAction("");
+    }
   };
 
   const isMutating = Boolean(pendingAction);
@@ -163,6 +168,7 @@ export default function AdminSubjects() {
       {/* ===== SEARCH ===== */}
       <SearchBar
         placeholder="Tìm kiếm tên hoặc mã môn..."
+        value={search}
         onChange={setSearch}
         right={
           !loading && !loadError ? (
@@ -175,11 +181,19 @@ export default function AdminSubjects() {
       {loadError && <div className="admin-page-state error">{loadError}</div>}
       {actionError && <div className="admin-page-state error">{actionError}</div>}
       {!loading && !loadError && filteredSubjects.length === 0 && (
-        <EmptyState
-          icon={<BookOpen size={28} />}
-          title="Chưa có môn học"
-          description="Thêm môn học mới để bắt đầu xây dựng nội dung."
-        />
+        subjects.length > 0 ? (
+          <EmptyState
+            icon={<BookOpen size={28} />}
+            title="Không tìm thấy môn học phù hợp"
+            description="Thử từ khóa khác hoặc kiểm tra lại chính tả."
+          />
+        ) : (
+          <EmptyState
+            icon={<BookOpen size={28} />}
+            title="Chưa có môn học"
+            description="Thêm môn học mới để bắt đầu xây dựng nội dung."
+          />
+        )
       )}
 
       {/* ===== SUBJECT GRID ===== */}
@@ -200,7 +214,16 @@ export default function AdminSubjects() {
             onDrop={(event) => handleSubjectDrop(event, subject.subjectId)}
             onDragEnd={() => setDraggedSubjectId(null)}
             data-dragging={draggedSubjectId === subject.subjectId || undefined}
+            role={isOrdering ? undefined : "button"}
+            tabIndex={isOrdering ? undefined : 0}
             onClick={() => !isOrdering && navigate(`/admin/subjects/${subject.subjectId}/chapters`)}
+            onKeyDown={(event) => {
+              // Only react when the card itself is focused, not inner buttons.
+              if (isOrdering || event.target !== event.currentTarget) return;
+              if (event.key !== "Enter" && event.key !== " ") return;
+              if (event.key === " ") event.preventDefault();
+              navigate(`/admin/subjects/${subject.subjectId}/chapters`);
+            }}
           >
             {isOrdering && <span className="display-order-drag-handle" title="Kéo để đổi thứ tự" aria-label="Kéo để đổi thứ tự"><GripVertical size={17} /></span>}
 

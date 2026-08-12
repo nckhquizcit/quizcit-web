@@ -45,6 +45,7 @@ export default function AdminQuizzes() {
   const [isOrdering, setIsOrdering] = useState(false);
   const [orderSnapshot, setOrderSnapshot] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [reloadTick, setReloadTick] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -65,7 +66,7 @@ export default function AdminQuizzes() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [reloadTick]);
 
   useEffect(() => {
     if (!selectedSubjectId) {
@@ -98,7 +99,7 @@ export default function AdminQuizzes() {
     return () => {
       isMounted = false;
     };
-  }, [selectedSubjectId]);
+  }, [selectedSubjectId, reloadTick]);
 
   useEffect(() => {
     if (!selectedChapterId) {
@@ -127,7 +128,7 @@ export default function AdminQuizzes() {
     return () => {
       isMounted = false;
     };
-  }, [selectedChapterId]);
+  }, [selectedChapterId, reloadTick]);
 
   const selectedChapter = useMemo(
     () => chapters.find((chapter) => getChapterId(chapter) === selectedChapterId),
@@ -176,13 +177,19 @@ export default function AdminQuizzes() {
   };
 
   const columns = [
-    {
-      key: "drag",
-      label: "",
-      width: 42,
-      align: "center",
-      render: () => isOrdering ? <GripVertical className="display-order-drag-handle" size={17} aria-label="Kéo để đổi thứ tự" /> : null,
-    },
+    ...(isOrdering
+      ? [
+          {
+            key: "drag",
+            label: "",
+            width: 42,
+            align: "center",
+            render: () => (
+              <GripVertical className="display-order-drag-handle" size={17} aria-label="Kéo để đổi thứ tự" />
+            ),
+          },
+        ]
+      : []),
     {
       key: "displayOrder",
       label: "Thứ tự",
@@ -210,7 +217,7 @@ export default function AdminQuizzes() {
       render: (quiz) => (
         <div className="quiz-structure-cell">
           <span className={`adm2-badge ${quiz.type === "FINAL" ? "adm2-badge--amber" : "adm2-badge--gray"}`}>
-            {quiz.type || "CHAPTER"}
+            {QUIZ_TYPE_LABELS[quiz.type] || QUIZ_TYPE_LABELS.CHAPTER}
           </span>
           <span className="quiz-meta-cell">{quiz.totalQuestion ?? 0} câu</span>
         </div>
@@ -320,7 +327,7 @@ export default function AdminQuizzes() {
         </label>
 
         <div className="quiz-filter-search">
-          <SearchBar placeholder="Tìm tên đề..." onChange={setSearchQuery} />
+          <SearchBar placeholder="Tìm tên đề..." value={searchQuery} onChange={setSearchQuery} />
         </div>
 
         <div className="quiz-filter-order-actions">
@@ -338,7 +345,7 @@ export default function AdminQuizzes() {
       </div>
 
       {error ? (
-        <ErrorState description={error} onRetry={() => setSelectedChapterId((id) => id)} />
+        <ErrorState description={error} onRetry={() => setReloadTick((tick) => tick + 1)} />
       ) : (
         <>
           <DataTable

@@ -235,7 +235,15 @@ export function QuestionForm({
   const [loadingSkills, setLoadingSkills] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [formError, setFormError] = useState("");
   const skillSearchRef = useRef(null);
+  const formErrorRef = useRef(null);
+
+  useEffect(() => {
+    if (formError) {
+      formErrorRef.current?.scrollIntoView({ block: "nearest" });
+    }
+  }, [formError]);
 
   useEffect(() => {
     setAvailableSubjects(subjects.map(normalizeSubject));
@@ -359,6 +367,7 @@ export function QuestionForm({
     setPreview(false);
     setSubmitting(false);
     setSubmitError("");
+    setFormError("");
   }, [chapter, chapters, initialQuestion, open, subject, subjects]);
 
   useEffect(() => {
@@ -641,36 +650,38 @@ export function QuestionForm({
   const handleSubmit = async () => {
     if (submitting) return;
 
+    setFormError("");
+
     if (!isQuestionFilled) {
-      window.alert("Vui lòng nhập nội dung câu hỏi.");
+      setFormError("Vui lòng nhập nội dung câu hỏi.");
       return;
     }
 
     if (!selectedSubjectId || !selectedChapterId) {
-      window.alert("Vui lòng chọn môn học và chương cho câu hỏi.");
+      setFormError("Vui lòng chọn môn học và chương cho câu hỏi.");
       return;
     }
 
     if (!answers.every(isAnswerFilled)) {
-      window.alert("Vui lòng nhập đầy đủ nội dung cho tất cả đáp án.");
+      setFormError("Vui lòng nhập đầy đủ nội dung cho tất cả đáp án.");
       return;
     }
 
     if (correctIndex === null) {
-      window.alert("Vui lòng chọn một đáp án đúng.");
+      setFormError("Vui lòng chọn một đáp án đúng.");
       return;
     }
 
     const skillError = validateSkillWeights(selectedSkills);
     if (skillError) {
-      window.alert(skillError);
+      setFormError(skillError);
       return;
     }
 
     if (difficultyKey === CUSTOM_DIFFICULTY_KEY) {
       const customValue = Number(String(customDifficultyB).replace(",", "."));
       if (!Number.isFinite(customValue)) {
-        window.alert("Vui lòng nhập độ khó tùy chỉnh hợp lệ (ví dụ: -1.2).");
+        setFormError("Vui lòng nhập độ khó tùy chỉnh hợp lệ (ví dụ: -1.2).");
         return;
       }
     }
@@ -900,6 +911,8 @@ export function QuestionForm({
       <QuestionFormPage
         submitting={submitting}
         submitError={submitError}
+        formError={formError}
+        formErrorRef={formErrorRef}
         question={question}
         setQuestion={setQuestion}
         explanation={explanation}
@@ -1078,8 +1091,9 @@ export function QuestionForm({
                               key={index}
                             >
                               <span className="answer-letter">{answerLabel}</span>
+                              {/* key gồm answers.length: editor chỉ đọc value lúc mount, cần remount khi thêm/xóa đáp án */}
                               <RichTextEditor
-                                key={`${editorKey}-answer-${index}`}
+                                key={`${editorKey}-answer-${answers.length}-${index}`}
                                 className="answer-rich-text"
                                 variant="inline"
                                 value={answer}
@@ -1103,6 +1117,11 @@ export function QuestionForm({
               )}
             </div>
 
+            {formError && (
+              <div className="modal-inline-error" role="alert" ref={formErrorRef}>
+                {formError}
+              </div>
+            )}
             {submitError && <div className="modal-inline-error">{submitError}</div>}
 
             <div className="question-modal-actions">
@@ -1187,6 +1206,8 @@ export function QuestionForm({
 function QuestionFormPage({
   submitting,
   submitError,
+  formError,
+  formErrorRef,
   question,
   setQuestion,
   explanation,
@@ -1253,8 +1274,9 @@ function QuestionFormPage({
                   onChange={() => setCorrectIndex(index)}
                   aria-label={`Đáp án đúng ${String.fromCharCode(65 + index)}`}
                 />
+                {/* key gồm answers.length: editor chỉ đọc value lúc mount, cần remount khi thêm/xóa đáp án */}
                 <RichTextEditor
-                  key={`${editorKey}-answer-${index}`}
+                  key={`${editorKey}-answer-${answers.length}-${index}`}
                   className="answer-rich-text"
                   variant="inline"
                   value={answer}
@@ -1294,6 +1316,11 @@ function QuestionFormPage({
           />
         </div>
 
+        {formError && (
+          <div className="modal-inline-error" role="alert" ref={formErrorRef}>
+            {formError}
+          </div>
+        )}
         {submitError && <div className="modal-inline-error">{submitError}</div>}
 
         <div className="question-modal-actions">

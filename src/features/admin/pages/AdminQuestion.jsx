@@ -126,9 +126,9 @@ const enrichQuestion = (question, chapterMap, subjectMap) => {
 const loadQuestionsFromChapters = (chapterList, allQuestions, selectedSubjectId, selectedChapterId) => {
   const normalizedChapters = (chapterList || []).map(normalizeChapter);
   const chaptersToLoad = selectedChapterId
-    ? normalizedChapters.filter((chapter) => chapter.chapterId === selectedChapterId)
+    ? normalizedChapters.filter((chapter) => String(chapter.chapterId) === String(selectedChapterId))
     : selectedSubjectId
-      ? normalizedChapters.filter((chapter) => chapter.subjectId === selectedSubjectId)
+      ? normalizedChapters.filter((chapter) => String(chapter.subjectId) === String(selectedSubjectId))
       : normalizedChapters;
 
   if (!chaptersToLoad.length) {
@@ -250,7 +250,7 @@ export default function AdminQuestions() {
       setSubjects(normalizedSubjects);
       setChapters(
         subjectId
-          ? normalizedChapters.filter((chapter) => chapter.subjectId === subjectId)
+          ? normalizedChapters.filter((chapter) => String(chapter.subjectId) === String(subjectId))
           : normalizedChapters,
       );
       setQuestionRows(questions.map((question) => enrichQuestion(question, chapterMap, subjectMap)));

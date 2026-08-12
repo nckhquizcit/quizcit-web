@@ -22,6 +22,10 @@ import {
 import { getAllQuestions } from "../../../services/quizService";
 import { getErrorMessage } from "../../../services/apiClient";
 import { reorderById } from "../utils/displayOrder";
+import { toPreviewText } from "../../../components/richtext/richTextUtils";
+
+const getQuestionChapterId = (question) =>
+  question?.chapterId ?? question?.chapter?.chapterId ?? question?.chapter?.id;
 
 export default function AdminChapters() {
   const { subjectId } = useParams();
@@ -61,7 +65,7 @@ export default function AdminChapters() {
           getSubjectById(subjectId), getChaptersBySubject(subjectId), getAllQuestions(),
         ]);
         const entries = chapters.map((chapter) => [chapter.chapterId,
-          questions.filter((question) => question.chapterId === chapter.chapterId).length]);
+          questions.filter((question) => getQuestionChapterId(question) === chapter.chapterId).length]);
 
         if (!alive) return;
         setSubject(subjectData);
@@ -149,7 +153,10 @@ export default function AdminChapters() {
   const handleDeleteChapter = async () => {
     if (!deletingChapter) return;
 
-    await runAction("delete-chapter", async () => {
+    // Delete failures are shown inside ConfirmDeleteModal, so skip the
+    // page-level actionError and let the error propagate to the modal.
+    setPendingAction("delete-chapter");
+    try {
       await deleteChapter(deletingChapter.chapterId);
       setSubjectChapters((current) =>
         current.filter((c) => c.chapterId !== deletingChapter.chapterId),
@@ -160,7 +167,9 @@ export default function AdminChapters() {
         return next;
       });
       setDeletingChapter(null);
-    });
+    } finally {
+      setPendingAction("");
+    }
   };
 
   const handleAddTheory = async (payload) => {
@@ -178,7 +187,7 @@ export default function AdminChapters() {
 
     await runAction("update-theory", async () => {
       await updateTheory(editingTheory.theoryId, payload);
-      await loadTheories(editingTheory.chapterId);
+      await loadTheories(expandedChapter ?? editingTheory.chapterId);
       setEditingTheory(null);
     });
   };
@@ -186,11 +195,15 @@ export default function AdminChapters() {
   const handleDeleteTheory = async () => {
     if (!deletingTheory) return;
 
-    await runAction("delete-theory", async () => {
+    // Lỗi xóa hiển thị trong ConfirmDeleteModal, không set actionError trang
+    setPendingAction("delete-theory");
+    try {
       await deleteTheory(deletingTheory.theoryId);
-      await loadTheories(deletingTheory.chapterId);
+      await loadTheories(expandedChapter ?? deletingTheory.chapterId);
       setDeletingTheory(null);
-    });
+    } finally {
+      setPendingAction("");
+    }
   };
 
   const toggleTheory = (theoryId) => {
@@ -246,10 +259,16 @@ export default function AdminChapters() {
         </div>}
       />
 
-      <SearchBar placeholder="Tìm chương..." onChange={setSearch} />
+      <SearchBar placeholder="Tìm chương..." value={search} onChange={setSearch} />
 
       {actionError && <div className="admin-page-state error">{actionError}</div>}
-      {filteredChapters.length === 0 && <div className="admin-page-state">Chưa có chương nào.</div>}
+      {filteredChapters.length === 0 && (
+        <div className="admin-page-state">
+          {subjectChapters.length > 0
+            ? "Không tìm thấy chương phù hợp. Thử từ khóa khác."
+            : "Chưa có chương nào."}
+        </div>
+      )}
 
       <div className="chapter-list">
         {filteredChapters.map((chapter, index) => {
@@ -277,7 +296,17 @@ export default function AdminChapters() {
                 onDrop={(event) => handleChapterDrop(event, chapter.chapterId)}
                 onDragEnd={() => setDraggedChapterId(null)}
                 data-dragging={draggedChapterId === chapter.chapterId || undefined}
+                role={isOrdering ? undefined : "button"}
+                tabIndex={isOrdering ? undefined : 0}
+                aria-expanded={isOrdering ? undefined : isExpanded}
                 onClick={() => !isOrdering && handleExpandChapter(chapter.chapterId)}
+                onKeyDown={(event) => {
+                  // Only react when the card itself is focused, not inner buttons.
+                  if (isOrdering || event.target !== event.currentTarget) return;
+                  if (event.key !== "Enter" && event.key !== " ") return;
+                  if (event.key === " ") event.preventDefault();
+                  handleExpandChapter(chapter.chapterId);
+                }}
               >
                 <div className="chapter-left">
                   {isOrdering && <span className="display-order-drag-handle" title="Kéo để đổi thứ tự" aria-label="Kéo để đổi thứ tự">
@@ -469,7 +498,7 @@ export default function AdminChapters() {
         onClose={() => setDeletingTheory(null)}
         title="Xóa lý thuyết"
         message="Bạn có muốn xóa nội dung lý thuyết này không?"
-        itemName={deletingTheory?.content?.substring(0, 50)}
+        itemName={toPreviewText(deletingTheory?.content, deletingTheory?.contentFormat, 50)}
         onConfirm={handleDeleteTheory}
       />
     </>
