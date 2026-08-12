@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ChevronRight } from "lucide-react";
 import {
   getAverageAbility,
   getAbilityHistories,
-  getAbilityHistoriesBySkill,
   getUserSkillAbilities,
 } from "../../../../services/progressService";
 import { getSkills } from "../../../../services/skillService";
@@ -15,35 +15,28 @@ import {
 } from "../../../../services/mappers";
 import {
   Badge,
-  Button,
   Card,
   EmptyState,
   ErrorState,
   ProgressRing,
   SkeletonCard,
 } from "../../../../components/ui";
-import ProgressBar from "../../../home/components/ProgressBar";
+import SkillTile from "../../components/SkillTile/SkillTile";
+import {
+  TREND_BADGE_VARIANT,
+  TREND_ICON,
+  buildSkillMaps,
+  formatDelta,
+  getSkillDisplayName,
+  normalizeSkillId,
+} from "../../utils/skillProgress";
 import { formatSubmittedAt } from "../../../../utils/dateFormat";
 import "./ProgressPage.css";
 
-const MISSING_SKILL_NAME = "Kỹ năng chưa đặt tên";
 const HISTORY_LIMIT = 12;
+const SKILL_LIMIT = 4;
 const INVALID_SESSION_MESSAGE = "Phiên đăng nhập không hợp lệ, vui lòng đăng nhập lại.";
 const LOAD_ERROR_MESSAGE = "Không thể tải tiến độ học tập.";
-
-const getSkillDisplayName = (skillNameById, skillId, rowName) =>
-  skillNameById.get(String(skillId ?? "").trim()) ||
-  (rowName && rowName !== MISSING_SKILL_NAME ? rowName : "") ||
-  MISSING_SKILL_NAME;
-
-function formatDelta(delta) {
-  if (delta > 0.001) return { text: `+${delta.toFixed(2)}`, trend: "up" };
-  if (delta < -0.001) return { text: `\u2212${Math.abs(delta).toFixed(2)}`, trend: "down" };
-  return { text: "0.00", trend: "flat" };
-}
-
-const TREND_ICON = { up: TrendingUp, down: TrendingDown, flat: Minus };
-const TREND_BADGE_VARIANT = { up: "success", down: "error", flat: "neutral" };
 
 export default function ProgressPage() {
   const [abilities, setAbilities] = useState([]);
@@ -52,10 +45,6 @@ export default function ProgressPage() {
   const [averageAbility, setAverageAbility] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [selectedSkillId, setSelectedSkillId] = useState("");
-  const [skillHistories, setSkillHistories] = useState([]);
-  const [skillHistoryLoading, setSkillHistoryLoading] = useState(false);
-  const [skillHistoryError, setSkillHistoryError] = useState("");
   const user = useMemo(() => getStoredUser(), []);
 
   useEffect(() => {
@@ -102,52 +91,7 @@ export default function ProgressPage() {
     };
   }, [user?.userId]);
 
-  useEffect(() => {
-    if (!user?.userId || !selectedSkillId) {
-      setSkillHistoryError("");
-      setSkillHistoryLoading(false);
-      return undefined;
-    }
-
-    let alive = true;
-    setSkillHistories([]);
-    setSkillHistoryError("");
-    setSkillHistoryLoading(true);
-    getAbilityHistoriesBySkill(user.userId, selectedSkillId)
-      .then((rows) => {
-        if (alive) setSkillHistories(rows || []);
-      })
-      .catch((fetchError) => {
-        if (alive) {
-          setSkillHistoryError(
-            getErrorMessage(fetchError, "Không thể tải lịch sử của kỹ năng này."),
-          );
-        }
-      })
-      .finally(() => {
-        if (alive) setSkillHistoryLoading(false);
-      });
-
-    return () => {
-      alive = false;
-    };
-  }, [user?.userId, selectedSkillId]);
-
-  const skillNameById = useMemo(
-    () =>
-      new Map(
-        skills.map((skill) => [String(skill.skillId ?? "").trim(), skill.name]),
-      ),
-    [skills],
-  );
-
-  const skillDescriptionById = useMemo(
-    () =>
-      new Map(
-        skills.map((skill) => [String(skill.skillId ?? "").trim(), skill.description]),
-      ),
-    [skills],
-  );
+  const { nameById, descriptionById } = useMemo(() => buildSkillMaps(skills), [skills]);
 
   if (loading) {
     return (
@@ -169,18 +113,13 @@ export default function ProgressPage() {
     );
   }
 
-  const selectedAbility = abilities.find(
-    (ability) => String(ability.skillId ?? "").trim() === selectedSkillId,
-  );
   // Chỉ hiển thị vòng năng lực khi lời gọi trung bình thực sự trả về dữ liệu.
   const hasAverage = averageAbility !== null && abilities.length > 0;
   const averagePercent = hasAverage ? thetaRawToPercent(averageAbility) : 0;
   const averageLevel = hasAverage ? getAbilityLevel(averageAbility) : null;
-  const scopedSkillName = selectedSkillId
-    ? getSkillDisplayName(skillNameById, selectedSkillId, selectedAbility?.name)
-    : "";
-  const activeHistories = selectedSkillId ? skillHistories : histories;
-  const visibleHistories = activeHistories.slice(0, HISTORY_LIMIT);
+  const visibleHistories = histories.slice(0, HISTORY_LIMIT);
+  const visibleAbilities = abilities.slice(0, SKILL_LIMIT);
+  const hiddenSkillCount = abilities.length - SKILL_LIMIT;
 
   return (
     <div className="progress-page">
@@ -213,6 +152,17 @@ export default function ProgressPage() {
               }
             />
           </div>
+          <div className="progress-overview-card__stats">
+            <div className="progress-overview-card__stat">
+              <strong>{abilities.length}</strong>
+              <span>Kỹ năng theo dõi</span>
+            </div>
+            <span className="progress-overview-card__divider" aria-hidden="true" />
+            <div className="progress-overview-card__stat">
+              <strong>{histories.length}</strong>
+              <span>Lần cập nhật</span>
+            </div>
+          </div>
           <p className="progress-overview-card__note">
             Cập nhật sau bài kiểm tra hoặc mỗi nhóm 5 câu
           </p>
@@ -228,42 +178,28 @@ export default function ProgressPage() {
           ) : (
             <>
               <p className="progress-skills-card__hint">
-                Chọn một kỹ năng để xem riêng lịch sử theta của kỹ năng đó.
+                Chọn một kỹ năng để mở trang chi tiết với biểu đồ và lịch sử theta.
               </p>
               <div className="progress-grid">
-                {abilities.map((ability) => {
-                  const thetaRaw = Number(ability.theta ?? 0);
-                  const percent = thetaRawToPercent(thetaRaw);
-                  const level = getAbilityLevel(thetaRaw);
-                  const skillId = String(ability.skillId ?? "").trim();
-                  const description = skillDescriptionById.get(skillId) || "";
-                  const isSelected = Boolean(skillId) && skillId === selectedSkillId;
+                {visibleAbilities.map((ability) => {
+                  const skillId = normalizeSkillId(ability.skillId);
                   return (
-                    <button
-                      type="button"
-                      className={`skill-tile ${isSelected ? "skill-tile--selected" : ""}`}
-                      key={ability.id || ability.skillId}
-                      onClick={() => setSelectedSkillId(isSelected ? "" : skillId)}
-                      disabled={!skillId}
-                      aria-pressed={isSelected}
-                      title={description || undefined}
-                    >
-                      <span className="skill-tile__head">
-                        <span className="skill-tile__name">
-                          {getSkillDisplayName(skillNameById, ability.skillId, ability.name)}
-                        </span>
-                        <span className="skill-tile__level">{level.label}</span>
-                      </span>
-                      {description && <span className="skill-tile__desc">{description}</span>}
-                      <strong className="skill-tile__theta">
-                        {formatScaledThetaValue(thetaRaw)}
-                        <span>/ 4</span>
-                      </strong>
-                      <ProgressBar value={percent} />
-                    </button>
+                    <SkillTile
+                      key={ability.id || skillId}
+                      skillId={skillId}
+                      name={getSkillDisplayName(nameById, skillId, ability.name)}
+                      description={descriptionById.get(skillId) || ""}
+                      theta={ability.theta}
+                    />
                   );
                 })}
               </div>
+              {hiddenSkillCount > 0 && (
+                <Link className="progress-skills-card__more" to="/app/progress/skills">
+                  Xem tất cả {abilities.length} kỹ năng
+                  <ChevronRight size={16} />
+                </Link>
+              )}
             </>
           )}
         </Card>
@@ -271,46 +207,29 @@ export default function ProgressPage() {
 
       <section className="progress-section">
         <div className="progress-section__head">
-          <div className="progress-section__headline">
-            <h2 className="progress-section__title">
-              {selectedSkillId ? `Lịch sử cập nhật · ${scopedSkillName}` : "Lịch sử cập nhật"}
-            </h2>
-            {selectedSkillId && (
-              <Button variant="ghost" size="sm" onClick={() => setSelectedSkillId("")}>
-                Tất cả kỹ năng
-              </Button>
-            )}
-          </div>
+          <h2 className="progress-section__title">Lịch sử cập nhật</h2>
           <p className="progress-section__sub">
             Theta được lưu sau bài kiểm tra và sau từng nhóm 5 câu thích ứng.
           </p>
-          {activeHistories.length > HISTORY_LIMIT && (
+          {histories.length > HISTORY_LIMIT && (
             <p className="progress-muted">
-              Hiển thị {HISTORY_LIMIT} / {activeHistories.length} lần cập nhật gần nhất.
+              Hiển thị {HISTORY_LIMIT} / {histories.length} lần cập nhật gần nhất.
             </p>
           )}
         </div>
-        {skillHistoryLoading ? (
-          <SkeletonCard lines={3} />
-        ) : skillHistoryError ? (
-          <p className="progress-muted">{skillHistoryError}</p>
-        ) : visibleHistories.length === 0 ? (
-          <p className="progress-muted">
-            {selectedSkillId
-              ? "Chưa có lịch sử theta cho kỹ năng này."
-              : "Chưa có lịch sử theta cho tài khoản này."}
-          </p>
+        {visibleHistories.length === 0 ? (
+          <p className="progress-muted">Chưa có lịch sử theta cho tài khoản này.</p>
         ) : (
           <Card padding="none" className="progress-history-card">
             {visibleHistories.map((item) => {
               const thetaRaw = Number(item.theta ?? 0);
               const level = getAbilityLevel(thetaRaw);
-              const delta = formatDelta(Number(item.delta ?? 0));
+              const delta = formatDelta(item.deltaScaled ?? 0);
               const TrendIcon = TREND_ICON[delta.trend];
               return (
                 <div className="progress-history-row" key={item.id}>
                   <span className="progress-history-row__name">
-                    {getSkillDisplayName(skillNameById, item.skillId, item.name)}
+                    {getSkillDisplayName(nameById, item.skillId, item.name)}
                   </span>
                   <span className="progress-history-row__theta">
                     θ {formatScaledThetaValue(thetaRaw)} / 4 · {level.label}

@@ -1,0 +1,32 @@
+.theta-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.theta-chart__grid {
+  stroke: var(--color-border);
+  stroke-width: 1;
+  stroke-dasharray: 4 6;
+}
+.theta-chart__axis {
+  fill: var(--color-text-subtle);
+  font-size: 11px;
+  font-weight: 600;
+}
+.theta-chart__area {
+  fill: var(--color-primary-100);
+  opacity: 0.55;
+}
+.theta-chart__line {
+  fill: none;
+  stroke: var(--color-primary);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.theta-chart__dot {
+  fill: var(--color-surface);
+  stroke: var(--color-primary);
+  stroke-width: 2.5;
+}

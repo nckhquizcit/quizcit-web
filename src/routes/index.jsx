@@ -16,6 +16,10 @@ const TheoryPage = lazy(() => import("../features/content/pages/TheoryPage/Theor
 const ProfilePage = lazy(() => import("../features/profile/pages/ProfilePage/ProfilePage.jsx"));
 const HistoryPage = lazy(() => import("../features/history/pages/HistoryPage/HistoryPage.jsx"));
 const ProgressPage = lazy(() => import("../features/progress/pages/ProgressPage/ProgressPage.jsx"));
+const SkillsPage = lazy(() => import("../features/progress/pages/SkillsPage/SkillsPage.jsx"));
+const SkillDetailPage = lazy(
+  () => import("../features/progress/pages/SkillDetailPage/SkillDetailPage.jsx"),
+);
 const QuizTakingPage = lazy(() => import("../features/quiz/pages/QuizTakingPage/QuizTakingPage.jsx"));
 const QuizResultPage = lazy(() => import("../features/quiz/pages/QuizResultPage/QuizResultPage.jsx"));
 const AdaptiveQuizPage = lazy(() => import("../features/quiz/pages/AdaptiveQuizPage/AdaptiveQuizPage.jsx"));
@@ -83,6 +87,8 @@ export const router = createBrowserRouter([
       { path: "quiz/result/:attemptId", element: withSuspense(<QuizResultPage />) },
       { path: "history", element: withSuspense(<HistoryPage />) },
       { path: "progress", element: withSuspense(<ProgressPage />) },
+      { path: "progress/skills", element: withSuspense(<SkillsPage />) },
+      { path: "progress/skills/:skillId", element: withSuspense(<SkillDetailPage />) },
       { path: "profile", element: withSuspense(<ProfilePage />) },
     ],
   },

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, ScrollRestoration, useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, Menu } from "lucide-react";
 import Sidebar from "../components/Sidebar/Sidebar";
 import { ToastProvider } from "../components/ui/Toast/Toast";
@@ -18,6 +18,8 @@ const TITLE_MAP = [
   { match: (p) => p.startsWith("/app/quiz"), title: "Làm bài" },
   { match: (p) => p.startsWith("/app/adaptive"), title: "Làm bài" },
   { match: (p) => p.startsWith("/app/history"), title: "Lịch sử" },
+  { match: (p) => /^\/app\/progress\/skills\/.+/.test(p), title: "Chi tiết kỹ năng" },
+  { match: (p) => p.startsWith("/app/progress/skills"), title: "Tất cả kỹ năng" },
   { match: (p) => p.startsWith("/app/progress"), title: "Tiến độ" },
   { match: (p) => p.startsWith("/app/profile"), title: "Cá nhân" },
 ];
@@ -63,6 +65,8 @@ export default function MainLayout() {
 
   return (
     <ToastProvider>
+      {/* Điều hướng sang trang con phải bắt đầu từ đầu trang, không giữ vị trí cuộn cũ. */}
+      <ScrollRestoration />
       <div className="app-container">
         {mobileOpen && (
           <div
