@@ -45,7 +45,7 @@ export default function AdminQuizEdit() {
     navigate(returnPath);
   };
 
-  const updatedAtLabel = formatDateTime(data?.quiz?.updatedAt || data?.quiz?.updated_at);
+  const createdAtLabel = formatDateTime(data?.quiz?.createdAt || data?.quiz?.created_at);
 
   return <>
     <AdminPageHeader
@@ -88,7 +88,7 @@ export default function AdminQuizEdit() {
             >
               <ListChecks size={16} /> Quản lý câu hỏi
             </button>
-            {updatedAtLabel && <p className="adm2-note--muted">Cập nhật gần nhất: {updatedAtLabel}</p>}
+            {createdAtLabel && <p className="adm2-note--muted">Tạo lúc: {createdAtLabel}</p>}
           </div>
 
           <div className="adm2-card adm2-aside-card">
