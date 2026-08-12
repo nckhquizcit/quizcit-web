@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Lock, Shield, Trash2, Users } from "lucide-react";
+import { Lock, Shield, ShieldAlert, ShieldCheck, Trash2, Users } from "lucide-react";
 import { changeUserRole, deleteUser, getUsers, updateUserStatus } from "../../../services/userService";
 import { getErrorMessage, getStoredUser } from "../../../services/apiClient";
 import AdminPageHeader from "../components/AdminPageHeader";
@@ -26,14 +26,15 @@ const STATUS_LABELS = {
   BANNED: "Đã khóa",
 };
 
-const STATUS_TONE = {
-  VERIFIED: "success",
-  UNVERIFIED: "warning",
-  BANNED: "error",
+const STATUS_BADGE_TONE = {
+  VERIFIED: "emerald",
+  UNVERIFIED: "amber",
+  BANNED: "red",
 };
 
 const formatRole = (role) => ROLE_LABELS[role] || role || "Chưa có";
 const formatStatus = (status) => STATUS_LABELS[status] || status || "Chưa có";
+const getInitials = (username) => (username || "?").trim().slice(0, 2).toUpperCase();
 const SELF_LOCKOUT_MESSAGE = "Bạn không thể khóa/xóa/thay đổi vai trò tài khoản đang đăng nhập.";
 
 export default function AdminUsers() {
@@ -70,6 +71,23 @@ export default function AdminUsers() {
       filterStatus === "ALL" ? users : users.filter((user) => user.status === filterStatus),
     [users, filterStatus],
   );
+
+  const userStats = useMemo(
+    () => ({
+      total: users.length,
+      verified: users.filter((user) => user.status === "VERIFIED").length,
+      unverified: users.filter((user) => user.status === "UNVERIFIED").length,
+      banned: users.filter((user) => user.status === "BANNED").length,
+    }),
+    [users],
+  );
+
+  const statTiles = [
+    { key: "total", label: "Tổng tài khoản", icon: <Users size={18} />, tone: "gray", value: userStats.total },
+    { key: "verified", label: "Đã xác minh", icon: <ShieldCheck size={18} />, tone: "emerald", value: userStats.verified },
+    { key: "unverified", label: "Chưa xác minh", icon: <ShieldAlert size={18} />, tone: "amber", value: userStats.unverified },
+    { key: "banned", label: "Đã khóa", icon: <Lock size={18} />, tone: "red", value: userStats.banned },
+  ];
 
   const closeConfirmModal = () => {
     setIsConfirmModalOpen(false);
@@ -141,9 +159,17 @@ export default function AdminUsers() {
   const columns = [
     {
       key: "username",
-      label: "Tên đăng nhập",
+      label: "Người dùng",
       sortable: true,
-      render: (user) => <strong>{user.username}</strong>,
+      render: (user) => (
+        <div className="adm2-user-cell">
+          <span className="adm2-user-avatar">{getInitials(user.username)}</span>
+          <div className="adm2-user-cell__body">
+            <strong>{user.username}</strong>
+            <span className="adm2-user-cell__sub">User #{user.userId}</span>
+          </div>
+        </div>
+      ),
     },
     { key: "email", label: "Email", sortable: true },
     {
@@ -151,7 +177,11 @@ export default function AdminUsers() {
       label: "Vai trò",
       sortable: true,
       sortValue: (user) => formatRole(user.role),
-      render: (user) => formatRole(user.role),
+      render: (user) => (
+        <span className={`adm2-badge ${user.role === "ADMINISTRATOR" ? "adm2-badge--dark" : "adm2-badge--gray"}`}>
+          {formatRole(user.role)}
+        </span>
+      ),
     },
     {
       key: "status",
@@ -159,7 +189,7 @@ export default function AdminUsers() {
       sortable: true,
       sortValue: (user) => formatStatus(user.status),
       render: (user) => (
-        <span className={`status-badge status-badge--${STATUS_TONE[user.status] || "muted"}`}>
+        <span className={`adm2-badge adm2-badge--${STATUS_BADGE_TONE[user.status] || "gray"}`}>
           {formatStatus(user.status)}
         </span>
       ),
@@ -167,46 +197,45 @@ export default function AdminUsers() {
     {
       key: "actions",
       label: "",
-      width: 60,
+      width: 130,
       align: "right",
       render: (user) => {
         const isSelf = String(user.userId) === currentUserId;
 
+        if (isSelf) {
+          return <span className="adm2-note--muted">Tài khoản hiện tại</span>;
+        }
+
         return (
           <RowActions
+            variant="menu"
             items={[
-            {
-              label: "Đổi vai trò",
-              icon: <Shield size={16} />,
-              disabled: isSelf,
-              title: isSelf ? SELF_LOCKOUT_MESSAGE : "Đổi vai trò",
-              onClick: () => {
-                setSelectedUser(user);
-                setIsAuthModalOpen(true);
+              {
+                label: "Đổi vai trò",
+                icon: <Shield size={16} />,
+                onClick: () => {
+                  setSelectedUser(user);
+                  setIsAuthModalOpen(true);
+                },
               },
-            },
-            ...(user.status === "BANNED"
-              ? []
-              : [
-                  {
-                    label: "Khóa tài khoản",
-                    icon: <Lock size={16} />,
-                    disabled: isSelf,
-                    title: isSelf ? SELF_LOCKOUT_MESSAGE : "Khóa tài khoản",
-                    onClick: () => {
-                      setSelectedUser(user);
-                      setIsConfirmModalOpen(true);
+              ...(user.status === "BANNED"
+                ? []
+                : [
+                    {
+                      label: "Khóa tài khoản",
+                      icon: <Lock size={16} />,
+                      onClick: () => {
+                        setSelectedUser(user);
+                        setIsConfirmModalOpen(true);
+                      },
                     },
-                  },
-                ]),
-            {
-              label: "Xóa",
-              icon: <Trash2 size={16} />,
-              danger: true,
-              disabled: isSelf,
-              title: isSelf ? SELF_LOCKOUT_MESSAGE : "Xóa",
-              onClick: () => setDeletingUser(user),
-            },
+                  ]),
+              {
+                label: "Xóa",
+                icon: <Trash2 size={16} />,
+                danger: true,
+                onClick: () => setDeletingUser(user),
+              },
             ]}
           />
         );
@@ -219,9 +248,20 @@ export default function AdminUsers() {
       <AdminPageHeader
         breadcrumb={["Tổng quan", "Người dùng"]}
         title="Quản lý người dùng"
-        subtitle="Quản lý tài khoản, trạng thái và phân quyền người dùng"
-        icon={<Users size={22} />}
+        subtitle="Tìm kiếm, đổi vai trò và quản lý trạng thái tài khoản."
       />
+
+      <div className="adm2-stat-row">
+        {statTiles.map((tile) => (
+          <div className="adm2-stat-tile" key={tile.key}>
+            <span className={`adm2-stat-tile__icon adm2-stat-tile__icon--${tile.tone}`}>{tile.icon}</span>
+            <div className="adm2-stat-tile__body">
+              <span className="adm2-stat-tile__value">{tile.value}</span>
+              <span className="adm2-stat-tile__label">{tile.label}</span>
+            </div>
+          </div>
+        ))}
+      </div>
 
       {error ? (
         <ErrorState description={error} onRetry={loadUsers} />
@@ -231,7 +271,7 @@ export default function AdminUsers() {
           rows={visibleUsers}
           getRowKey={(user) => user.userId}
           loading={loading}
-          searchPlaceholder="Tìm kiếm theo tên hoặc email..."
+          searchPlaceholder="Tìm username hoặc email..."
           searchKeys={["username", "email"]}
           emptyState={
             <EmptyState

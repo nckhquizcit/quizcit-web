@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-import { BookOpen } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import AdminPageHeader from "../components/AdminPageHeader";
 import ErrorState from "../../../components/ui/ErrorState/ErrorState";
-import { getChapterById, updateChapter } from "../../../services/contentService";
+import { getChapterById, getSubjectById, updateChapter } from "../../../services/contentService";
 import { getErrorMessage } from "../../../services/apiClient";
 import { useToast } from "../../../components/ui/Toast/Toast";
 import { getSkills } from "../../../services/skillService";
@@ -14,15 +13,21 @@ export default function AdminChapterEdit() {
   const navigate = useNavigate();
   const toast = useToast();
   const [form, setForm] = useState(null);
+  const [subject, setSubject] = useState(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [skills, setSkills] = useState([]);
   const returnPath = `/admin/subjects/${subjectId}/chapters`;
 
   useEffect(() => {
-    Promise.all([getChapterById(chapterId), getSkills()]).then(([chapter, skillRows]) => { setForm(chapter); setSkills(skillRows); })
+    Promise.all([getChapterById(chapterId), getSkills(), getSubjectById(subjectId)])
+      .then(([chapter, skillRows, subjectData]) => {
+        setForm(chapter);
+        setSkills(skillRows);
+        setSubject(subjectData);
+      })
       .catch((loadError) => setError(getErrorMessage(loadError, "Không thể tải chương.")));
-  }, [chapterId]);
+  }, [chapterId, subjectId]);
 
   const save = async (event) => {
     event.preventDefault();
@@ -35,17 +40,67 @@ export default function AdminChapterEdit() {
     finally { setSaving(false); }
   };
 
+  const selectedSkills = form?.skills || [];
+
   return <>
-    <AdminPageHeader title="Chỉnh sửa chương" subtitle={form?.name || "Đang tải thông tin..."} icon={<BookOpen size={22} />} backHref={returnPath} />
-    <div className="admin-section-card admin-form-page">
-      {error && <ErrorState description={error} />}
-      {!form && !error && <div className="admin-page-state">Đang tải chương...</div>}
-      {form && <form className="standalone-edit-form" onSubmit={save}>
-        <label className="quiz-field"><span>Tên chương</span><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></label>
-        <label className="quiz-field"><span>Thứ tự hiển thị</span><input type="number" min="1" value={form.displayOrder} onChange={(e) => setForm({ ...form, displayOrder: e.target.value })} required /></label>
-        <ChapterSkillsField skills={skills} value={form.skills || []} onChange={(nextSkills) => setForm({ ...form, skills: nextSkills })} />
-        <div className="modal-footer"><button type="button" className="cancel-btn" onClick={() => navigate(returnPath)}>Hủy</button><button className="add-btn" disabled={saving}>{saving ? "Đang lưu..." : "Lưu thay đổi"}</button></div>
-      </form>}
-    </div>
+    <AdminPageHeader
+      title={`Chỉnh sửa chương ${form?.displayOrder ?? ""}`}
+      subtitle={form ? `${subject?.name || ""} · ${form.name || ""}` : "Đang tải thông tin..."}
+      backHref={returnPath}
+      backLabel="Danh sách chương"
+    />
+
+    {error && <ErrorState description={error} />}
+    {!form && !error && <div className="admin-page-state">Đang tải chương...</div>}
+
+    {form && (
+      <div className="adm2-form-grid">
+        <div className="admin-section-card adm2-card-pad">
+          <form className="standalone-edit-form" onSubmit={save}>
+            <div className="adm2-section-heading">
+              <h3>Thông tin chương</h3>
+            </div>
+
+            <div className="adm2-field-row">
+              <label className="quiz-field"><span>Tên chương</span><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></label>
+              <label className="quiz-field"><span>Thứ tự</span><input type="number" min="1" value={form.displayOrder} onChange={(e) => setForm({ ...form, displayOrder: e.target.value })} required /></label>
+            </div>
+
+            <div className="adm2-divider" />
+
+            <ChapterSkillsField skills={skills} value={form.skills || []} onChange={(nextSkills) => setForm({ ...form, skills: nextSkills })} />
+
+            <div className="modal-footer">
+              <button type="button" className="cancel-btn" onClick={() => navigate(returnPath)}>Hủy</button>
+              <button className="add-btn" disabled={saving}>{saving ? "Đang lưu..." : "Lưu chương"}</button>
+            </div>
+          </form>
+        </div>
+
+        <aside className="adm2-aside-stack">
+          <div className="adm2-card adm2-aside-card">
+            <span className="adm2-chip">Điều kiện</span>
+            <h4>Tất cả điều kiện đều bắt buộc</h4>
+
+            {selectedSkills.length > 0 ? (
+              <ul className="adm2-condition-list">
+                {selectedSkills.map((skill) => (
+                  <li key={skill.skillId}>
+                    <span>{skill.name}</span>
+                    <strong>≥ {skill.requiredTheta}</strong>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>Chưa chọn kỹ năng nào cho chương này.</p>
+            )}
+
+            <div className="adm2-divider" />
+            <p className="adm2-note--muted">{selectedSkills.length} kỹ năng đang được áp dụng cho chương này.</p>
+            <p className="adm2-note--muted">Người học cần đạt đủ theta tối thiểu ở từng kỹ năng.</p>
+          </div>
+        </aside>
+      </div>
+    )}
   </>;
 }

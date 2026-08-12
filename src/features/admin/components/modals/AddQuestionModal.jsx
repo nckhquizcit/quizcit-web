@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Eye, EyeOff, Search } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Eye, EyeOff, Plus, Search, X } from "lucide-react";
 
 import Modal from "../ui/Modal";
 import RichTextEditor from "../../../../components/richtext/RichTextEditor";
@@ -235,6 +235,7 @@ export function QuestionForm({
   const [loadingSkills, setLoadingSkills] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const skillSearchRef = useRef(null);
 
   useEffect(() => {
     setAvailableSubjects(subjects.map(normalizeSubject));
@@ -567,6 +568,25 @@ export function QuestionForm({
     );
   };
 
+  const handleAddAnswer = () => {
+    setAnswers((currentAnswers) =>
+      currentAnswers.length >= MAX_ANSWER_COUNT
+        ? currentAnswers
+        : [...currentAnswers, ...createEmptyAnswers(1)],
+    );
+  };
+
+  const handleRemoveAnswer = (index) => {
+    if (answers.length <= MIN_ANSWER_COUNT) return;
+
+    setAnswers((currentAnswers) => currentAnswers.filter((_, itemIndex) => itemIndex !== index));
+    setCorrectIndex((currentCorrectIndex) => {
+      if (currentCorrectIndex === null) return null;
+      if (currentCorrectIndex === index) return null;
+      return currentCorrectIndex > index ? currentCorrectIndex - 1 : currentCorrectIndex;
+    });
+  };
+
   const handleSubjectToggle = (subjectId) => {
     setSelectedSubjectId(normalizeId(subjectId));
     setSelectedChapterId("");
@@ -687,8 +707,231 @@ export function QuestionForm({
     }
   };
 
+  const subjectChapterFields = (
+    <div className="two-column">
+      <div className="form-field">
+        <span>
+          Môn học * <b>(Bắt buộc)</b>
+        </span>
+        <div className="mini-search">
+          <Search size={18} />
+          <input
+            placeholder="Tìm môn học..."
+            value={subjectSearch}
+            onChange={(event) => setSubjectSearch(event.target.value)}
+          />
+        </div>
+        <div className="choice-list">
+          {loadingSubjects && <span>Đang tải danh sách môn học...</span>}
+          {!loadingSubjects &&
+            filteredSubjects.map((item) => (
+              <button
+                className={selectedSubjectId === normalizeId(item.subjectId) ? "selected" : ""}
+                onClick={() => handleSubjectToggle(item.subjectId)}
+                key={item.subjectId}
+                type="button"
+              >
+                <span />
+                {item.name}
+              </button>
+            ))}
+          {!loadingSubjects && !filteredSubjects.length && <span>Không có môn học phù hợp</span>}
+        </div>
+      </div>
+
+      <div className="form-field">
+        <span>
+          Chương * <b>(Bắt buộc)</b>
+        </span>
+        <div className="mini-search">
+          <Search size={18} />
+          <input
+            placeholder="Tìm chương..."
+            value={chapterSearch}
+            onChange={(event) => setChapterSearch(event.target.value)}
+          />
+        </div>
+        <div className="choice-list">
+          {loadingChapters && <span>Đang tải danh sách chương...</span>}
+          {!loadingChapters && !selectedSubjectId && <span>Vui lòng chọn môn học trước</span>}
+          {!loadingChapters &&
+            selectedSubjectId &&
+            filteredChapters.map((item) => (
+              <button
+                className={selectedChapterId === normalizeId(item.chapterId) ? "selected" : ""}
+                onClick={() => setSelectedChapterId(normalizeId(item.chapterId))}
+                key={item.chapterId}
+                type="button"
+              >
+                <span />
+                {item.name}
+              </button>
+            ))}
+          {!loadingChapters && selectedSubjectId && !filteredChapters.length && (
+            <span>Không có chương phù hợp</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  const difficultyField = (
+    <label className="form-field full">
+      <span>Độ khó</span>
+      <div className="difficulty-selector difficulty-selector--six">
+        {DIFFICULTY_PRESETS.map((item) => (
+          <button
+            className={difficultyKey === item.key ? getDifficultyTone(item.value) : ""}
+            onClick={() => setDifficultyKey(item.key)}
+            key={item.key}
+            type="button"
+          >
+            <strong>{item.label}</strong>
+            <small>{item.value > 0 ? `+${item.value.toFixed(1)}` : item.value.toFixed(1)}</small>
+          </button>
+        ))}
+        <button
+          className={difficultyKey === CUSTOM_DIFFICULTY_KEY ? "custom" : ""}
+          onClick={() => setDifficultyKey(CUSTOM_DIFFICULTY_KEY)}
+          type="button"
+        >
+          <strong>Tùy chỉnh</strong>
+          <small>Nhập giá trị</small>
+        </button>
+      </div>
+      {difficultyKey === CUSTOM_DIFFICULTY_KEY && (
+        <input
+          className="difficulty-custom-input"
+          type="number"
+          step="0.1"
+          value={customDifficultyB}
+          onChange={(event) => setCustomDifficultyB(event.target.value)}
+          placeholder="Ví dụ: -1.2"
+          aria-label="Độ khó tùy chỉnh"
+        />
+      )}
+    </label>
+  );
+
+  const skillsField = (
+    <div className="form-field full">
+      <div className="field-inline-header">
+        <span>Kỹ năng</span>
+        <span className="skill-hint">
+          Nếu chọn kỹ năng, cần đúng 1 kỹ năng chính; các kỹ năng còn lại là kỹ năng phụ
+        </span>
+      </div>
+      <div className="mini-search">
+        <Search size={18} />
+        <input
+          ref={skillSearchRef}
+          placeholder="Tìm kỹ năng..."
+          value={skillSearch}
+          onChange={(event) => setSkillSearch(event.target.value)}
+        />
+      </div>
+      <div className="choice-list skill-choice-list">
+        {loadingSkills && <span>Đang tải danh sách kỹ năng...</span>}
+        {!loadingSkills &&
+          filteredSkills.map((item) => {
+            const isSelected = selectedSkills.some(
+              (skill) => normalizeId(skill.skillId) === normalizeId(item.skillId),
+            );
+
+            return (
+              <button
+                className={isSelected ? "selected" : ""}
+                onClick={() => handleSkillToggle(item)}
+                key={item.skillId}
+                type="button"
+              >
+                <span />
+                {item.name}
+              </button>
+            );
+          })}
+        {!loadingSkills && !filteredSkills.length && <span>Không có kỹ năng phù hợp</span>}
+      </div>
+
+      {selectedSkills.length > 0 && (
+        <div className="selected-skill-list">
+          {selectedSkills.map((skill) => (
+            <div className="selected-skill-row" key={skill.skillId}>
+              <strong>{skill.name}</strong>
+              <button
+                className={skill.primary ? "primary-skill-btn active" : "primary-skill-btn"}
+                type="button"
+                onClick={() => handlePrimarySkillChange(skill.skillId)}
+              >
+                {skill.primary ? "Kỹ năng chính" : "Đặt làm chính"}
+              </button>
+              <input
+                type="number"
+                min="0"
+                max="1"
+                step="0.1"
+                value={skill.weight}
+                onChange={(event) => handleSkillWeightChange(skill.skillId, event.target.value)}
+                placeholder="0 đến 1"
+              />
+              <button type="button" onClick={() => handleSkillToggle(skill)}>
+                Bỏ chọn
+              </button>
+            </div>
+          ))}
+          <div
+            className={
+              isSkillWeightSumValid
+                ? "skill-weight-sum"
+                : "skill-weight-sum invalid"
+            }
+          >
+            <span>Tổng trọng số</span>
+            <strong>{skillWeightSum.toFixed(2)} / 1.00</strong>
+            {!isSkillWeightSumValid && <small>Tổng trọng số phải bằng 1.</small>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  if (isPageVariant) {
+    return (
+      <QuestionFormPage
+        submitting={submitting}
+        submitError={submitError}
+        question={question}
+        setQuestion={setQuestion}
+        explanation={explanation}
+        setExplanation={setExplanation}
+        editorKey={editorKey}
+        isQuestionFilled={isQuestionFilled}
+        subjectChapterFields={subjectChapterFields}
+        difficultyField={difficultyField}
+        skillsField={skillsField}
+        answers={answers}
+        correctIndex={correctIndex}
+        setCorrectIndex={setCorrectIndex}
+        handleAnswerChange={handleAnswerChange}
+        handleAddAnswer={handleAddAnswer}
+        handleRemoveAnswer={handleRemoveAnswer}
+        skillSearchRef={skillSearchRef}
+        selectedSkills={selectedSkills}
+        skillWeightSum={skillWeightSum}
+        isSkillWeightSumValid={isSkillWeightSumValid}
+        isReadyToSubmit={isReadyToSubmit}
+        selectedSubject={selectedSubject}
+        selectedChapter={selectedChapter}
+        completedAnswerCount={completedAnswerCount}
+        correctAnswerLabel={correctAnswerLabel}
+        handleCancel={handleCancel}
+        handleSubmit={handleSubmit}
+      />
+    );
+  }
+
   return (
-    <div className={`question-form-modal question-builder ${isPageVariant ? "question-builder-page" : "question-builder-modal"}`}>
+    <div className="question-form-modal question-builder question-builder-modal">
         <div className="question-form-header question-builder-header">
           <div>
             <span className="question-builder-kicker">
@@ -785,107 +1028,8 @@ export function QuestionForm({
                         <p>Môn học, chương và độ khó</p>
                       </div>
                     </div>
-                    <div className="two-column">
-                      <div className="form-field">
-                        <span>
-                          Môn học * <b>(Bắt buộc)</b>
-                        </span>
-                        <div className="mini-search">
-                          <Search size={18} />
-                          <input
-                            placeholder="Tìm môn học..."
-                            value={subjectSearch}
-                            onChange={(event) => setSubjectSearch(event.target.value)}
-                          />
-                        </div>
-                        <div className="choice-list">
-                          {loadingSubjects && <span>Đang tải danh sách môn học...</span>}
-                          {!loadingSubjects &&
-                            filteredSubjects.map((item) => (
-                              <button
-                                className={selectedSubjectId === normalizeId(item.subjectId) ? "selected" : ""}
-                                onClick={() => handleSubjectToggle(item.subjectId)}
-                                key={item.subjectId}
-                                type="button"
-                              >
-                                <span />
-                                {item.name}
-                              </button>
-                            ))}
-                          {!loadingSubjects && !filteredSubjects.length && <span>Không có môn học phù hợp</span>}
-                        </div>
-                      </div>
-
-                      <div className="form-field">
-                        <span>
-                          Chương * <b>(Bắt buộc)</b>
-                        </span>
-                        <div className="mini-search">
-                          <Search size={18} />
-                          <input
-                            placeholder="Tìm chương..."
-                            value={chapterSearch}
-                            onChange={(event) => setChapterSearch(event.target.value)}
-                          />
-                        </div>
-                        <div className="choice-list">
-                          {loadingChapters && <span>Đang tải danh sách chương...</span>}
-                          {!loadingChapters && !selectedSubjectId && <span>Vui lòng chọn môn học trước</span>}
-                          {!loadingChapters &&
-                            selectedSubjectId &&
-                            filteredChapters.map((item) => (
-                              <button
-                                className={selectedChapterId === normalizeId(item.chapterId) ? "selected" : ""}
-                                onClick={() => setSelectedChapterId(normalizeId(item.chapterId))}
-                                key={item.chapterId}
-                                type="button"
-                              >
-                                <span />
-                                {item.name}
-                              </button>
-                            ))}
-                          {!loadingChapters && selectedSubjectId && !filteredChapters.length && (
-                            <span>Không có chương phù hợp</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <label className="form-field full">
-                      <span>Độ khó</span>
-                      <div className="difficulty-selector difficulty-selector--six">
-                        {DIFFICULTY_PRESETS.map((item) => (
-                          <button
-                            className={difficultyKey === item.key ? getDifficultyTone(item.value) : ""}
-                            onClick={() => setDifficultyKey(item.key)}
-                            key={item.key}
-                            type="button"
-                          >
-                            <strong>{item.label}</strong>
-                            <small>{item.value > 0 ? `+${item.value.toFixed(1)}` : item.value.toFixed(1)}</small>
-                          </button>
-                        ))}
-                        <button
-                          className={difficultyKey === CUSTOM_DIFFICULTY_KEY ? "custom" : ""}
-                          onClick={() => setDifficultyKey(CUSTOM_DIFFICULTY_KEY)}
-                          type="button"
-                        >
-                          <strong>Tùy chỉnh</strong>
-                          <small>Nhập giá trị</small>
-                        </button>
-                      </div>
-                      {difficultyKey === CUSTOM_DIFFICULTY_KEY && (
-                        <input
-                          className="difficulty-custom-input"
-                          type="number"
-                          step="0.1"
-                          value={customDifficultyB}
-                          onChange={(event) => setCustomDifficultyB(event.target.value)}
-                          placeholder="Ví dụ: -1.2"
-                          aria-label="Độ khó tùy chỉnh"
-                        />
-                      )}
-                    </label>
+                    {subjectChapterFields}
+                    {difficultyField}
                   </section>
 
                   <section className="question-section">
@@ -896,84 +1040,7 @@ export function QuestionForm({
                         <p>Gắn kỹ năng IRT nếu cần</p>
                       </div>
                     </div>
-                    <div className="form-field full">
-                      <div className="field-inline-header">
-                        <span>Kỹ năng</span>
-                        <span className="skill-hint">
-                          Nếu chọn kỹ năng, cần đúng 1 kỹ năng chính; các kỹ năng còn lại là kỹ năng phụ
-                        </span>
-                      </div>
-                      <div className="mini-search">
-                        <Search size={18} />
-                        <input
-                          placeholder="Tìm kỹ năng..."
-                          value={skillSearch}
-                          onChange={(event) => setSkillSearch(event.target.value)}
-                        />
-                      </div>
-                      <div className="choice-list skill-choice-list">
-                        {loadingSkills && <span>Đang tải danh sách kỹ năng...</span>}
-                        {!loadingSkills &&
-                          filteredSkills.map((item) => {
-                            const isSelected = selectedSkills.some(
-                              (skill) => normalizeId(skill.skillId) === normalizeId(item.skillId),
-                            );
-
-                            return (
-                              <button
-                                className={isSelected ? "selected" : ""}
-                                onClick={() => handleSkillToggle(item)}
-                                key={item.skillId}
-                                type="button"
-                              >
-                                <span />
-                                {item.name}
-                              </button>
-                            );
-                          })}
-                        {!loadingSkills && !filteredSkills.length && <span>Không có kỹ năng phù hợp</span>}
-                      </div>
-
-                      {selectedSkills.length > 0 && (
-                        <div className="selected-skill-list">
-                          {selectedSkills.map((skill) => (
-                            <div className="selected-skill-row" key={skill.skillId}>
-                              <strong>{skill.name}</strong>
-                              <button
-                                className={skill.primary ? "primary-skill-btn active" : "primary-skill-btn"}
-                                type="button"
-                                onClick={() => handlePrimarySkillChange(skill.skillId)}
-                              >
-                                {skill.primary ? "Kỹ năng chính" : "Đặt làm chính"}
-                              </button>
-                              <input
-                                type="number"
-                                min="0"
-                                max="1"
-                                step="0.1"
-                                value={skill.weight}
-                                onChange={(event) => handleSkillWeightChange(skill.skillId, event.target.value)}
-                                placeholder="0 đến 1"
-                              />
-                              <button type="button" onClick={() => handleSkillToggle(skill)}>
-                                Bỏ chọn
-                              </button>
-                            </div>
-                          ))}
-                          <div
-                            className={
-                              isSkillWeightSumValid
-                                ? "skill-weight-sum"
-                                : "skill-weight-sum invalid"
-                            }
-                          >
-                            <span>Tổng trọng số</span>
-                            <strong>{skillWeightSum.toFixed(2)} / 1.00</strong>
-                            {!isSkillWeightSumValid && <small>Tổng trọng số phải bằng 1.</small>}
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    {skillsField}
                   </section>
 
                   <section className="question-section">
@@ -1113,6 +1180,202 @@ export function QuestionForm({
             </div>
           </aside>
         </div>
+    </div>
+  );
+}
+
+function QuestionFormPage({
+  submitting,
+  submitError,
+  question,
+  setQuestion,
+  explanation,
+  setExplanation,
+  editorKey,
+  isQuestionFilled,
+  subjectChapterFields,
+  difficultyField,
+  skillsField,
+  answers,
+  correctIndex,
+  setCorrectIndex,
+  handleAnswerChange,
+  handleAddAnswer,
+  handleRemoveAnswer,
+  skillSearchRef,
+  selectedSkills,
+  skillWeightSum,
+  isSkillWeightSumValid,
+  isReadyToSubmit,
+  selectedSubject,
+  selectedChapter,
+  completedAnswerCount,
+  correctAnswerLabel,
+  handleCancel,
+  handleSubmit,
+}) {
+  return (
+    <div className="adm2-form-grid">
+      <div className="admin-section-card adm2-card-pad">
+        <div className="adm2-section-heading">
+          <h3>Phạm vi</h3>
+          <p>Chọn môn học và chương chứa câu hỏi này</p>
+        </div>
+        {subjectChapterFields}
+
+        <div className="adm2-divider" />
+
+        <div className="form-field full">
+          <span>Nội dung câu hỏi *</span>
+          <RichTextEditor
+            key={`${editorKey}-question`}
+            value={question}
+            disabled={submitting}
+            onChange={({ content }) => setQuestion(content)}
+          />
+          {!isQuestionFilled && <small>Trường này là bắt buộc</small>}
+        </div>
+
+        <div className="adm2-divider" />
+
+        <div className="form-field full">
+          <div className="field-inline-header">
+            <span>Đáp án · chọn đúng 1</span>
+          </div>
+          <div className="adm2-answer-options">
+            {answers.map((answer, index) => (
+              <div className="adm2-answer-option" key={index}>
+                <input
+                  type="radio"
+                  name="correct-answer"
+                  className="adm2-answer-radio"
+                  checked={correctIndex === index}
+                  onChange={() => setCorrectIndex(index)}
+                  aria-label={`Đáp án đúng ${String.fromCharCode(65 + index)}`}
+                />
+                <RichTextEditor
+                  key={`${editorKey}-answer-${index}`}
+                  className="answer-rich-text"
+                  variant="inline"
+                  value={answer}
+                  disabled={submitting}
+                  onChange={({ content }) => handleAnswerChange(index, content)}
+                />
+                <button
+                  type="button"
+                  className="adm2-answer-remove"
+                  onClick={() => handleRemoveAnswer(index)}
+                  disabled={answers.length <= MIN_ANSWER_COUNT}
+                  aria-label="Xóa đáp án"
+                  title="Xóa đáp án"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+          {answers.length < MAX_ANSWER_COUNT && (
+            <button type="button" className="adm2-text-btn" onClick={handleAddAnswer}>
+              <Plus size={14} />
+              <span>Thêm đáp án</span>
+            </button>
+          )}
+        </div>
+
+        <div className="adm2-divider" />
+
+        <div className="form-field full">
+          <span>Giải thích</span>
+          <RichTextEditor
+            key={`${editorKey}-explanation`}
+            value={explanation}
+            disabled={submitting}
+            onChange={({ content }) => setExplanation(content)}
+          />
+        </div>
+
+        {submitError && <div className="modal-inline-error">{submitError}</div>}
+
+        <div className="question-modal-actions">
+          <button className="cancel-btn" onClick={handleCancel} type="button">
+            Hủy
+          </button>
+          <button className="add-btn" onClick={handleSubmit} disabled={submitting} type="button">
+            {submitting ? "Đang lưu..." : "Lưu câu hỏi"}
+          </button>
+        </div>
+      </div>
+
+      <div className="adm2-aside-stack">
+        <div className="adm2-card adm2-aside-card">
+          <div className="adm2-section-heading">
+            <h3>Thiết lập</h3>
+          </div>
+
+          <div className="adm2-setup-block">
+            <span className="adm2-setup-label">Độ khó IRT</span>
+            {difficultyField}
+          </div>
+
+          <div className="adm2-divider" />
+
+          <div className="adm2-setup-block">
+            <div className="adm2-setup-label-row">
+              <span className="adm2-setup-label">Kỹ năng &amp; trọng số</span>
+              <button
+                type="button"
+                className="adm2-text-btn"
+                onClick={() => skillSearchRef.current?.focus()}
+              >
+                <Plus size={14} />
+                <span>Thêm kỹ năng</span>
+              </button>
+            </div>
+            {skillsField}
+          </div>
+
+          <div className="adm2-divider" />
+
+          <div className={`adm2-ready-box${isReadyToSubmit ? " is-ready" : ""}${!isSkillWeightSumValid ? " is-invalid" : ""}`}>
+            <strong>{isReadyToSubmit ? "✓ Sẵn sàng lưu" : "Đang soạn"}</strong>
+            <div className="adm2-ready-rows">
+              <div>
+                <span>Môn học</span>
+                <span>{selectedSubject?.name || "Chưa chọn"}</span>
+              </div>
+              <div>
+                <span>Chương</span>
+                <span>{selectedChapter?.name || "Chưa chọn"}</span>
+              </div>
+              <div>
+                <span>Đáp án</span>
+                <span>{completedAnswerCount}/{answers.length}</span>
+              </div>
+              <div>
+                <span>Đáp án đúng</span>
+                <span>{correctAnswerLabel}</span>
+              </div>
+              <div>
+                <span>Kỹ năng</span>
+                <span>{selectedSkills.length ? `${selectedSkills.length} kỹ năng` : "Không bắt buộc"}</span>
+              </div>
+              <div>
+                <span>Trọng số</span>
+                <span>{selectedSkills.length ? `${skillWeightSum.toFixed(2)} / 1.00` : "Không áp dụng"}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="adm2-constraint-box">
+            <span className="adm2-constraint-title">Ràng buộc</span>
+            <ul>
+              <li>2–10 đáp án</li>
+              <li>Tổng trọng số kỹ năng = 1</li>
+              <li>Đúng 1 kỹ năng chính</li>
+            </ul>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

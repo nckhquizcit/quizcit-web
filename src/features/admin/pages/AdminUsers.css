@@ -230,3 +230,88 @@
   min-height: 26px;
   padding: 0 10px;
 }
+
+/* ---- Figma A14: stat tiles above the table ---- */
+.adm2-stat-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.adm2-stat-tile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: var(--radius-md, 12px);
+}
+
+.adm2-stat-tile__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+.adm2-stat-tile__icon--gray { background: var(--color-surface-3, #f1f5f9); color: var(--color-text-muted, #64748b); }
+.adm2-stat-tile__icon--emerald { background: var(--color-primary-soft, #ecfdf5); color: var(--color-primary-600, #059669); }
+.adm2-stat-tile__icon--amber { background: var(--color-warning-soft, #fffbeb); color: #92400e; }
+.adm2-stat-tile__icon--red { background: var(--color-error-soft, #fef2f2); color: var(--color-error, #ef4444); }
+
+.adm2-stat-tile__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.adm2-stat-tile__value {
+  font-size: 22px;
+  font-weight: 780;
+  color: var(--color-text, #0f172a);
+  line-height: 1.2;
+}
+.adm2-stat-tile__label {
+  font-size: 12.5px;
+  color: var(--color-text-muted, #64748b);
+  font-weight: 600;
+}
+
+/* ---- Figma A14: user cell (avatar + username + id) ---- */
+.adm2-user-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.adm2-user-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: var(--color-primary-soft, #ecfdf5);
+  color: var(--color-primary-700, #047857);
+  font-size: 12.5px;
+  font-weight: 780;
+  flex-shrink: 0;
+}
+.adm2-user-cell__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.adm2-user-cell__sub {
+  font-size: 12px;
+  color: var(--color-text-subtle, #94a3b8);
+}
+
+@media (max-width: 1023px) {
+  .adm2-stat-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

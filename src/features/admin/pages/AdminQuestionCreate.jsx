@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { Database } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import AdminPageHeader from "../components/AdminPageHeader";
@@ -53,22 +52,21 @@ export default function AdminQuestionCreate() {
   return (
     <>
       <AdminPageHeader
-        title="Thêm câu hỏi"
-        subtitle="Tạo câu hỏi mới và gắn vào môn học, chương, kỹ năng"
-        icon={<Database size={22} />}
+        title="Tạo câu hỏi mới"
+        subtitle="Soạn nội dung, đáp án, kỹ năng và độ khó IRT."
         backHref={returnPath}
+        backLabel="Ngân hàng câu hỏi"
+        action={<span className="adm2-status-chip">Đang soạn</span>}
       />
 
-      <div className="admin-section-card admin-form-page">
-        <QuestionForm
-          open
-          subject={routeSubject}
-          chapter={routeChapter}
-          onCancel={goBack}
-          onSubmit={handleSubmit}
-          variant="page"
-        />
-      </div>
+      <QuestionForm
+        open
+        subject={routeSubject}
+        chapter={routeChapter}
+        onCancel={goBack}
+        onSubmit={handleSubmit}
+        variant="page"
+      />
     </>
   );
 }

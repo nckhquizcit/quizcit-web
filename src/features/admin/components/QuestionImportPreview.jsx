@@ -9,6 +9,8 @@ import {
 import {
   CUSTOM_DIFFICULTY_KEY,
   DIFFICULTY_PRESETS,
+  getDifficultyLabelVi,
+  getDifficultyTone,
   resolveDifficultyB,
 } from "../utils/difficultyLevels";
 
@@ -62,7 +64,7 @@ export default function QuestionImportPreview({
     return (
       <div className="question-import-empty">
         <strong>Chưa có câu hỏi để xem trước</strong>
-        <span>Dán nội dung hoặc tải file .txt/.csv rồi bấm Kiểm tra dữ liệu.</span>
+        <span>Dán nội dung hoặc tải file .txt/.csv rồi bấm Phân tích nội dung.</span>
       </div>
     );
   }
@@ -149,14 +151,21 @@ export default function QuestionImportPreview({
             open={hasError}
           >
             <summary className="question-import-card__summary">
+              <span className="bank-question-index">{String(index + 1).padStart(2, "0")}</span>
               <div>
-                <strong>Câu {index + 1}</strong>
-                <span>{row.content || `Dòng ${row.sourceLine || index + 1} chưa có nội dung`}</span>
+                <strong>{row.content || `Dòng ${row.sourceLine || index + 1} chưa có nội dung`}</strong>
+                <span>
+                  Đáp án {row.correctKey || "?"} · {subjectName} · {chapterName}
+                </span>
               </div>
+              <span className={`difficulty-pill ${getDifficultyTone(row.difficultyB)}`}>
+                {getDifficultyLabelVi(row.difficultyB)}
+              </span>
               <span className={hasError ? "import-status-pill error" : "import-status-pill ok"}>
                 {hasError ? <AlertCircle size={13} /> : <CheckCircle2 size={13} />}
                 {hasError ? "Cần sửa" : "Hợp lệ"}
               </span>
+              <span className="adm2-link-arrow question-import-edit-label">Sửa</span>
             </summary>
             <div className="question-import-card__body">
               <div className="question-import-card__actions">

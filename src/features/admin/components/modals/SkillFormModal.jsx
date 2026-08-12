@@ -39,24 +39,21 @@ function SkillFormContent({ mode, initialData, onClose, onSubmit, isSubmitting }
   return (
     <form onSubmit={handleSubmit}>
       <FormModalLayout
-        title={isEdit ? "Cập nhật kỹ năng" : "Thêm kỹ năng"}
-        subtitle={
-          isEdit
-            ? "Chỉnh sửa tên và mô tả kỹ năng."
-            : "Tạo kỹ năng mới để gắn vào câu hỏi và tiến độ học tập."
-        }
-        infoBox={error ? <span style={{ color: "#dc2626" }}>{error}</span> : null}
+        title={isEdit ? "Chỉnh sửa kỹ năng" : "Thêm kỹ năng"}
+        subtitle="Dữ liệu dùng cho adaptive và báo cáo theta."
         actions={
           <>
             <button type="button" className="cancel-btn" onClick={onClose} disabled={isSubmitting}>
               Hủy
             </button>
             <button type="submit" className="add-btn" disabled={isSubmitting}>
-              {isSubmitting ? "Đang lưu..." : isEdit ? "Lưu thay đổi" : "Tạo kỹ năng"}
+              {isSubmitting ? "Đang lưu..." : "Lưu kỹ năng"}
             </button>
           </>
         }
       >
+        {error && <div className="modal-inline-error">{error}</div>}
+
         <label className="quiz-field">
           <span>Tên kỹ năng</span>
           <input
@@ -74,9 +71,13 @@ function SkillFormContent({ mode, initialData, onClose, onSubmit, isSubmitting }
             onChange={handleChange("description")}
             maxLength={2000}
             rows={5}
-            placeholder="Mô tả ngan ve pham vi va muc tieu cua kỹ năng"
+            placeholder="Mô tả ngắn về phạm vi và mục tiêu của kỹ năng"
           />
         </label>
+
+        <p className="adm2-note adm2-note--muted">Tên tối đa 200 · Mô tả tối đa 2000 ký tự</p>
+
+        <div className="adm2-note">Đổi tên ảnh hưởng nhãn báo cáo, không mất theta.</div>
       </FormModalLayout>
     </form>
   );

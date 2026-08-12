@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Upload } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import ErrorState from "../../../components/ui/ErrorState/ErrorState";
@@ -96,9 +95,9 @@ export default function AdminQuestionImport() {
     <>
       <AdminPageHeader
         title="Import câu hỏi"
-        subtitle="Đọc dữ liệu, gán môn/chương và kiểm tra lỗi trước khi lưu"
-        icon={<Upload size={22} />}
+        subtitle="Đọc dữ liệu, gán môn/chương và kiểm tra lỗi trước khi lưu."
         backHref={returnPath}
+        backLabel="Ngân hàng câu hỏi"
       />
 
       {error ? (

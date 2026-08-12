@@ -7,6 +7,7 @@ import "./AdminQuizzes.css";
 import AdminPageHeader from "../components/AdminPageHeader";
 import DataTable from "../components/ui/DataTable";
 import RowActions from "../components/ui/RowActions";
+import SearchBar from "../components/SearchBar";
 import EmptyState from "../../../components/ui/EmptyState/EmptyState";
 import ErrorState from "../../../components/ui/ErrorState/ErrorState";
 import ConfirmDeleteModal from "../components/modals/ConfirmDeleteModal";
@@ -43,6 +44,7 @@ export default function AdminQuizzes() {
   const [isReordering, setIsReordering] = useState(false);
   const [isOrdering, setIsOrdering] = useState(false);
   const [orderSnapshot, setOrderSnapshot] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     let isMounted = true;
@@ -132,6 +134,12 @@ export default function AdminQuizzes() {
     [chapters, selectedChapterId],
   );
 
+  const filteredQuizzes = useMemo(() => {
+    const keyword = searchQuery.trim().toLowerCase();
+    if (!keyword) return quizzes;
+    return quizzes.filter((quiz) => (quiz.name || "").toLowerCase().includes(keyword));
+  }, [quizzes, searchQuery]);
+
   const handleQuizDrop = (event, targetQuiz) => {
     event.preventDefault();
     const targetQuizId = getQuizId(targetQuiz);
@@ -140,7 +148,7 @@ export default function AdminQuizzes() {
     setDraggedQuizId(null);
   };
 
-  const startOrdering = () => { setOrderSnapshot(quizzes); setIsOrdering(true); };
+  const startOrdering = () => { setOrderSnapshot(quizzes); setIsOrdering(true); setSearchQuery(""); };
   const cancelOrdering = () => { setQuizzes(orderSnapshot); setIsOrdering(false); setDraggedQuizId(null); };
   const saveOrdering = async () => {
     setIsReordering(true);
@@ -178,12 +186,13 @@ export default function AdminQuizzes() {
     {
       key: "displayOrder",
       label: "Thứ tự",
-      width: 90,
+      width: 80,
       align: "center",
+      render: (quiz) => <span className="bank-question-index">{quiz.displayOrder ?? "-"}</span>,
     },
     {
       key: "name",
-      label: "Tên đề thi",
+      label: "Tên đề",
       render: (quiz) => (
         <div className="quiz-name-cell">
           <span className="quiz-name-icon">
@@ -195,23 +204,16 @@ export default function AdminQuizzes() {
     },
     {
       key: "type",
-      label: "Loại",
-      width: 140,
+      label: "Cấu trúc",
+      width: 160,
       sortValue: (quiz) => QUIZ_TYPE_LABELS[quiz.type] || "Theo chương",
       render: (quiz) => (
-        <span className="quiz-type-badge">{QUIZ_TYPE_LABELS[quiz.type] || "Theo chương"}</span>
-      ),
-    },
-    {
-      key: "totalQuestion",
-      label: "Số câu",
-      width: 100,
-      align: "center",
-      sortValue: (quiz) => quiz.totalQuestion ?? 0,
-      render: (quiz) => (
-        <span className="quiz-meta-cell">
-          <ListChecks size={14} /> {quiz.totalQuestion ?? 0}
-        </span>
+        <div className="quiz-structure-cell">
+          <span className={`adm2-badge ${quiz.type === "FINAL" ? "adm2-badge--amber" : "adm2-badge--gray"}`}>
+            {quiz.type || "CHAPTER"}
+          </span>
+          <span className="quiz-meta-cell">{quiz.totalQuestion ?? 0} câu</span>
+        </div>
       ),
     },
     {
@@ -229,19 +231,25 @@ export default function AdminQuizzes() {
     {
       key: "actions",
       label: "",
-      width: 60,
+      width: 210,
       align: "right",
       render: (quiz) => isOrdering ? null : (
         <RowActions
+          labelled
           items={[
             {
-              label: "Chỉnh sửa",
-              icon: <Pencil size={16} />,
+              label: "Câu hỏi",
+              icon: <ListChecks size={14} />,
+              onClick: () => navigate(`/admin/quizzes/${getQuizId(quiz)}/edit/questions`),
+            },
+            {
+              label: "Sửa",
+              icon: <Pencil size={14} />,
               onClick: () => navigate(`/admin/quizzes/${getQuizId(quiz)}/edit`),
             },
             {
               label: "Xóa",
-              icon: <Trash2 size={16} />,
+              icon: <Trash2 size={14} />,
               danger: true,
               onClick: () => setDeletingQuiz(quiz),
             },
@@ -263,12 +271,7 @@ export default function AdminQuizzes() {
         breadcrumb={["Tổng quan", "Đề thi"]}
         title="Quản lý đề thi"
         subtitle="Tạo và quản lý đề thi theo môn học và chương"
-        icon={<FileText size={22} />}
-        action={<div className="display-order-actions">
-          {isOrdering ? <>
-            <button className="cancel-btn" onClick={cancelOrdering} disabled={isReordering}><X size={17} /> Hủy</button>
-            <button className="add-btn" onClick={saveOrdering} disabled={isReordering}><Check size={17} /> Lưu thứ tự</button>
-          </> : <button className="cancel-btn" onClick={startOrdering} disabled={!quizzes.length || isLoadingQuizzes}><ListOrdered size={17} /> Chỉnh thứ tự</button>}
+        action={
           <button
             className="add-btn"
             disabled={isOrdering}
@@ -283,7 +286,7 @@ export default function AdminQuizzes() {
             <Plus size={18} />
             Tạo đề thi
           </button>
-        </div>}
+        }
       />
 
       <div className="admin-section-card quiz-filter-bar">
@@ -315,39 +318,62 @@ export default function AdminQuizzes() {
             ))}
           </select>
         </label>
+
+        <div className="quiz-filter-search">
+          <SearchBar placeholder="Tìm tên đề..." onChange={setSearchQuery} />
+        </div>
+
+        <div className="quiz-filter-order-actions">
+          {isOrdering ? (
+            <>
+              <button className="cancel-btn" onClick={cancelOrdering} disabled={isReordering}><X size={17} /> Hủy</button>
+              <button className="add-btn" onClick={saveOrdering} disabled={isReordering}><Check size={17} /> Lưu thứ tự</button>
+            </>
+          ) : (
+            <button className="cancel-btn" onClick={startOrdering} disabled={!quizzes.length || isLoadingQuizzes}>
+              <ListOrdered size={17} /> Chỉnh thứ tự
+            </button>
+          )}
+        </div>
       </div>
 
       {error ? (
         <ErrorState description={error} onRetry={() => setSelectedChapterId((id) => id)} />
       ) : (
-        <DataTable
-          columns={columns}
-          rows={quizzes}
-          getRowKey={(quiz) => getQuizId(quiz)}
-          loading={isLoadingQuizzes}
-          rowDraggable={isOrdering && !isReordering}
-          draggedRowKey={draggedQuizId}
-          onRowDragStart={(event, quiz) => {
-            setDraggedQuizId(getQuizId(quiz));
-            event.dataTransfer.effectAllowed = "move";
-          }}
-          onRowDragOver={(event) => event.preventDefault()}
-          onRowDrop={handleQuizDrop}
-          onRowDragEnd={() => setDraggedQuizId(null)}
-          searchPlaceholder="Tìm kiếm đề thi theo tên..."
-          searchKeys={["name"]}
-          emptyState={
-            <EmptyState
-              icon={<FileText size={28} />}
-              title="Chưa có đề thi"
-              description={
-                selectedChapter
-                  ? "Chương này chưa có đề thi. Bấm \"Tạo đề thi\" để thêm mới."
-                  : "Chọn môn học và chương để xem danh sách đề thi."
-              }
-            />
-          }
-        />
+        <>
+          <DataTable
+            columns={columns}
+            rows={filteredQuizzes}
+            getRowKey={(quiz) => getQuizId(quiz)}
+            loading={isLoadingQuizzes}
+            searchable={false}
+            rowDraggable={isOrdering && !isReordering}
+            draggedRowKey={draggedQuizId}
+            onRowDragStart={(event, quiz) => {
+              setDraggedQuizId(getQuizId(quiz));
+              event.dataTransfer.effectAllowed = "move";
+            }}
+            onRowDragOver={(event) => event.preventDefault()}
+            onRowDrop={handleQuizDrop}
+            onRowDragEnd={() => setDraggedQuizId(null)}
+            emptyState={
+              <EmptyState
+                icon={<FileText size={28} />}
+                title="Chưa có đề thi"
+                description={
+                  selectedChapter
+                    ? "Chương này chưa có đề thi. Bấm \"Tạo đề thi\" để thêm mới."
+                    : "Chọn môn học và chương để xem danh sách đề thi."
+                }
+              />
+            }
+          />
+          {!isLoadingQuizzes && (
+            <div className="adm2-note adm2-note--muted quiz-table-footnote">
+              {filteredQuizzes.length} đề trong chương
+            </div>
+          )}
+        </>
       )}
 
       <ConfirmDeleteModal

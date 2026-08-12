@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, Check, ChevronDown, ChevronRight, FileText, GripVertical, ListOrdered, Plus, Pencil, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, FileText, GripVertical, ListOrdered, Plus, Pencil, Trash2, X } from "lucide-react";
 import AddChapterModal from "../components/modals/AddChapterModal";
 import ConfirmDeleteModal from "../components/modals/ConfirmDeleteModal";
 import AddTheoryModal from "../components/modals/AddTheoryModal";
@@ -231,9 +231,8 @@ export default function AdminChapters() {
     <>
       <AdminPageHeader
         breadcrumb={["Tổng quan", "Môn học", subject.name]}
-        title={subject.name}
-        subtitle={`Mã môn: ${subject.courseCode} • ${subjectChapters.length} chương`}
-        icon={<BookOpen size={22} />}
+        title={`${subject.name} · Chương`}
+        subtitle={`${subjectChapters.length} chương · quản lý lý thuyết, kỹ năng và câu hỏi.`}
         onBack={() => navigate("/admin/subjects")}
         action={<div className="display-order-actions">
           {isOrdering ? <>
@@ -247,7 +246,7 @@ export default function AdminChapters() {
         </div>}
       />
 
-      <SearchBar placeholder="Tìm kiếm chương..." onChange={setSearch} />
+      <SearchBar placeholder="Tìm chương..." onChange={setSearch} />
 
       {actionError && <div className="admin-page-state error">{actionError}</div>}
       {filteredChapters.length === 0 && <div className="admin-page-state">Chưa có chương nào.</div>}
@@ -255,9 +254,15 @@ export default function AdminChapters() {
       <div className="chapter-list">
         {filteredChapters.map((chapter, index) => {
           const isExpanded = expandedChapter === chapter.chapterId;
-          const chapterTheories = theoriesByChapter[chapter.chapterId] || [];
+          const loadedTheories = theoriesByChapter[chapter.chapterId];
+          const chapterTheories = loadedTheories || [];
           const isLoadingTheories = Boolean(theoryLoadingByChapter[chapter.chapterId]);
           const theoryError = theoryErrorByChapter[chapter.chapterId];
+          const questionCountLabel = `${questionCountByChapter[chapter.chapterId] || 0} câu`;
+          const chapterMeta = Array.isArray(loadedTheories)
+            ? `${questionCountLabel} · ${loadedTheories.length} lý thuyết`
+            : questionCountLabel;
+          const chapterSkillNames = (chapter.skills || []).map((skill) => skill.name).filter(Boolean).join(", ");
 
           return (
             <div key={chapter.chapterId} className="chapter-card-wrapper">
@@ -282,15 +287,14 @@ export default function AdminChapters() {
 
                   <div>
                     <div className="chapter-title">{chapter.name}</div>
-                    <div className="chapter-sub">
-                      {questionCountByChapter[chapter.chapterId] || 0} câu hỏi
-                    </div>
+                    <div className="chapter-sub">{chapterMeta}</div>
                   </div>
                 </div>
 
                 <div className="chapter-actions">
                   <button
-                    className="icon-btn"
+                    type="button"
+                    className="adm2-text-btn"
                     disabled={isMutating || isOrdering}
                     aria-label={`Chỉnh sửa ${chapter.name}`}
                     onClick={(e) => {
@@ -298,10 +302,11 @@ export default function AdminChapters() {
                       navigate(`/admin/subjects/${subjectId}/chapters/${chapter.chapterId}/edit`);
                     }}
                   >
-                    <Pencil size={16} />
+                    <Pencil size={14} /> Sửa
                   </button>
                   <button
-                    className="icon-btn danger"
+                    type="button"
+                    className="adm2-text-btn is-danger"
                     disabled={isMutating || isOrdering}
                     aria-label={`Xóa ${chapter.name}`}
                     onClick={(e) => {
@@ -309,7 +314,7 @@ export default function AdminChapters() {
                       setDeletingChapter(chapter);
                     }}
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={14} /> Xóa
                   </button>
                   <div className="chapter-arrow" aria-hidden="true">
                     {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
@@ -320,11 +325,13 @@ export default function AdminChapters() {
               {isExpanded && (
                 <div className="chapter-expanded-content">
                   <div className="theory-management">
-                    <div className="theory-header">
-                      <h4>
-                        <BookOpen size={17} />
-                        Lý thuyết
-                      </h4>
+                    <div className="theory-header adm2-chapter-panel-head">
+                      <div className="adm2-chapter-panel-head-text">
+                        <span className="adm2-chip adm2-chip--emerald">Chương {index + 1}</span>
+                        {chapterSkillNames && (
+                          <span className="adm2-chapter-panel-skills">Kỹ năng: {chapterSkillNames}</span>
+                        )}
+                      </div>
                       <button
                         className="add-btn small"
                         disabled={isMutating}
@@ -353,7 +360,12 @@ export default function AdminChapters() {
                           return (
                           <div key={theoryId} className="theory-item-admin">
                             <div className="theory-content">
-                              <span className="theory-item-label">Lý thuyết {theoryIndex + 1}</span>
+                              <div className="adm2-theory-row-head">
+                                <span className="theory-item-label">
+                                  Lý thuyết {String(theoryIndex + 1).padStart(2, "0")}
+                                </span>
+                                <span className="adm2-badge adm2-badge--info">Rich text</span>
+                              </div>
                               <TheoryContent
                                 key={`${theoryId}-${theoryText}`}
                                 content={theoryText}
@@ -372,20 +384,22 @@ export default function AdminChapters() {
                             </div>
                             <div className="theory-actions">
                               <button
-                                className="icon-btn"
+                                type="button"
+                                className="adm2-text-btn"
                                 disabled={isMutating}
                                 aria-label="Chỉnh sửa lý thuyết"
                                 onClick={() => setEditingTheory(theory)}
                               >
-                                <Pencil size={14} />
+                                <Pencil size={14} /> Sửa
                               </button>
                               <button
-                                className="icon-btn danger"
+                                type="button"
+                                className="adm2-text-btn is-danger"
                                 disabled={isMutating}
                                 aria-label="Xóa lý thuyết"
                                 onClick={() => setDeletingTheory(theory)}
                               >
-                                <Trash2 size={14} />
+                                <Trash2 size={14} /> Xóa
                               </button>
                             </div>
                           </div>
@@ -395,17 +409,21 @@ export default function AdminChapters() {
                     </div>
                   </div>
 
-                  <div className="question-management">
+                  <div className="question-management adm2-panel-footer">
+                    <span className="adm2-panel-footer-count">
+                      {questionCountByChapter[chapter.chapterId] || 0} câu hỏi trong chương
+                    </span>
                     <button
-                      className="view-questions-btn"
+                      type="button"
+                      className="adm2-link-arrow"
                       onClick={() =>
                         navigate(
                           `/admin/subjects/${subjectId}/chapters/${chapter.chapterId}/questions`,
                         )
                       }
                     >
-                      <FileText size={16} />
-                      Quản lý câu hỏi
+                      <FileText size={14} />
+                      Quản lý câu hỏi <ChevronRight size={14} />
                     </button>
                   </div>
                 </div>
