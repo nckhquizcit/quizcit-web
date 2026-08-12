@@ -26,6 +26,18 @@ function resolveTitle(pathname) {
   return found ? found.title : "QuizCIT";
 }
 
+function resolveBreadcrumb(pathname) {
+  if (pathname === "/app") return "Không gian học";
+  return `Không gian học / ${resolveTitle(pathname)}`;
+}
+
+function getFirstName(displayName) {
+  const trimmed = (displayName || "").trim();
+  if (!trimmed) return "";
+  const parts = trimmed.split(/\s+/);
+  return parts[parts.length - 1];
+}
+
 export default function MainLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
@@ -44,6 +56,7 @@ export default function MainLayout() {
 
   const displayName = user?.displayName || user?.username || "Học viên";
   const initial = displayName.trim().charAt(0).toUpperCase() || "H";
+  const firstName = getFirstName(displayName) || displayName;
 
   return (
     <ToastProvider>
@@ -82,9 +95,14 @@ export default function MainLayout() {
               >
                 <Menu size={22} />
               </button>
-              <h1 className="app-topbar__title">
-                {resolveTitle(location.pathname)}
-              </h1>
+              <div className="app-topbar__titles">
+                <p className="app-topbar__breadcrumb">
+                  {resolveBreadcrumb(location.pathname)}
+                </p>
+                <h1 className="app-topbar__title">
+                  {resolveTitle(location.pathname)}
+                </h1>
+              </div>
             </div>
 
             <button
@@ -94,7 +112,7 @@ export default function MainLayout() {
               title="Trang cá nhân"
             >
               <span className="app-topbar__avatar">{initial}</span>
-              <span className="app-topbar__name">{displayName}</span>
+              <span className="app-topbar__name">{firstName}</span>
             </button>
           </header>
 

@@ -1,19 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  ArrowLeft,
-  BookOpen,
-  Clock3,
-  FileText,
-  ListChecks,
-} from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChevronRight, Clock3, ListChecks } from "lucide-react";
 import {
   getChaptersBySubject,
   getSubjectById,
   getTheoriesBySubject,
 } from "../../../../services/contentService";
-import { getQuizzesBySubject } from "../../../../services/quizService";
-import { startAdaptiveQuiz } from "../../../../services/quizService";
+import { getQuizzesBySubject, startAdaptiveQuiz } from "../../../../services/quizService";
 import {
   Badge,
   Button,
@@ -23,8 +16,7 @@ import {
   Spinner,
 } from "../../../../components/ui";
 import { getErrorMessage } from "../../../../services/apiClient";
-import TheoryContent from "../../../content/components/TheoryContent";
-import ChatBox from "../../../../components/ChatBox/ChatBox";
+import { getTheoryDisplayTitle } from "../../../content/utils/theoryDisplay.js";
 import { isValidAdaptiveQuestionCount } from "../../../quiz/pages/AdaptiveQuizPage/AdaptiveQuizPage.logic.js";
 import "./SubjectDetailPage.css";
 
@@ -36,7 +28,6 @@ export default function SubjectDetailPage() {
   const [theoriesByChapter, setTheoriesByChapter] = useState({});
   const [quizzesByChapter, setQuizzesByChapter] = useState({});
   const [activeChapterId, setActiveChapterId] = useState(null);
-  const [expandedTheories, setExpandedTheories] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [adaptiveOpen, setAdaptiveOpen] = useState(false);
@@ -60,13 +51,6 @@ export default function SubjectDetailPage() {
     } finally {
       setStartingAdaptive(false);
     }
-  };
-
-  const toggleTheory = (theoryId) => {
-    setExpandedTheories((current) => ({
-      ...current,
-      [theoryId]: !current[theoryId],
-    }));
   };
 
   useEffect(() => {
@@ -111,13 +95,23 @@ export default function SubjectDetailPage() {
     };
   }, [subjectId]);
 
-  const activeChapter = useMemo(
+  const activeChapterIndex = useMemo(
     () =>
-      chapters.find(
+      chapters.findIndex(
         (chapter) =>
           (chapter.chapterId || chapter.chapter_id) === activeChapterId
-      ) || null,
+      ),
     [chapters, activeChapterId]
+  );
+  const activeChapter = activeChapterIndex >= 0 ? chapters[activeChapterIndex] : null;
+
+  const totalTheories = useMemo(
+    () => Object.values(theoriesByChapter).reduce((sum, list) => sum + list.length, 0),
+    [theoriesByChapter]
+  );
+  const totalQuizzes = useMemo(
+    () => Object.values(quizzesByChapter).reduce((sum, list) => sum + list.length, 0),
+    [quizzesByChapter]
   );
 
   if (loading) {
@@ -144,16 +138,8 @@ export default function SubjectDetailPage() {
   const subjectName = subject?.name || "Môn học";
   const subjectCourseCode = subject?.courseCode || subject?.course_code || "-";
   const subjectDescription = subject?.description || "";
-  const theories = activeChapter
-    ? theoriesByChapter[
-        activeChapter.chapterId || activeChapter.chapter_id
-      ] || []
-    : [];
-  const quizzes = activeChapter
-    ? quizzesByChapter[
-        activeChapter.chapterId || activeChapter.chapter_id
-      ] || []
-    : [];
+  const theories = activeChapterId ? theoriesByChapter[activeChapterId] || [] : [];
+  const quizzes = activeChapterId ? quizzesByChapter[activeChapterId] || [] : [];
 
   return (
     <div className="subject-detail-page">
@@ -163,7 +149,7 @@ export default function SubjectDetailPage() {
         onClick={() => navigate("/app/subjects")}
       >
         <ArrowLeft size={16} />
-        Danh sách môn học
+        Môn học
       </button>
 
       <header className="subject-detail-header">
@@ -172,15 +158,32 @@ export default function SubjectDetailPage() {
           <h1>{subjectName}</h1>
           {subjectDescription && <p>{subjectDescription}</p>}
         </div>
-        <div className="subject-detail-header__meta">
-          <span>
-            <BookOpen size={16} /> {chapters.length} chương
-          </span>
-          <Button variant="primary" onClick={() => setAdaptiveOpen(true)}>
-            Làm bài thích ứng
-          </Button>
-        </div>
+        <Button variant="primary" onClick={() => setAdaptiveOpen(true)}>
+          Ôn tập thích ứng
+        </Button>
       </header>
+
+      <div className="subject-detail-stats">
+        <div className="subject-detail-stats__cell">
+          <span className="subject-detail-stats__value">{chapters.length}</span>
+          <span className="subject-detail-stats__label">Chương</span>
+        </div>
+        <span className="subject-detail-stats__divider" aria-hidden="true" />
+        <div className="subject-detail-stats__cell">
+          <span className="subject-detail-stats__value">{totalTheories}</span>
+          <span className="subject-detail-stats__label">Bài lý thuyết</span>
+        </div>
+        <span className="subject-detail-stats__divider" aria-hidden="true" />
+        <div className="subject-detail-stats__cell">
+          <span className="subject-detail-stats__value">{totalQuizzes}</span>
+          <span className="subject-detail-stats__label">Đề kiểm tra</span>
+        </div>
+        <span className="subject-detail-stats__divider" aria-hidden="true" />
+        <div className="subject-detail-stats__cell subject-detail-stats__cell--status">
+          <CheckCircle2 size={18} />
+          <span>Sẵn sàng — Ôn tập thích ứng</span>
+        </div>
+      </div>
 
       {adaptiveOpen && (
         <div className="adaptive-dialog-backdrop" onClick={() => setAdaptiveOpen(false)}>
@@ -233,44 +236,41 @@ export default function SubjectDetailPage() {
           </aside>
 
           <div className="chapter-panel">
+            <Card padding="lg" className="chapter-overview-card">
+              <span className="chapter-overview-card__chip">
+                CHƯƠNG {activeChapterIndex + 1}
+              </span>
+              <h2 className="chapter-overview-card__name">{activeChapter?.name}</h2>
+              <p className="chapter-overview-card__meta">
+                {theories.length} bài lý thuyết · {quizzes.length} bài kiểm tra
+              </p>
+            </Card>
+
             <Card padding="lg" className="content-block">
-              <div className="content-block__title">
-                <FileText size={18} />
-                <h2>Lý thuyết</h2>
-              </div>
+              <p className="content-block__label">Lý thuyết</p>
               {theories.length === 0 ? (
                 <p className="content-block__empty">
                   Chương này chưa có nội dung lý thuyết.
                 </p>
               ) : (
-                <div className="theory-list">
-                  {theories.map((theory) => {
+                <div className="theory-nav-list">
+                  {theories.map((theory, index) => {
                     const theoryId = theory.theoryId || theory.theory_id;
-                    const theoryText = theory.content || "";
-                    const isTheoryExpanded = Boolean(expandedTheories[theoryId]);
-                    const isLongTheory =
-                      theoryText.length > 320 ||
-                      theoryText.split(/\r?\n/).length > 6;
-
                     return (
-                      <div key={theoryId} className="theory-item">
-                        <TheoryContent
-                          content={theoryText}
-                          contentFormat={theory.contentFormat}
-                          className={
-                            isTheoryExpanded ? "is-expanded" : "is-collapsed"
-                          }
-                        />
-                        {isLongTheory && (
-                          <button
-                            type="button"
-                            className="theory-expand-btn"
-                            onClick={() => toggleTheory(theoryId)}
-                          >
-                            {isTheoryExpanded ? "Thu gọn" : "Xem đầy đủ"}
-                          </button>
-                        )}
-                      </div>
+                      <button
+                        key={theoryId}
+                        type="button"
+                        className="theory-nav-row"
+                        onClick={() =>
+                          navigate(`/app/subjects/${subjectId}/theories/${theoryId}`)
+                        }
+                      >
+                        <span className="theory-nav-row__index">{index + 1}</span>
+                        <span className="theory-nav-row__title">
+                          {getTheoryDisplayTitle(theory, index)}
+                        </span>
+                        <ChevronRight size={16} />
+                      </button>
                     );
                   })}
                 </div>
@@ -278,55 +278,39 @@ export default function SubjectDetailPage() {
             </Card>
 
             <Card padding="lg" className="content-block">
-              <div className="content-block__title">
-                <ListChecks size={18} />
-                <h2>Bài kiểm tra</h2>
-              </div>
+              <p className="content-block__label">Bài kiểm tra</p>
               {quizzes.length === 0 ? (
                 <p className="content-block__empty">
                   Chưa có đề kiểm tra cho chương này.
                 </p>
               ) : (
-                <div className="quiz-list">
+                <div className="quiz-nav-list">
                   {quizzes.map((quiz) => {
                     const quizId = quiz.quizId || quiz.quiz_id;
                     const minutes = quiz.durationMinutes || quiz.duration || 0;
                     return (
-                      <Card
-                        key={quizId}
-                        interactive
-                        padding="md"
-                        className="quiz-card"
-                        onClick={() => navigate(`/app/quiz/${quizId}`)}
-                      >
-                        <div className="quiz-card__head">
-                          <h3>{quiz.name}</h3>
-                          {quiz.type && (
-                            <Badge variant="info" size="sm">
-                              {quiz.type}
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="quiz-card__meta">
-                          <span>
-                            <ListChecks size={14} />
+                      <div key={quizId} className="quiz-nav-row">
+                        <div className="quiz-nav-row__info">
+                          <span className="quiz-nav-row__name">{quiz.name}</span>
+                          <span className="quiz-nav-row__meta">
+                            <ListChecks size={13} />
                             {quiz.totalQuestion} câu
+                            {minutes > 0 && (
+                              <>
+                                <Clock3 size={13} />
+                                {minutes} phút
+                              </>
+                            )}
                           </span>
-                          {minutes > 0 && (
-                            <span>
-                              <Clock3 size={14} />
-                              {minutes} phút
-                            </span>
-                          )}
                         </div>
                         <Button
                           variant="secondary"
                           size="sm"
-                          className="quiz-card__cta"
+                          onClick={() => navigate(`/app/quiz/${quizId}`)}
                         >
                           Bắt đầu làm
                         </Button>
-                      </Card>
+                      </div>
                     );
                   })}
                 </div>
@@ -334,9 +318,6 @@ export default function SubjectDetailPage() {
             </Card>
           </div>
         </div>
-      )}
-      {theories.length > 0 && (
-        <ChatBox key={subjectId} subjectId={subjectId} chapterId={activeChapterId} />
       )}
     </div>
   );
