@@ -91,15 +91,6 @@
   margin: 0 var(--space-5);
   flex-shrink: 0;
 }
-.subject-detail-stats__cell--status {
-  flex-direction: row;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--color-primary-700);
-  font-size: var(--fs-sm);
-  font-weight: 700;
-  flex: 1.4;
-}
 
 /* Body layout */
 .subject-detail-body {
@@ -111,7 +102,7 @@
 
 .chapter-nav {
   position: sticky;
-  top: calc(var(--topbar-h) + var(--space-4));
+  top: var(--sticky-top);
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
@@ -204,6 +195,20 @@
 .chapter-overview-card__meta {
   font-size: var(--fs-sm);
   color: var(--color-text-muted);
+}
+.chapter-overview-card__skills {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+.chapter-overview-card__skills-label {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-subtle);
 }
 
 .content-block__label {
@@ -343,24 +348,22 @@
   .subject-detail-stats__cell {
     flex: 1 1 40%;
   }
-  .subject-detail-stats__cell--status {
-    flex: 1 1 100%;
-  }
   .quiz-nav-row {
     flex-direction: column;
     align-items: stretch;
   }
 }
 .adaptive-dialog-backdrop {
-  position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center;
-  background: rgba(15, 23, 42, .55); padding: 20px;
+  position: fixed; inset: 0; z-index: var(--z-modal); display: grid; place-items: center;
+  background: var(--color-overlay); padding: var(--space-5);
 }
 .adaptive-dialog {
-  width: min(420px, 100%); background: var(--color-surface, #fff); border-radius: 16px;
-  padding: 24px; box-shadow: 0 20px 50px rgba(15, 23, 42, .25);
+  width: min(420px, 100%); background: var(--color-surface, #fff);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6); box-shadow: var(--shadow-lg);
 }
 .adaptive-dialog h2 { margin: 0 0 8px; }
-.adaptive-dialog__error { color: var(--color-danger, #dc2626); }
+.adaptive-dialog__error { color: var(--color-error); }
 .adaptive-dialog input {
   width: 100%; box-sizing: border-box; margin: 12px 0 20px; padding: 10px 12px;
   border: 1px solid var(--color-border, #d7dce5); border-radius: 8px;

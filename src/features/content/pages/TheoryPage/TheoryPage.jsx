@@ -136,7 +136,9 @@ export default function TheoryPage() {
           onClick={() => navigate(`/app/subjects/${subjectId}`)}
         >
           <ArrowLeft size={16} />
-          Chương {chapterIndex + 1} · {chapter?.name}
+          {chapterIndex >= 0 && chapter?.name
+            ? `Chương ${chapterIndex + 1} · ${chapter.name}`
+            : "Quay lại môn học"}
         </button>
 
         <Card padding="lg" className="theory-content-card">
@@ -174,6 +176,7 @@ export default function TheoryPage() {
             onSend={handleSend}
             inputRef={chatInputRef}
             placeholder="Hỏi về bài học..."
+            hint="Enter để gửi · Shift + Enter để xuống dòng"
           />
         </div>
       </aside>

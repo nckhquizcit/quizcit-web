@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Mail } from "lucide-react";
 import { useForgotPassword } from "../../../../stores/contexts/ForgotPasswordContext.jsx";
 import { forgotPassword, verifyResetOtp } from "../../../../services/authService";
@@ -52,6 +53,9 @@ export default function VerifyForgotPasswordForm() {
       setLoading(true);
       setError("");
       const res = await verifyResetOtp(resetToken, verificationCode);
+      if (!res?.confirmedToken) {
+        throw new Error("Xác minh thất bại. Vui lòng thử lại.");
+      }
       setConfirmedToken(res.confirmedToken);
       setCurrentState(3);
     } catch (apiError) {
@@ -67,6 +71,9 @@ export default function VerifyForgotPasswordForm() {
       setResending(true);
       setError("");
       const res = await forgotPassword(email);
+      if (!res?.resetToken) {
+        throw new Error("Không nhận được mã mới. Vui lòng thử lại.");
+      }
       setResetToken(res.resetToken);
       setOtp(new Array(6).fill(""));
       setCooldown(60);
@@ -92,13 +99,15 @@ export default function VerifyForgotPasswordForm() {
 
       {error && <div className="auth-form__error">{error}</div>}
 
-      <div className="auth-otp">
+      <div className="auth-otp" role="group" aria-label="Mã xác minh 6 số">
         {otp.map((data, index) => (
           <input
             key={index}
             type="text"
             inputMode="numeric"
             maxLength="1"
+            autoComplete="one-time-code"
+            aria-label={`Số thứ ${index + 1}`}
             ref={(el) => (inputRefs.current[index] = el)}
             value={data}
             onChange={(e) => handleChange(e.target, index)}
@@ -122,6 +131,22 @@ export default function VerifyForgotPasswordForm() {
           {cooldown > 0 ? `Gửi lại sau ${cooldown}s` : "Gửi lại mã"}
         </button>
       </div>
+
+      <p className="auth-form__switch">
+        <button
+          type="button"
+          className="auth-resend__btn"
+          onClick={() => setCurrentState(1)}
+        >
+          Đổi email khác
+        </button>
+      </p>
+
+      <p className="auth-form__switch">
+        <Link to="/login" className="auth-back-link">
+          ← Quay lại đăng nhập
+        </Link>
+      </p>
     </form>
   );
 }

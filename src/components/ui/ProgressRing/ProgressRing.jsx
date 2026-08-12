@@ -9,6 +9,7 @@ export default function ProgressRing({
   color = "var(--color-primary)",
   trackColor = "var(--color-surface-3)",
   className = "",
+  ariaLabel = "",
 }) {
   const safe = Math.max(0, Math.min(100, Number(value) || 0));
   const radius = (size - stroke) / 2;
@@ -20,7 +21,7 @@ export default function ProgressRing({
       className={`ui-ring ${className}`}
       style={{ width: size, height: size }}
       role="img"
-      aria-label={`${Math.round(safe)}%`}
+      aria-label={ariaLabel || `${Math.round(safe)}%`}
     >
       <svg width={size} height={size} className="ui-ring__svg">
         <circle

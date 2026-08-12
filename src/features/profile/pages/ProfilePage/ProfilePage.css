@@ -3,7 +3,7 @@
   flex-direction: column;
   gap: var(--space-5);
   padding: var(--space-8);
-  max-width: 900px;
+  max-width: var(--content-narrow);
   margin: 0 auto;
 }
 
@@ -166,7 +166,7 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-4);
-  z-index: var(--z-drawer);
+  z-index: var(--z-modal);
 }
 .profile-modal-card {
   width: 100%;
@@ -211,6 +211,35 @@
   color: var(--color-text-muted);
   font-size: var(--fs-sm);
 }
+/* password field with reveal toggle */
+.profile-pwd {
+  position: relative;
+}
+.profile-pwd .ui-input {
+  padding-right: 2.75rem;
+}
+.profile-pwd-toggle {
+  position: absolute;
+  right: 0.6rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-subtle);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.profile-pwd-toggle:hover {
+  color: var(--color-primary-700);
+  background: var(--color-primary-50);
+}
+
 .profile-form-error {
   margin: 0;
   padding: var(--space-3);

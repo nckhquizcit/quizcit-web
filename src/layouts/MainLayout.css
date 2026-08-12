@@ -5,10 +5,18 @@
 
 .app-main-col {
   --preview-banner-height: 45px;
+  /* Mốc top cho mọi phần tử sticky trong trang: nằm dưới topbar (và banner preview nếu có) */
+  --sticky-top: calc(var(--topbar-h) + var(--space-4));
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
   min-width: 0;
+}
+
+.app-main-col--preview {
+  --sticky-top: calc(
+    var(--preview-banner-height) + var(--topbar-h) + var(--space-4)
+  );
 }
 
 .user-preview-banner {
@@ -151,13 +159,14 @@
 }
 
 /* Content */
+/* Không đặt overflow ở đây: nó biến main-content thành scrollport không bao giờ cuộn,
+   khiến mọi position:sticky bên trong trang mất tác dụng. Cho document tự cuộn. */
 .main-content {
   flex: 1 1 auto;
   min-width: 0;
-  overflow-y: auto;
 }
 .main-content__inner {
-  max-width: 1280px;
+  max-width: var(--content-wide);
   margin: 0 auto;
   width: 100%;
 }

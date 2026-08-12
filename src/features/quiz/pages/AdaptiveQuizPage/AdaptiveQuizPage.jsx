@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { AlertCircle } from "lucide-react";
-import { Button, ErrorState, Spinner } from "../../../../components/ui";
+import { AlertCircle, X } from "lucide-react";
+import { Button, EmptyState, ErrorState, Spinner } from "../../../../components/ui";
 import RichTextView from "../../../../components/richtext/RichTextView";
 import { getErrorMessage } from "../../../../services/apiClient";
 import {
@@ -24,6 +24,7 @@ export default function AdaptiveQuizPage() {
   const [state, setState] = useState(null);
   const [meta, setMeta] = useState(null);
   const [answers, setAnswers] = useState({});
+  const [activeSkillQuestion, setActiveSkillQuestion] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -85,6 +86,7 @@ export default function AdaptiveQuizPage() {
   const totalGroups = Math.ceil((state.totalQuestion || 0) / ADAPTIVE_PAGE_SIZE);
   const isLastBatch = state.answeredQuestion + questions.length >= state.totalQuestion;
   const subjectLine = meta?.subjectName || "";
+  const batchReady = hasAnsweredAdaptiveBatch(questions, answers);
 
   return (
     <div className="quiz-taking-page">
@@ -116,10 +118,35 @@ export default function AdaptiveQuizPage() {
 
       <div className="quiz-layout">
         <div className="quiz-main">
+          {questions.length === 0 && (
+            <EmptyState
+              title="Chưa có câu hỏi cho nhóm này"
+              description="Hệ thống chưa chọn được câu hỏi phù hợp cho nhóm tiếp theo. Bạn có thể quay lại môn học và thử lại sau."
+              action={
+                <Button variant="primary" onClick={() => navigate("/app/subjects")}>
+                  Về danh sách môn học
+                </Button>
+              }
+            />
+          )}
           <div className="quiz-questions">
             {questions.map((question, index) => (
               <article className="quiz-question-card" key={question.questionId}>
-                <div className="question-number">Câu {state.answeredQuestion + index + 1}</div>
+                <div className="question-top">
+                  <div className="question-number">Câu {state.answeredQuestion + index + 1}</div>
+                  <div className="question-actions">
+                    <button
+                      type="button"
+                      className="skill-btn"
+                      disabled={!question.skills?.length}
+                      onClick={() => setActiveSkillQuestion(question)}
+                    >
+                      {question.skills?.length
+                        ? `${question.skills.length} kỹ năng`
+                        : "Chưa gắn kỹ năng"}
+                    </button>
+                  </div>
+                </div>
                 <RichTextView className="question-content" content={question.content} contentFormat={question.contentFormat} />
                 <div className="options-list">
                   {(question.options || []).map((option, optionIndex) => (
@@ -134,11 +161,23 @@ export default function AdaptiveQuizPage() {
               </article>
             ))}
           </div>
-          <div className="adaptive-submit-row">
-            <Button variant="primary" loading={submitting} onClick={submitPage}>
-              {isLastBatch ? "Nộp bài" : "Nộp 5 câu và tiếp tục"}
-            </Button>
-          </div>
+          {questions.length > 0 && (
+            <div className="adaptive-submit-row">
+              {!batchReady && (
+                <span className="adaptive-submit-row__hint">
+                  Vui lòng trả lời đủ 5 câu trước khi tiếp tục.
+                </span>
+              )}
+              <Button
+                variant="primary"
+                loading={submitting}
+                disabled={!batchReady}
+                onClick={submitPage}
+              >
+                {isLastBatch ? "Nộp bài" : "Nộp 5 câu và tiếp tục"}
+              </Button>
+            </div>
+          )}
         </div>
 
         <aside className="adaptive-rail">
@@ -152,6 +191,42 @@ export default function AdaptiveQuizPage() {
           </div>
         </aside>
       </div>
+
+      {activeSkillQuestion && (
+        <div className="skill-modal-overlay" onClick={() => setActiveSkillQuestion(null)}>
+          <div
+            className="skill-modal"
+            role="dialog"
+            aria-modal="true"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="skill-modal-header">
+              <h3>Kỹ năng của câu hỏi</h3>
+              <button
+                type="button"
+                className="skill-modal-close"
+                onClick={() => setActiveSkillQuestion(null)}
+                aria-label="Đóng"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <ul className="skill-list">
+              {(activeSkillQuestion.skills || []).map((skill) => (
+                <li key={skill.skillId} className="skill-item">
+                  <span className="skill-item__name">
+                    {skill.name || "Kỹ năng chưa đặt tên"}
+                  </span>
+                  {skill.primary && <span className="skill-primary-badge">Chính</span>}
+                  <span className="skill-weight">
+                    Trọng số: {skill.weight > 0 ? skill.weight : "—"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

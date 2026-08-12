@@ -29,6 +29,9 @@ export default function ForgotPasswordForm() {
       setLoading(true);
       setError("");
       const res = await forgotPassword(formData.email);
+      if (!res?.resetToken) {
+        throw new Error("Không nhận được mã xác minh. Vui lòng thử lại.");
+      }
       setEmail(res.email);
       setResetToken(res.resetToken);
       setCurrentState(2);
@@ -57,6 +60,7 @@ export default function ForgotPasswordForm() {
           value={formData.email}
           onChange={handleChange}
           iconLeft={<AtSign size={18} />}
+          autoComplete="email"
           required
         />
       </Field>

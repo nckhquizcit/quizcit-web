@@ -294,6 +294,7 @@ export function mapSkillResult(raw = {}) {
     ["skillName", "skill_name", "name"],
     "Kỹ năng chưa đặt tên",
   );
+  const thetaScaled = pickThetaScaled(raw, theta);
 
   return {
     ...raw,
@@ -303,8 +304,9 @@ export function mapSkillResult(raw = {}) {
     name: skillName,
     skillName,
     theta,
-    thetaScaled: pickThetaScaled(raw, theta),
+    thetaScaled,
     delta,
+    deltaScaled: roundTheta(thetaScaled - scaleThetaForDisplay(theta - delta)),
   };
 }
 
@@ -322,6 +324,16 @@ export function mapQuestionResult(raw = {}) {
   );
   const selectedOption = options.find((option) => option.optionId === selectedOptionId);
   const correctOption = options.find((option) => option.optionId === correctOptionId);
+  // Chỉ suy ra độ khó khi API thực sự trả về, tránh mọi câu đều thành "Trung bình".
+  const difficultyB = pick(raw, ["difficultyB", "difficulty_b"]);
+  const difficulty =
+    difficultyB === undefined
+      ? null
+      : toNumber(difficultyB) <= -1.8
+        ? "Easy"
+        : toNumber(difficultyB) >= 1.8
+          ? "Hard"
+          : "Medium";
 
   return {
     ...raw,
@@ -329,6 +341,7 @@ export function mapQuestionResult(raw = {}) {
     questionId,
     question_id: questionId,
     questionNumber: toNumber(pick(raw, ["questionNumber", "question_number"], 0)),
+    difficulty,
     content,
     explanation: pick(raw, ["explanation", "explaination"], ""),
     contentFormat,

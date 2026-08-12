@@ -17,7 +17,7 @@
 /* Left nav */
 .theory-page__nav {
   position: sticky;
-  top: calc(var(--topbar-h) + var(--space-4));
+  top: var(--sticky-top);
 }
 .theory-nav-card {
   display: flex;
@@ -128,8 +128,10 @@
 /* Right docked AI panel */
 .theory-page__chat-dock {
   position: sticky;
-  top: calc(var(--topbar-h) + var(--space-4));
-  height: calc(100vh - var(--topbar-h) - var(--space-8) * 2);
+  top: var(--sticky-top);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - var(--topbar-h) - var(--space-8) * 2);
   min-height: 420px;
 }
 .theory-chat {

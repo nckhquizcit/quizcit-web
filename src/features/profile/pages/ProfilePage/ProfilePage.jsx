@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Edit2, KeyRound, LogOut, X } from "lucide-react";
+import { Edit2, Eye, EyeOff, KeyRound, LogOut, X } from "lucide-react";
 import { getErrorMessage, getStoredUser, setStoredUser } from "../../../../services/apiClient";
 import {
   changeCurrentUserPassword,
@@ -44,6 +44,15 @@ function getInitial(name) {
 }
 
 function ProfileModal({ title, children, onClose }) {
+  useEffect(() => {
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [onClose]);
+
   return (
     <div className="profile-modal-backdrop" onMouseDown={onClose}>
       <div
@@ -74,7 +83,10 @@ export default function ProfilePage() {
   const [activeModal, setActiveModal] = useState(null);
   const [editForm, setEditForm] = useState({ displayName: "", email: "" });
   const [passwordForm, setPasswordForm] = useState({ password: "", confirmPassword: "" });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formError, setFormError] = useState("");
+  const [confirmPasswordError, setConfirmPasswordError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -117,7 +129,10 @@ export default function ProfilePage() {
 
   function openPasswordModal() {
     setFormError("");
+    setConfirmPasswordError("");
     setPasswordForm({ password: "", confirmPassword: "" });
+    setShowPassword(false);
+    setShowConfirmPassword(false);
     setActiveModal("password");
   }
 
@@ -175,6 +190,7 @@ export default function ProfilePage() {
   async function submitPasswordUpdate(event) {
     event.preventDefault();
     setFormError("");
+    setConfirmPasswordError("");
 
     const password = passwordForm.password.trim();
     const confirmPassword = passwordForm.confirmPassword.trim();
@@ -184,7 +200,7 @@ export default function ProfilePage() {
       return;
     }
     if (password !== confirmPassword) {
-      setFormError("Mật khẩu xác nhận không khớp.");
+      setConfirmPasswordError("Mật khẩu xác nhận không khớp.");
       return;
     }
 
@@ -230,7 +246,7 @@ export default function ProfilePage() {
             </Badge>
           </div>
           <p className="profile-header-card__handle">
-            @{profileUser?.username || "unknown"} · Học viên
+            @{profileUser?.username || "unknown"} · {roleLabel}
           </p>
           <p className="profile-header-card__email">{profileUser?.email || "—"}</p>
         </div>
@@ -332,27 +348,56 @@ export default function ProfilePage() {
             <p className="profile-modal-sub">Mật khẩu mới tối thiểu 6 ký tự.</p>
             {formError && <p className="profile-form-error">{formError}</p>}
             <Field label="Mật khẩu mới" htmlFor="profile-password">
-              <Input
-                id="profile-password"
-                type="password"
-                value={passwordForm.password}
-                minLength={PASSWORD_MIN_LENGTH}
-                onChange={(event) =>
-                  setPasswordForm((current) => ({ ...current, password: event.target.value }))
-                }
-                autoFocus
-              />
+              <div className="profile-pwd">
+                <Input
+                  id="profile-password"
+                  type={showPassword ? "text" : "password"}
+                  value={passwordForm.password}
+                  minLength={PASSWORD_MIN_LENGTH}
+                  autoComplete="new-password"
+                  onChange={(event) =>
+                    setPasswordForm((current) => ({ ...current, password: event.target.value }))
+                  }
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  className="profile-pwd-toggle"
+                  onClick={() => setShowPassword((value) => !value)}
+                  aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </Field>
-            <Field label="Nhập lại mật khẩu" htmlFor="profile-confirm-password">
-              <Input
-                id="profile-confirm-password"
-                type="password"
-                value={passwordForm.confirmPassword}
-                minLength={PASSWORD_MIN_LENGTH}
-                onChange={(event) =>
-                  setPasswordForm((current) => ({ ...current, confirmPassword: event.target.value }))
-                }
-              />
+            <Field
+              label="Nhập lại mật khẩu"
+              htmlFor="profile-confirm-password"
+              error={confirmPasswordError}
+            >
+              <div className="profile-pwd">
+                <Input
+                  id="profile-confirm-password"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={passwordForm.confirmPassword}
+                  minLength={PASSWORD_MIN_LENGTH}
+                  autoComplete="new-password"
+                  invalid={Boolean(confirmPasswordError)}
+                  onChange={(event) =>
+                    setPasswordForm((current) => ({ ...current, confirmPassword: event.target.value }))
+                  }
+                />
+                <button
+                  type="button"
+                  className="profile-pwd-toggle"
+                  onClick={() => setShowConfirmPassword((value) => !value)}
+                  aria-label={
+                    showConfirmPassword ? "Ẩn mật khẩu nhập lại" : "Hiện mật khẩu nhập lại"
+                  }
+                >
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </Field>
             <p className="profile-info-box">
               Không dùng lại mật khẩu cũ. Sau khi đổi, hãy đăng nhập lại trên thiết bị khác.

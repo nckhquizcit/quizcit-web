@@ -47,6 +47,12 @@ export function setStoredUser(user) {
   window.dispatchEvent(new CustomEvent(AUTH_CHANGED_EVENT));
 }
 
+export function subscribeToAuthChange(callback) {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener(AUTH_CHANGED_EVENT, callback);
+  return () => window.removeEventListener(AUTH_CHANGED_EVENT, callback);
+}
+
 function normalizeValidation(data) {
   if (!data || typeof data !== "object") return null;
   if (data.errors && typeof data.errors === "object") return data.errors;

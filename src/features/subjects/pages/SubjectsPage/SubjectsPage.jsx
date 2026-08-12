@@ -64,6 +64,8 @@ export default function SubjectsPage() {
     );
   }, [searchTerm, subjectCollection]);
 
+  const showCounts = !loading && !error;
+
   return (
     <section className="subjects-page">
       <header className="subjects-page__header">
@@ -74,7 +76,8 @@ export default function SubjectsPage() {
       <div className="subjects-banner">
         <span className="subjects-banner__chip">NỘI DUNG HỆ THỐNG</span>
         <p className="subjects-banner__headline">
-          {subjectCollection.length} môn khả dụng · {totalChapters} chương khả dụng
+          {showCounts ? subjectCollection.length : "—"} môn khả dụng ·{" "}
+          {showCounts ? totalChapters : "—"} chương khả dụng
         </p>
         <p className="subjects-banner__sub">
           Vào môn để đọc lý thuyết, làm bài kiểm tra và ôn thích ứng theo năng lực.
@@ -92,7 +95,7 @@ export default function SubjectsPage() {
           />
         </div>
         <span className="subjects-search-card__chip">
-          {filteredSubjects.length} MÔN KHẢ DỤNG
+          {showCounts ? filteredSubjects.length : "—"} MÔN KHẢ DỤNG
         </span>
       </div>
 

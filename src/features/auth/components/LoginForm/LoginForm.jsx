@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, LockKeyhole, User } from "lucide-react";
-import { getErrorMessage } from "../../../../services/apiClient";
+import { getErrorMessage, setStoredUser } from "../../../../services/apiClient";
 import { login } from "../../../../services/authService";
 import { Button, Field, Input } from "../../../../components/ui";
 import "../../styles/authShared.css";
@@ -12,17 +12,16 @@ export default function LoginForm() {
   const [formData, setFormData] = useState({
     username: "",
     password: "",
-    remember: false,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: value,
     }));
   };
 
@@ -32,8 +31,11 @@ export default function LoginForm() {
       setLoading(true);
       setError("");
       const auth = await login(formData.username, formData.password);
+      if (!auth?.accessToken) {
+        throw new Error("Đăng nhập thất bại. Vui lòng thử lại.");
+      }
       localStorage.setItem("accessToken", auth.accessToken);
-      localStorage.setItem("user", JSON.stringify(auth));
+      setStoredUser(auth);
       navigate(auth.role === "ADMINISTRATOR" ? "/admin" : "/app");
     } catch (apiError) {
       setError(getErrorMessage(apiError, "Đăng nhập thất bại."));
@@ -60,6 +62,7 @@ export default function LoginForm() {
           value={formData.username}
           onChange={handleChange}
           iconLeft={<User size={18} />}
+          autoComplete="username"
           required
         />
       </Field>
@@ -74,6 +77,7 @@ export default function LoginForm() {
             value={formData.password}
             onChange={handleChange}
             iconLeft={<LockKeyhole size={18} />}
+            autoComplete="current-password"
             required
           />
           <button
@@ -88,15 +92,6 @@ export default function LoginForm() {
       </Field>
 
       <div className="auth-form__options">
-        <label className="auth-form__remember">
-          <input
-            type="checkbox"
-            name="remember"
-            checked={formData.remember}
-            onChange={handleChange}
-          />
-          Ghi nhớ đăng nhập
-        </label>
         <span className="auth-form__hint">
           <Link to="/forgot-password">Quên mật khẩu?</Link>
         </span>

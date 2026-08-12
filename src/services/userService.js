@@ -32,10 +32,6 @@ export async function updateUserProfile(userId, payload) {
   return result ? mapUser(result) : mapUser({ userId, ...payload });
 }
 
-export async function updateDisplayName(userId, displayName) {
-  return updateUserProfile(userId, { displayName });
-}
-
 export async function changePassword(userId, password) {
   return request({
     method: "PATCH",

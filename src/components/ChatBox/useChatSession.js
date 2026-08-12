@@ -32,7 +32,12 @@ export function useChatSession({ subjectId, chapterId }) {
       const result = await askChatbot({ subjectId, chapterId, message, history });
       setMessages((current) => [
         ...current,
-        { role: "assistant", text: result.answer, sources: result.sources },
+        {
+          role: "assistant",
+          text: result.answer,
+          sources: result.sources,
+          hasUnlockedContent: result.hasUnlockedContent,
+        },
       ]);
     } catch {
       setError("Không gửi được câu hỏi. Bạn thử lại nhé.");

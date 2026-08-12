@@ -8,7 +8,7 @@ import {
   formatScaledThetaValue,
   thetaScaledToPercent,
 } from "../../../../services/mappers";
-import { Button, Card, Spinner } from "../../../../components/ui";
+import { Badge, Button, Card, Spinner } from "../../../../components/ui";
 import RichTextView from "../../../../components/richtext/RichTextView";
 import { isRichTextEmpty, toPreviewText } from "../../../../components/richtext/richTextUtils";
 import "./QuizResultPage.css";
@@ -17,6 +17,11 @@ const FALLBACK_QUIZ_NAME = "Bài kiểm tra";
 const MISSING_QUIZ_NAME = "Chưa có tên bài quiz";
 const FALLBACK_SUBJECT_NAME = "Không rõ môn học";
 const FALLBACK_DATE = "—";
+const DIFFICULTY_BADGES = {
+  Easy: { label: "Dễ", variant: "success" },
+  Medium: { label: "Trung bình", variant: "warning" },
+  Hard: { label: "Khó", variant: "error" },
+};
 const submittedAtFormatter = new Intl.DateTimeFormat("vi-VN", {
   dateStyle: "short",
   timeStyle: "short",
@@ -179,7 +184,8 @@ export default function QuizResultPage() {
     ? FALLBACK_SUBJECT_NAME
     : result.subjectName;
   const displaySubmittedAt = formatSubmittedAt(result.submittedAt);
-  const durationLabel = result.duration > 0 ? ` · ${result.duration} phút` : "";
+  const durationLabel =
+    result.duration > 0 ? ` · Thời lượng đề ${result.duration} phút` : "";
 
   const backLabel = cameFromHistory ? "← Quay lại lịch sử" : "← Về môn học";
   const backTarget = cameFromHistory ? "/app/history" : "/app/subjects";
@@ -198,7 +204,7 @@ export default function QuizResultPage() {
           {displayQuizName} · {displaySubjectName}
         </h1>
         <p className="result-header__sub">
-          Nộp {displaySubmittedAt} · {total} câu{durationLabel}
+          Bắt đầu {displaySubmittedAt} · {total} câu{durationLabel}
         </p>
       </div>
 
@@ -261,7 +267,7 @@ export default function QuizResultPage() {
         {result.skillResults?.length ? (
           <div className="skill-analysis-list">
             {result.skillResults.map((skill) => {
-              const delta = formatDelta(skill.delta ?? 0);
+              const delta = formatDelta(skill.deltaScaled ?? 0);
               const fillPercent = thetaScaledToPercent(skill.thetaScaled);
               return (
                 <div className="skill-analysis-row" key={skill.skillId}>
@@ -347,6 +353,7 @@ export default function QuizResultPage() {
                 ? toPreviewText(correctOption.content, correctOption.contentFormat, 60)
                 : "—";
               const expanded = expandedIds.has(question.questionId || questionIndex);
+              const difficultyBadge = DIFFICULTY_BADGES[question.difficulty];
 
               return (
                 <article
@@ -374,6 +381,11 @@ export default function QuizResultPage() {
                         )}
                       </p>
                     </div>
+                    {difficultyBadge && (
+                      <Badge variant={difficultyBadge.variant} size="sm">
+                        {difficultyBadge.label}
+                      </Badge>
+                    )}
                     <button
                       type="button"
                       className="result-question-row__toggle"
@@ -392,7 +404,6 @@ export default function QuizResultPage() {
                             option.optionId === question.correctOptionId || option.corrected;
                           const optionClasses = [
                             "result-option-item",
-                            selected ? "is-selected" : "",
                             isCorrectOption ? "is-correct-option" : "",
                             selected && !isCorrectOption ? "is-wrong-option" : "",
                           ]

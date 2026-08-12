@@ -3,7 +3,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, Menu } from "lucide-react";
 import Sidebar from "../components/Sidebar/Sidebar";
 import { ToastProvider } from "../components/ui/Toast/Toast";
-import { getStoredUser } from "../services/apiClient";
+import { getStoredUser, subscribeToAuthChange } from "../services/apiClient";
 import {
   exitUserPreview,
   isUserPreviewActive,
@@ -16,6 +16,7 @@ const TITLE_MAP = [
   { match: (p) => p.startsWith("/app/subjects"), title: "Môn học" },
   { match: (p) => p.startsWith("/app/quiz/result"), title: "Kết quả" },
   { match: (p) => p.startsWith("/app/quiz"), title: "Làm bài" },
+  { match: (p) => p.startsWith("/app/adaptive"), title: "Làm bài" },
   { match: (p) => p.startsWith("/app/history"), title: "Lịch sử" },
   { match: (p) => p.startsWith("/app/progress"), title: "Tiến độ" },
   { match: (p) => p.startsWith("/app/profile"), title: "Cá nhân" },
@@ -42,8 +43,10 @@ export default function MainLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const user = getStoredUser();
+  const [user, setUser] = useState(() => getStoredUser());
   const [isPreviewing, setIsPreviewing] = useState(() => isUserPreviewActive(user));
+
+  useEffect(() => subscribeToAuthChange(() => setUser(getStoredUser())), []);
 
   useEffect(
     () => subscribeToUserPreview(() => setIsPreviewing(isUserPreviewActive(getStoredUser()))),
@@ -71,6 +74,7 @@ export default function MainLayout() {
 
         <Sidebar
           type="USER"
+          user={user}
           mobileOpen={mobileOpen}
           onClose={() => setMobileOpen(false)}
         />

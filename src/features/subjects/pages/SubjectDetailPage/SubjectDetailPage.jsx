@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, ChevronRight, Clock3, ListChecks } from "lucide-react";
+import { ArrowLeft, ChevronRight, Clock3, ListChecks } from "lucide-react";
 import {
   getChaptersBySubject,
   getSubjectById,
@@ -34,6 +34,24 @@ export default function SubjectDetailPage() {
   const [adaptiveCount, setAdaptiveCount] = useState(15);
   const [startingAdaptive, setStartingAdaptive] = useState(false);
   const [adaptiveError, setAdaptiveError] = useState("");
+  const adaptiveCancelledRef = useRef(false);
+
+  const closeAdaptiveDialog = useCallback(() => {
+    adaptiveCancelledRef.current = true;
+    setAdaptiveOpen(false);
+    setAdaptiveError("");
+  }, []);
+
+  useEffect(() => {
+    if (!adaptiveOpen) return undefined;
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") closeAdaptiveDialog();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [adaptiveOpen, closeAdaptiveDialog]);
 
   const handleStartAdaptive = async () => {
     const count = Number(adaptiveCount);
@@ -42,11 +60,14 @@ export default function SubjectDetailPage() {
       return;
     }
     try {
+      adaptiveCancelledRef.current = false;
       setStartingAdaptive(true);
       setAdaptiveError("");
       const state = await startAdaptiveQuiz(subjectId, count);
+      if (adaptiveCancelledRef.current) return;
       navigate(`/app/adaptive/${state.attemptId}`);
     } catch (err) {
+      if (adaptiveCancelledRef.current) return;
       setAdaptiveError(getErrorMessage(err, "Không thể tạo bài kiểm tra thích ứng."));
     } finally {
       setStartingAdaptive(false);
@@ -136,10 +157,11 @@ export default function SubjectDetailPage() {
   }
 
   const subjectName = subject?.name || "Môn học";
-  const subjectCourseCode = subject?.courseCode || subject?.course_code || "-";
+  const subjectCourseCode = subject?.courseCode || subject?.course_code || "—";
   const subjectDescription = subject?.description || "";
   const theories = activeChapterId ? theoriesByChapter[activeChapterId] || [] : [];
   const quizzes = activeChapterId ? quizzesByChapter[activeChapterId] || [] : [];
+  const activeChapterSkills = activeChapter?.skills || [];
 
   return (
     <div className="subject-detail-page">
@@ -176,30 +198,32 @@ export default function SubjectDetailPage() {
         <span className="subject-detail-stats__divider" aria-hidden="true" />
         <div className="subject-detail-stats__cell">
           <span className="subject-detail-stats__value">{totalQuizzes}</span>
-          <span className="subject-detail-stats__label">Đề kiểm tra</span>
-        </div>
-        <span className="subject-detail-stats__divider" aria-hidden="true" />
-        <div className="subject-detail-stats__cell subject-detail-stats__cell--status">
-          <CheckCircle2 size={18} />
-          <span>Sẵn sàng — Ôn tập thích ứng</span>
+          <span className="subject-detail-stats__label">Bài kiểm tra</span>
         </div>
       </div>
 
       {adaptiveOpen && (
-        <div className="adaptive-dialog-backdrop" onClick={() => setAdaptiveOpen(false)}>
-          <section className="adaptive-dialog" onClick={(event) => event.stopPropagation()}>
-            <h2>Tạo bài kiểm tra thích ứng</h2>
+        <div className="adaptive-dialog-backdrop" onClick={closeAdaptiveDialog}>
+          <section
+            className="adaptive-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="adaptive-dialog-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 id="adaptive-dialog-title">Tạo bài kiểm tra thích ứng</h2>
             <p>Nhập số câu (tối thiểu 15 và chia hết cho 5).</p>
             {adaptiveError && <p className="adaptive-dialog__error">{adaptiveError}</p>}
             <input
               type="number"
               min="15"
               step="5"
+              aria-label="Số câu hỏi"
               value={adaptiveCount}
               onChange={(event) => setAdaptiveCount(event.target.value)}
             />
             <div className="adaptive-dialog__actions">
-              <Button variant="ghost" onClick={() => setAdaptiveOpen(false)}>Hủy</Button>
+              <Button variant="ghost" onClick={closeAdaptiveDialog}>Hủy</Button>
               <Button variant="primary" loading={startingAdaptive} onClick={handleStartAdaptive}>
                 Bắt đầu
               </Button>
@@ -244,6 +268,18 @@ export default function SubjectDetailPage() {
               <p className="chapter-overview-card__meta">
                 {theories.length} bài lý thuyết · {quizzes.length} bài kiểm tra
               </p>
+              {activeChapterSkills.length > 0 && (
+                <div className="chapter-overview-card__skills">
+                  <span className="chapter-overview-card__skills-label">
+                    Kỹ năng rèn luyện
+                  </span>
+                  {activeChapterSkills.map((skill) => (
+                    <Badge key={skill.skillId} size="sm">
+                      {skill.name}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </Card>
 
             <Card padding="lg" className="content-block">
@@ -281,7 +317,7 @@ export default function SubjectDetailPage() {
               <p className="content-block__label">Bài kiểm tra</p>
               {quizzes.length === 0 ? (
                 <p className="content-block__empty">
-                  Chưa có đề kiểm tra cho chương này.
+                  Chưa có bài kiểm tra cho chương này.
                 </p>
               ) : (
                 <div className="quiz-nav-list">

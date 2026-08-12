@@ -54,6 +54,7 @@ export default function QuizTakingPage() {
   const submittedRef = useRef(false);
   const timerStartedRef = useRef(false);
   const autoSubmittedRef = useRef(false);
+  const deadlineRef = useRef(0);
   const questionRefs = useRef(new Map());
 
   useEffect(() => {
@@ -69,14 +70,34 @@ export default function QuizTakingPage() {
       try {
         setLoading(true);
         setError("");
-        const [quizData, questionsData, attemptData] = await Promise.all([
+        const draft = loadQuizDraft(quizId, currentUser.userId);
+        const [quizData, questionsData] = await Promise.all([
           getQuizById(quizId),
           getQuestionsByQuiz(quizId),
-          startQuiz(quizId, currentUser.userId),
         ]);
-        const draft = loadQuizDraft(quizId, currentUser.userId);
+
+        if (String(quizData?.type).toUpperCase() === "ADAPTIVE") {
+          setError(
+            "Đây là bài kiểm tra thích ứng, không mở được bằng đường dẫn đề thường. Hãy vào môn học và bắt đầu bài thích ứng từ đó.",
+          );
+          return;
+        }
 
         const durationSeconds = getDurationSeconds(quizData);
+        // Giữ nguyên lượt làm và hạn nộp đã lưu để tải lại trang không tạo lượt mới
+        // và không cấp thêm thời gian.
+        const draftDeadlineAt = Number(draft?.deadlineAt);
+        const canResumeDraft =
+          Boolean(draft?.attemptId) &&
+          (!draft.quizId || draft.quizId === quizId) &&
+          (durationSeconds === 0 ||
+            (Number.isFinite(draftDeadlineAt) && draftDeadlineAt - Date.now() > 0));
+        const attemptData = canResumeDraft
+          ? { attemptId: draft.attemptId }
+          : await startQuiz(quizId, currentUser.userId);
+        const deadlineAt = canResumeDraft && Number.isFinite(draftDeadlineAt)
+          ? draftDeadlineAt
+          : Date.now() + durationSeconds * 1000;
         const loadedQuestions = Array.isArray(questionsData)
           ? questionsData
           : [];
@@ -97,7 +118,12 @@ export default function QuizTakingPage() {
         setCurrentPage(safeDraftPage);
         setActiveQuestionId(initialQuestionId);
         setHasTimeLimit(durationSeconds > 0);
-        setTimeLeft(durationSeconds);
+        deadlineRef.current = deadlineAt;
+        setTimeLeft(
+          durationSeconds > 0
+            ? Math.max(0, Math.ceil((deadlineAt - Date.now()) / 1000))
+            : 0,
+        );
         timerStartedRef.current = durationSeconds > 0;
         autoSubmittedRef.current = false;
 
@@ -177,6 +203,9 @@ export default function QuizTakingPage() {
     if (!attempt || submittedRef.current || !currentUser?.userId) return;
     saveQuizDraft(quizId, currentUser.userId, {
       answers,
+      attemptId: attempt.attemptId,
+      quizId,
+      deadlineAt: deadlineRef.current,
       currentPage,
       flaggedQuestionIds: Array.from(flaggedQuestionIds),
       updatedAt: new Date().toISOString(),
@@ -198,7 +227,7 @@ export default function QuizTakingPage() {
 
   const doSubmit = useCallback(
     async (currentAnswers) => {
-      if (!attempt || submittedRef.current) return;
+      if (!attempt || submittedRef.current) return false;
       submittedRef.current = true;
       setSubmitting(true);
       setError("");
@@ -216,24 +245,26 @@ export default function QuizTakingPage() {
         });
         clearQuizDraft(quizId, currentUser?.userId);
         navigate(`/app/quiz/result/${attempt.attemptId}`);
+        return true;
       } catch (submitError) {
         submittedRef.current = false;
         setSubmitting(false);
         setError(getErrorMessage(submitError, "Có lỗi xảy ra khi nộp bài. Đáp án của bạn vẫn được giữ lại."));
+        return false;
       }
     },
     [attempt, currentUser?.userId, navigate, quizId],
   );
 
   useEffect(() => {
-    if (!hasTimeLimit || !attempt || submitting || timeLeft <= 0) return undefined;
+    if (!hasTimeLimit || !attempt || submitting) return undefined;
 
     const timer = setInterval(() => {
-      setTimeLeft((previous) => Math.max(previous - 1, 0));
+      setTimeLeft(Math.max(0, Math.ceil((deadlineRef.current - Date.now()) / 1000)));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [attempt, hasTimeLimit, submitting, timeLeft]);
+  }, [attempt, hasTimeLimit, submitting]);
 
   useEffect(() => {
     if (
@@ -248,6 +279,19 @@ export default function QuizTakingPage() {
       doSubmit(answers);
     }
   }, [answers, attempt, doSubmit, hasTimeLimit, timeLeft]);
+
+  useEffect(() => {
+    if (!submitConfirmOpen && !activeSkillQuestion) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key !== "Escape") return;
+      if (activeSkillQuestion) setActiveSkillQuestion(null);
+      else if (!submitting) setSubmitConfirmOpen(false);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeSkillQuestion, submitConfirmOpen, submitting]);
 
   const handleAnswerChange = (questionId, optionId) => {
     setActiveQuestionId(questionId);
@@ -292,14 +336,21 @@ export default function QuizTakingPage() {
 
   const confirmSubmit = async () => {
     if (submitting) return;
-    setSubmitConfirmOpen(false);
-    await doSubmit(answers);
+    // Chỉ đóng hộp thoại khi nộp thành công để lỗi hiện ngay cạnh nút bấm.
+    const submitted = await doSubmit(answers);
+    if (submitted) setSubmitConfirmOpen(false);
   };
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    const paddedSecs = secs.toString().padStart(2, "0");
+    if (seconds >= 3600) {
+      return `${Math.floor(seconds / 3600)}:${(mins % 60)
+        .toString()
+        .padStart(2, "0")}:${paddedSecs}`;
+    }
+    return `${mins.toString().padStart(2, "0")}:${paddedSecs}`;
   };
 
   const timeLimitLabel = hasTimeLimit ? `${quiz?.duration} phút` : "Không giới hạn thời gian";
@@ -351,7 +402,7 @@ export default function QuizTakingPage() {
         <div className="quiz-header__info">
           <h1>{quiz.name}</h1>
           <div className="quiz-meta">
-            <span>{quiz.totalQuestion || questions.length} câu hỏi</span>
+            <span>{questions.length} câu hỏi</span>
             <span className="quiz-meta__dot" />
             <span>{timeLimitLabel}</span>
           </div>
@@ -625,6 +676,13 @@ export default function QuizTakingPage() {
               <p className="submit-confirm-note">
                 Sau khi nộp — Không thể sửa đáp án · timer dừng · mở trang kết quả
               </p>
+
+              {error && (
+                <div className="quiz-inline-error">
+                  <AlertCircle size={16} />
+                  <span>{error}</span>
+                </div>
+              )}
             </div>
 
             <div className="submit-confirm-actions">
@@ -654,6 +712,8 @@ export default function QuizTakingPage() {
         >
           <div
             className="skill-modal"
+            role="dialog"
+            aria-modal="true"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="skill-modal-header">
@@ -677,7 +737,7 @@ export default function QuizTakingPage() {
                     <span className="skill-primary-badge">Chính</span>
                   )}
                   <span className="skill-weight">
-                    Trọng số: {skill.weight ?? "—"}
+                    Trọng số: {skill.weight > 0 ? skill.weight : "—"}
                   </span>
                 </li>
               ))}

@@ -41,7 +41,7 @@ export default function HomePage() {
   const [subjects, setSubjects] = useState([]);
   const [chapters, setChapters] = useState([]);
   const [skillCount, setSkillCount] = useState(0);
-  const [averageTheta, setAverageTheta] = useState(0);
+  const [averageTheta, setAverageTheta] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const user = useMemo(() => getStoredUser(), []);
@@ -68,13 +68,13 @@ export default function HomePage() {
             getAverageAbility(user.userId),
           ]);
           if (!alive) return;
-          setSkillCount(
-            abilitiesResult.status === "fulfilled"
-              ? abilitiesResult.value.length
-              : 0
-          );
+          const abilities =
+            abilitiesResult.status === "fulfilled" ? abilitiesResult.value : [];
+          setSkillCount(abilities.length);
           setAverageTheta(
-            averageResult.status === "fulfilled" ? averageResult.value : 0
+            averageResult.status === "fulfilled" && abilities.length > 0
+              ? averageResult.value
+              : null
           );
         }
       } catch (loadError) {
@@ -95,8 +95,9 @@ export default function HomePage() {
 
   const firstName = getFirstName(user?.displayName || user?.username);
   const greetingPeriod = getGreetingPeriod(new Date().getHours());
-  const abilityLevel = getAbilityLevel(averageTheta);
-  const abilityProgress = thetaRawToPercent(averageTheta);
+  const hasAbilityData = averageTheta !== null;
+  const abilityLevel = hasAbilityData ? getAbilityLevel(averageTheta) : null;
+  const abilityProgress = hasAbilityData ? thetaRawToPercent(averageTheta) : 0;
 
   const subjectsWithChapterCount = useMemo(
     () =>
@@ -146,24 +147,41 @@ export default function HomePage() {
       <section className="home-overview-row">
         <Card padding="lg" className="home-ability-card">
           <span className="home-kicker-chip">NĂNG LỰC TỔNG QUAN</span>
-          <div className="home-ability-card__value">
-            {formatScaledThetaValue(averageTheta)}
-            <span> / 4</span>
-          </div>
-          <p className="home-ability-card__label">Năng lực ước tính</p>
+          {hasAbilityData ? (
+            <>
+              <div className="home-ability-card__value">
+                {formatScaledThetaValue(averageTheta)}
+                <span> / 4</span>
+              </div>
+              <p className="home-ability-card__label">Năng lực ước tính</p>
+            </>
+          ) : (
+            <div className="home-ability-card__empty">
+              <p className="home-ability-card__empty-title">
+                Chưa có dữ liệu năng lực
+              </p>
+              <p className="home-ability-card__empty-hint">
+                Làm một bài kiểm tra để hệ thống ước tính năng lực của bạn.
+              </p>
+            </div>
+          )}
 
           <div className="home-ability-card__chips">
             <span className="home-chip">{skillCount} kỹ năng đã có theta</span>
-            <span className="home-chip">Mức {abilityLevel.label}</span>
+            {abilityLevel && (
+              <span className="home-chip">Mức {abilityLevel.label}</span>
+            )}
           </div>
 
-          <div className="home-ability-card__progress">
-            <div className="home-ability-card__progress-labels">
-              <span>Thang năng lực</span>
-              <span>0 – 4</span>
+          {hasAbilityData && (
+            <div className="home-ability-card__progress">
+              <div className="home-ability-card__progress-labels">
+                <span>Thang năng lực</span>
+                <span>0 – 4</span>
+              </div>
+              <ProgressBar value={abilityProgress} />
             </div>
-            <ProgressBar value={abilityProgress} />
-          </div>
+          )}
 
           <Button variant="primary" onClick={() => navigate("/app/progress")}>
             Xem tiến độ
@@ -229,6 +247,8 @@ export default function HomePage() {
             {subjectsWithChapterCount.map((subject) => (
               <Card
                 key={subject.subjectId}
+                as="button"
+                type="button"
                 interactive
                 className="home-subject-card"
                 onClick={() =>

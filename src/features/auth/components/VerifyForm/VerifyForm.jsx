@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail } from "lucide-react";
-import { getErrorMessage } from "../../../../services/apiClient";
+import { getErrorMessage, setStoredUser } from "../../../../services/apiClient";
 import { resendOtp, verifyEmail } from "../../../../services/authService";
 import { Button } from "../../../../components/ui";
 import "../../styles/authShared.css";
@@ -54,8 +54,11 @@ export default function VerifyForm({ email = "", verificationToken = "" }) {
       setLoading(true);
       setError("");
       const auth = await verifyEmail(token, code);
+      if (!auth?.accessToken) {
+        throw new Error("Xác minh thất bại. Vui lòng thử lại.");
+      }
       localStorage.setItem("accessToken", auth.accessToken);
-      localStorage.setItem("user", JSON.stringify(auth));
+      setStoredUser(auth);
       navigate("/app");
     } catch (apiError) {
       setError(getErrorMessage(apiError, "Xác minh thất bại."));
@@ -70,6 +73,9 @@ export default function VerifyForm({ email = "", verificationToken = "" }) {
       setResending(true);
       setError("");
       const res = await resendOtp(email);
+      if (!res?.verificationToken) {
+        throw new Error("Không nhận được mã mới. Vui lòng thử lại.");
+      }
       setToken(res.verificationToken);
       setOtp(new Array(6).fill(""));
       setCooldown(60);
@@ -96,13 +102,15 @@ export default function VerifyForm({ email = "", verificationToken = "" }) {
 
       {error && <div className="auth-form__error">{error}</div>}
 
-      <div className="auth-otp">
+      <div className="auth-otp" role="group" aria-label="Mã xác minh 6 số">
         {otp.map((data, index) => (
           <input
             key={index}
             type="text"
             inputMode="numeric"
             maxLength="1"
+            autoComplete="one-time-code"
+            aria-label={`Số thứ ${index + 1}`}
             ref={(el) => (inputRefs.current[index] = el)}
             value={data}
             onChange={(e) => handleChange(e.target, index)}

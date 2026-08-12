@@ -14,14 +14,14 @@ function getInitials(name) {
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 }
 
-export default function Sidebar({ type = "USER", mobileOpen = false, onClose }) {
+export default function Sidebar({ type = "USER", mobileOpen = false, onClose, user: userProp = null }) {
   const isAdmin = type === "ADMIN";
   const sidebarItems = isAdmin ? ADMIN_SIDEBAR : USER_SIDEBAR;
   const [isMinimized, setIsMinimized] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const navigate = useNavigate();
   const accountRef = useRef(null);
-  const user = getStoredUser();
+  const user = userProp ?? getStoredUser();
 
   const displayName =
     user?.displayName || user?.username || (isAdmin ? "Quản trị viên" : "Học viên");
@@ -67,16 +67,18 @@ export default function Sidebar({ type = "USER", mobileOpen = false, onClose }) 
       }`}
     >
       {isMinimized && (
-        <div className="open-sidebar-container">
-          <PanelLeftOpen
-            size="28"
-            className="open-sidebar-icon"
-            onClick={() => setIsMinimized(false)}
-          />
-        </div>
+        <button
+          type="button"
+          className="open-sidebar-container"
+          onClick={() => setIsMinimized(false)}
+          title="Mở rộng"
+          aria-label="Mở thanh điều hướng"
+        >
+          <PanelLeftOpen size={28} className="open-sidebar-icon" />
+        </button>
       )}
 
-      <div className={`sidebar-content ${isMinimized ? "hidden" : ""}`}>
+      <div className="sidebar-content">
         <div className="sidebar-title">
           <div className="sidebar-brand">
             <span className="sidebar-brand__mark">Q</span>

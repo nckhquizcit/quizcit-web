@@ -36,12 +36,19 @@
 
 .adaptive-submit-row {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: var(--space-3);
+}
+.adaptive-submit-row__hint {
+  font-size: var(--fs-sm);
+  color: var(--color-text-muted);
 }
 
 .adaptive-rail {
   position: sticky;
-  top: calc(var(--space-4) + 96px);
+  /* +96px để nằm dưới .quiz-header cũng đang sticky */
+  top: calc(var(--sticky-top) + 96px);
 }
 .adaptive-rail__card {
   display: flex;
@@ -77,6 +84,10 @@
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-1);
+  }
+  .adaptive-submit-row {
+    flex-direction: column;
+    align-items: stretch;
   }
   .adaptive-submit-row .ui-btn {
     width: 100%;

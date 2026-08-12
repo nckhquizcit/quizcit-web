@@ -8,26 +8,16 @@ import {
   SkeletonCard,
 } from "../../../../components/ui";
 import HistoryCard from "../../components/HistoryCard/HistoryCard";
+import { formatSubmittedAt } from "../../../../utils/dateFormat";
 import "./HistoryPage.css";
 
 const FALLBACK_QUIZ_NAME = "Chưa có tên bài quiz";
 const FALLBACK_SUBJECT_NAME = "Không rõ môn học";
-const FALLBACK_DATE = "—";
-const submittedAtFormatter = new Intl.DateTimeFormat("vi-VN", {
-  dateStyle: "short",
-  timeStyle: "short",
-});
+const INVALID_SESSION_MESSAGE = "Phiên đăng nhập không hợp lệ, vui lòng đăng nhập lại.";
 
 const isFakeQuizName = (name, quizId) => {
   const trimmedName = typeof name === "string" ? name.trim() : "";
   return !trimmedName || trimmedName === "Quiz" || (quizId && trimmedName === `Quiz ${quizId}`);
-};
-
-const formatSubmittedAt = (value) => {
-  if (!value) return FALLBACK_DATE;
-
-  const submittedDate = new Date(value);
-  return Number.isNaN(submittedDate.getTime()) ? FALLBACK_DATE : submittedAtFormatter.format(submittedDate);
 };
 
 export default function HistoryPage() {
@@ -41,7 +31,11 @@ export default function HistoryPage() {
     let alive = true;
 
     async function loadHistory() {
-      if (!user?.userId) return;
+      if (!user?.userId) {
+        setError(INVALID_SESSION_MESSAGE);
+        setLoading(false);
+        return;
+      }
       try {
         setLoading(true);
         setError("");
@@ -53,7 +47,6 @@ export default function HistoryPage() {
             title: isFakeQuizName(attempt.quizName, attempt.quizId) ? FALLBACK_QUIZ_NAME : attempt.quizName,
             subjectName: attempt.subjectName || FALLBACK_SUBJECT_NAME,
             date: formatSubmittedAt(attempt.submittedAt),
-            questionCount: attempt.totalQuestion,
             score: Math.round(attempt.rawScore || 0),
             totalQuestions: attempt.totalQuestion,
             estimatedAbility: attempt.overallTheta,

@@ -45,6 +45,12 @@ export default function ChatMessages({
           ) : (
             <p>{message.text}</p>
           )}
+          {message.role === "assistant" && message.hasUnlockedContent === false && (
+            <p className="chatbox-note">
+              Bạn chưa mở khóa nội dung lý thuyết nào trong phạm vi này, nên câu trả lời có
+              thể còn thiếu. Hãy học phần lý thuyết trước rồi hỏi lại nhé.
+            </p>
+          )}
           {message.sources?.length > 0 && (
             <div className="chatbox-sources">
               {message.sources.map((source, sourceIndex) => (

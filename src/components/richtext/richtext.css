@@ -146,6 +146,26 @@
   border-radius: 6px;
 }
 
+/* Bài lý thuyết: dùng chung cho trang quản trị và trang học */
+.theory-rich-text {
+  max-width: 78ch;
+  overflow-wrap: anywhere;
+}
+
+.theory-rich-text p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.theory-rich-text p + p {
+  margin-top: 14px;
+}
+
+.theory-rich-text.is-collapsed {
+  max-height: 13rem;
+  overflow: hidden;
+}
+
 .rich-text-editor .bn-container {
   border: 1px solid #cbd5e1;
   border-radius: 8px;

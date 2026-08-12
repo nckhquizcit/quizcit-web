@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { AtSign, LockKeyhole, User } from "lucide-react";
+import { AtSign, Eye, EyeOff, LockKeyhole, User } from "lucide-react";
 import { getErrorMessage } from "../../../../services/apiClient";
 import { register } from "../../../../services/authService";
 import { Button, Field, Input } from "../../../../components/ui";
@@ -14,7 +14,10 @@ export default function RegisterForm() {
     password: "",
     confirmPassword: "",
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
+  const [confirmError, setConfirmError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
@@ -24,8 +27,9 @@ export default function RegisterForm() {
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    setConfirmError("");
     if (formData.password !== formData.confirmPassword) {
-      setError("Mật khẩu nhập lại không khớp.");
+      setConfirmError("Mật khẩu nhập lại không khớp.");
       return;
     }
     try {
@@ -37,6 +41,9 @@ export default function RegisterForm() {
         email: formData.email,
         displayName: formData.username,
       });
+      if (!res?.verificationToken) {
+        throw new Error("Không nhận được mã xác minh. Vui lòng thử lại.");
+      }
       navigate("/verify", {
         state: { email: res.email, verificationToken: res.verificationToken },
       });
@@ -65,6 +72,7 @@ export default function RegisterForm() {
           value={formData.username}
           onChange={handleChange}
           iconLeft={<User size={18} />}
+          autoComplete="username"
           required
         />
       </Field>
@@ -78,34 +86,66 @@ export default function RegisterForm() {
           value={formData.email}
           onChange={handleChange}
           iconLeft={<AtSign size={18} />}
+          autoComplete="email"
           required
         />
       </Field>
 
       <Field label="Mật khẩu" htmlFor="password">
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          placeholder="Nhập mật khẩu"
-          value={formData.password}
-          onChange={handleChange}
-          iconLeft={<LockKeyhole size={18} />}
-          required
-        />
+        <div className="auth-form__pwd">
+          <Input
+            id="password"
+            name="password"
+            type={showPassword ? "text" : "password"}
+            placeholder="Nhập mật khẩu"
+            value={formData.password}
+            onChange={handleChange}
+            iconLeft={<LockKeyhole size={18} />}
+            autoComplete="new-password"
+            required
+          />
+          <button
+            type="button"
+            className="auth-form__pwd-toggle"
+            onClick={() => setShowPassword((v) => !v)}
+            aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
       </Field>
 
-      <Field label="Nhập lại mật khẩu" htmlFor="confirmPassword">
-        <Input
-          id="confirmPassword"
-          name="confirmPassword"
-          type="password"
-          placeholder="Xác nhận lại mật khẩu"
-          value={formData.confirmPassword}
-          onChange={handleChange}
-          iconLeft={<LockKeyhole size={18} />}
-          required
-        />
+      <Field
+        label="Nhập lại mật khẩu"
+        htmlFor="confirmPassword"
+        error={confirmError}
+      >
+        <div className="auth-form__pwd">
+          <Input
+            id="confirmPassword"
+            name="confirmPassword"
+            type={showConfirmPassword ? "text" : "password"}
+            placeholder="Xác nhận lại mật khẩu"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            iconLeft={<LockKeyhole size={18} />}
+            autoComplete="new-password"
+            invalid={Boolean(confirmError)}
+            required
+          />
+          <button
+            type="button"
+            className="auth-form__pwd-toggle"
+            onClick={() => setShowConfirmPassword((v) => !v)}
+            aria-label={
+              showConfirmPassword
+                ? "Ẩn mật khẩu nhập lại"
+                : "Hiện mật khẩu nhập lại"
+            }
+          >
+            {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
       </Field>
 
       <Button type="submit" variant="primary" fullWidth loading={loading}>
