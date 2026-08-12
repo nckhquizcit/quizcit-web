@@ -74,7 +74,7 @@ export default function SubjectsPage() {
       <div className="subjects-banner">
         <span className="subjects-banner__chip">NỘI DUNG HỆ THỐNG</span>
         <p className="subjects-banner__headline">
-          {subjectCollection.length} môn khả dụng · {totalChapters} chương
+          {subjectCollection.length} môn khả dụng · {totalChapters} chương khả dụng
         </p>
         <p className="subjects-banner__sub">
           Vào môn để đọc lý thuyết, làm bài kiểm tra và ôn thích ứng theo năng lực.
