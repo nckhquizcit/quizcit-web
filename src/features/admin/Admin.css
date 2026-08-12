@@ -3801,9 +3801,9 @@
 }
 
 .admin-content {
-  width: min(100%, 1440px);
-  margin: 0 auto;
-  padding: 24px;
+  width: 100%;
+  margin: 0;
+  padding: 24px 28px;
   gap: 18px;
 }
 
@@ -5826,6 +5826,34 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+/* Hàng kỹ năng trong cột Thiết lập hẹp: xếp tên riêng một dòng, điều khiển bên dưới */
+.adm2-aside-card .selected-skill-list {
+  gap: 10px;
+}
+.adm2-aside-card .selected-skill-row {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 8px 10px;
+  padding: 10px 12px;
+}
+.adm2-aside-card .selected-skill-row strong {
+  grid-column: 1 / -1;
+  font-size: 13px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.adm2-aside-card .selected-skill-row .primary-skill-btn {
+  padding: 8px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.adm2-aside-card .selected-skill-row input {
+  width: 100%;
+  min-width: 0;
+}
+.adm2-aside-card .selected-skill-row button {
+  padding: 8px 10px;
+  font-size: 12px;
 }
 .adm2-aside-card h4 {
   margin: 0;
