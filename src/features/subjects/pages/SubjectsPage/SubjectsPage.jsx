@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { BookOpen, GraduationCap, Layers3, Library, Search } from "lucide-react";
 import {
   getAllChapters,
   getSubjects,
@@ -16,9 +16,9 @@ import "./SubjectsPage.css";
 export default function SubjectsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [subjectCollection, setSubjectCollection] = useState([]);
-  const [totalChapters, setTotalChapters] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState("all");
 
   useEffect(() => {
     let alive = true;
@@ -28,16 +28,20 @@ export default function SubjectsPage() {
         setLoading(true);
         setError("");
         const [subjects = [], allChapters = []] = await Promise.all([getSubjects(), getAllChapters()]);
-        const withChapters = subjects.map((subject) => ({
-          ...subject,
-          chapterCount: allChapters.filter(
-            (chapter) => chapter.subjectId === subject.subjectId
-          ).length,
-        }));
-        if (alive) {
-          setSubjectCollection(withChapters);
-          setTotalChapters(allChapters.length);
-        }
+        const withChapters = subjects.map((subject) => {
+            const chapters = allChapters.filter((chapter) => chapter.subjectId === subject.subjectId);
+            return {
+              ...subject,
+              subject_id: subject.subjectId,
+              course_code: subject.courseCode,
+              chapterCount: chapters.length,
+              chapterPreview: chapters.slice(0, 3).map((chapter) => ({
+                chapter_id: chapter.chapterId,
+                name: chapter.name,
+              })),
+            };
+          });
+        if (alive) setSubjectCollection(withChapters);
       } catch (loadError) {
         if (alive)
           setError(
@@ -64,76 +68,120 @@ export default function SubjectsPage() {
     );
   }, [searchTerm, subjectCollection]);
 
-  const showCounts = !loading && !error;
+  const totalChapters = useMemo(
+    () => subjectCollection.reduce((sum, s) => sum + (s.chapterCount || 0), 0),
+    [subjectCollection]
+  );
 
   return (
     <section className="subjects-page">
-      <header className="subjects-page__header">
-        <h1>Danh sách môn học</h1>
-        <p>Chọn môn học để xem lý thuyết theo từng chương và làm quiz ôn tập.</p>
+      <header className="subjects-page__hero">
+        <div>
+          <p className="subjects-page__eyebrow">Không gian học tập</p>
+          <h1>Danh sách môn học</h1>
+          <p className="subjects-page__description">
+            Chọn môn học để xem lý thuyết theo từng chương và làm quiz ôn tập.
+          </p>
+        </div>
+        <div className="subjects-page__stats">
+          <div className="subjects-stat">
+            <span className="subjects-stat__icon">
+              <BookOpen size={18} />
+            </span>
+            <div>
+              <strong>{subjectCollection.length}</strong>
+              <p>Môn học</p>
+            </div>
+          </div>
+          <div className="subjects-stat">
+            <span className="subjects-stat__icon">
+              <Layers3 size={18} />
+            </span>
+            <div>
+              <strong>{totalChapters}</strong>
+              <p>Chương</p>
+            </div>
+          </div>
+        </div>
       </header>
 
-      <div className="subjects-banner">
-        <span className="subjects-banner__chip">NỘI DUNG HỆ THỐNG</span>
-        <p className="subjects-banner__headline">
-          {showCounts ? subjectCollection.length : "—"} môn khả dụng ·{" "}
-          {showCounts ? totalChapters : "—"} chương khả dụng
-        </p>
-        <p className="subjects-banner__sub">
-          Vào môn để đọc lý thuyết, làm bài kiểm tra và ôn thích ứng theo năng lực.
-        </p>
+      <div className="subjects-tabs" role="tablist" aria-label="Bộ lọc môn học">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "all"}
+          className={`subjects-tab ${activeTab === "all" ? "is-active" : ""}`}
+          onClick={() => setActiveTab("all")}
+        >
+          <Library size={16} />
+          Toàn bộ môn học
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "mine"}
+          className={`subjects-tab ${activeTab === "mine" ? "is-active" : ""}`}
+          onClick={() => setActiveTab("mine")}
+        >
+          <GraduationCap size={16} />
+          Môn của tôi
+        </button>
       </div>
 
-      <div className="subjects-search-card">
-        <div className="subjects-search-card__input">
-          <Search size={18} />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Tìm theo tên môn hoặc mã môn"
-          />
-        </div>
-        <span className="subjects-search-card__chip">
-          {showCounts ? filteredSubjects.length : "—"} MÔN KHẢ DỤNG
-        </span>
-      </div>
-
-      <section className="subjects-page__body">
-        <h2 className="subjects-page__section-title">Các môn đang hiển thị</h2>
-
-        {loading ? (
-          <div className="subjects-page__grid">
-            <SkeletonCard lines={4} />
-            <SkeletonCard lines={4} />
-            <SkeletonCard lines={4} />
+      {activeTab === "all" && (
+        <>
+          <div className="subjects-toolbar">
+            <div className="subjects-toolbar__search">
+              <Search size={18} />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Tìm theo tên môn hoặc mã môn"
+              />
+            </div>
           </div>
-        ) : error ? (
-          <ErrorState
-            description={error}
-            onRetry={() => window.location.reload()}
-          />
-        ) : filteredSubjects.length === 0 ? (
-          <EmptyState
-            title={
-              searchTerm
-                ? "Không tìm thấy môn học phù hợp"
-                : "Chưa có môn học nào"
-            }
-            description={
-              searchTerm
-                ? "Hãy thử từ khóa khác để xem danh sách môn học."
-                : "Hệ thống chưa có môn học để hiển thị."
-            }
-          />
-        ) : (
-          <div className="subjects-page__grid">
-            {filteredSubjects.map((subject) => (
-              <SubjectCard key={subject.subject_id} subject={subject} />
-            ))}
-          </div>
-        )}
-      </section>
+
+          {loading ? (
+            <div className="subjects-page__grid">
+              <SkeletonCard lines={4} />
+              <SkeletonCard lines={4} />
+              <SkeletonCard lines={4} />
+            </div>
+          ) : error ? (
+            <ErrorState
+              description={error}
+              onRetry={() => window.location.reload()}
+            />
+          ) : filteredSubjects.length === 0 ? (
+            <EmptyState
+              title={
+                searchTerm
+                  ? "Không tìm thấy môn học phù hợp"
+                  : "Chưa có môn học nào"
+              }
+              description={
+                searchTerm
+                  ? "Hãy thử từ khóa khác để xem danh sách môn học."
+                  : "Hệ thống chưa có môn học để hiển thị."
+              }
+            />
+          ) : (
+            <section className="subjects-page__grid">
+              {filteredSubjects.map((subject) => (
+                <SubjectCard key={subject.subject_id} subject={subject} />
+              ))}
+            </section>
+          )}
+        </>
+      )}
+
+      {activeTab === "mine" && (
+        <EmptyState
+          title="Tính năng đăng ký môn học đang được phát triển"
+          description="Sắp tới bạn có thể đăng ký môn để theo dõi riêng các môn mình đang học. Hiện tại hãy xem toàn bộ môn học ở tab bên cạnh."
+        />
+      )}
     </section>
   );
 }

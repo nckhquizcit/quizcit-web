@@ -51,13 +51,6 @@
   font-size: 14px;
 }
 
-.quiz-structure-cell {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-}
-
 .quiz-table-footnote {
   margin-top: 10px;
 }

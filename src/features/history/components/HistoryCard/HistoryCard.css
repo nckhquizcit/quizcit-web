@@ -52,6 +52,7 @@ button.history-row {
 .history-row__meta {
   font-size: var(--fs-sm);
   color: var(--color-text-muted);
+  overflow-wrap: anywhere;
 }
 
 .history-row__side {
@@ -76,23 +77,32 @@ button.history-row {
   flex-shrink: 0;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 767px) {
+  /* Cụm phụ (theta, ngày, mũi tên) xuống dòng riêng để tên bài không bị bóp */
   button.history-row {
     flex-wrap: wrap;
-    height: auto;
+    gap: var(--space-3);
+    padding: var(--space-4);
+  }
+  .history-row__badge {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-md);
+    font-size: var(--fs-base);
+  }
+  .history-row__name {
+    font-size: var(--fs-base);
   }
   .history-row__side {
     width: 100%;
     justify-content: space-between;
-    padding-left: calc(64px + var(--space-4));
+    gap: var(--space-3);
   }
 }
 
-@media (max-width: 480px) {
-  button.history-row {
-    padding: var(--space-4);
-  }
-  .history-row__side {
-    padding-left: 0;
+@media (max-width: 640px) {
+  .history-row__theta,
+  .history-row__date {
+    font-size: var(--fs-xs);
   }
 }

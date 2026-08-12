@@ -80,16 +80,19 @@ export default function AdaptiveQuizPage() {
   };
 
   if (loading) return <div className="quiz-loading"><Spinner size={32} /><p>Đang chọn câu hỏi phù hợp...</p></div>;
-  if (!state) return <div className="quiz-taking-page"><ErrorState title="Không thể mở bài thích ứng" description={error} onRetry={() => navigate("/app/subjects")} /></div>;
+  if (!state) return <div className="quiz-taking-page adaptive-quiz-page"><ErrorState title="Không thể mở bài thích ứng" description={error} onRetry={() => navigate("/app/subjects")} /></div>;
 
   const questions = state.questions || [];
   const totalGroups = Math.ceil((state.totalQuestion || 0) / ADAPTIVE_PAGE_SIZE);
   const isLastBatch = state.answeredQuestion + questions.length >= state.totalQuestion;
   const subjectLine = meta?.subjectName || "";
   const batchReady = hasAnsweredAdaptiveBatch(questions, answers);
+  const answeredInBatch = questions.filter(
+    (question) => answers[question.questionId],
+  ).length;
 
   return (
-    <div className="quiz-taking-page">
+    <div className="quiz-taking-page adaptive-quiz-page">
       <header className="quiz-header">
         <div className="quiz-header__info">
           <h1>Bài kiểm tra thích ứng</h1>
@@ -191,6 +194,28 @@ export default function AdaptiveQuizPage() {
           </div>
         </aside>
       </div>
+
+      {/* Thanh thao tác cố định đáy màn hình, chỉ hiện trên mobile */}
+      {questions.length > 0 && (
+        <div className="adaptive-bottombar">
+          <div className="adaptive-bottombar__status">
+            <span className="adaptive-bottombar__count">
+              {answeredInBatch}/{questions.length} câu
+            </span>
+            <span className="adaptive-bottombar__group">
+              Nhóm {state.page}/{totalGroups}
+            </span>
+          </div>
+          <Button
+            variant="primary"
+            loading={submitting}
+            disabled={!batchReady}
+            onClick={submitPage}
+          >
+            {isLastBatch ? "Nộp bài" : "Nộp và tiếp tục"}
+          </Button>
+        </div>
+      )}
 
       {activeSkillQuestion && (
         <div className="skill-modal-overlay" onClick={() => setActiveSkillQuestion(null)}>

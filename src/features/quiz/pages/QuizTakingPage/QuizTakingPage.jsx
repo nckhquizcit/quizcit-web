@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { AlertCircle, AlertTriangle, Flag, X } from "lucide-react";
+import { AlertCircle, AlertTriangle, Flag, ListChecks, X } from "lucide-react";
 import {
   clearQuizDraft,
   getQuestionsByQuiz,
@@ -50,6 +50,8 @@ export default function QuizTakingPage() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
+  // Phiếu trả lời dạng bottom sheet, chỉ dùng trên mobile (bar mở sheet ẩn ở desktop)
+  const [answerSheetOpen, setAnswerSheetOpen] = useState(false);
   const startedRef = useRef(false);
   const submittedRef = useRef(false);
   const timerStartedRef = useRef(false);
@@ -281,17 +283,19 @@ export default function QuizTakingPage() {
   }, [answers, attempt, doSubmit, hasTimeLimit, timeLeft]);
 
   useEffect(() => {
-    if (!submitConfirmOpen && !activeSkillQuestion) return undefined;
+    if (!submitConfirmOpen && !activeSkillQuestion && !answerSheetOpen) return undefined;
 
     const handleKeyDown = (event) => {
       if (event.key !== "Escape") return;
       if (activeSkillQuestion) setActiveSkillQuestion(null);
-      else if (!submitting) setSubmitConfirmOpen(false);
+      else if (submitConfirmOpen) {
+        if (!submitting) setSubmitConfirmOpen(false);
+      } else setAnswerSheetOpen(false);
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeSkillQuestion, submitConfirmOpen, submitting]);
+  }, [activeSkillQuestion, answerSheetOpen, submitConfirmOpen, submitting]);
 
   const handleAnswerChange = (questionId, optionId) => {
     setActiveQuestionId(questionId);
@@ -314,6 +318,7 @@ export default function QuizTakingPage() {
     setCurrentPage(target.page);
     setActiveQuestionId(target.questionId);
     setPendingScrollQuestionId(target.questionId);
+    setAnswerSheetOpen(false);
   };
 
   const goToPage = (page) => {
@@ -326,6 +331,7 @@ export default function QuizTakingPage() {
 
   const handleSubmit = () => {
     if (submitting) return;
+    setAnswerSheetOpen(false);
     setSubmitConfirmOpen(true);
   };
 
@@ -574,9 +580,27 @@ export default function QuizTakingPage() {
           </div>
         </div>
 
-        <aside className="quiz-sidebar">
+        {answerSheetOpen && (
+          <div
+            className="quiz-sheet-overlay"
+            onClick={() => setAnswerSheetOpen(false)}
+            aria-hidden="true"
+          />
+        )}
+
+        <aside className={`quiz-sidebar ${answerSheetOpen ? "is-open" : ""}`}>
           <div className="quiz-sidebar__card">
-            <p className="quiz-sidebar__title">Danh sách câu hỏi</p>
+            <div className="quiz-sidebar__head">
+              <p className="quiz-sidebar__title">Danh sách câu hỏi</p>
+              <button
+                type="button"
+                className="quiz-sheet-close"
+                onClick={() => setAnswerSheetOpen(false)}
+                aria-label="Đóng phiếu trả lời"
+              >
+                <X size={20} />
+              </button>
+            </div>
             <div className="quiz-nav">
               {questions.map((question, index) => {
                 const answered = answers[question.questionId] != null;
@@ -626,6 +650,34 @@ export default function QuizTakingPage() {
             </Button>
           </div>
         </aside>
+      </div>
+
+      {/* Thanh thao tác cố định đáy màn hình, chỉ hiện trên mobile */}
+      <div className="quiz-bottombar">
+        <div className="quiz-bottombar__status">
+          {hasTimeLimit && (
+            <span
+              className={`quiz-bottombar__timer ${
+                timeLeft < 60 ? "time-warning" : ""
+              }`}
+            >
+              {formatTime(timeLeft)}
+            </span>
+          )}
+          <span className="quiz-bottombar__count">
+            {answeredCount}/{questions.length} câu
+          </span>
+        </div>
+        <Button
+          variant="secondary"
+          iconLeft={<ListChecks size={18} />}
+          onClick={() => setAnswerSheetOpen(true)}
+        >
+          Phiếu trả lời
+        </Button>
+        <Button variant="primary" loading={submitting} onClick={handleSubmit}>
+          Nộp bài
+        </Button>
       </div>
 
       {submitConfirmOpen && (

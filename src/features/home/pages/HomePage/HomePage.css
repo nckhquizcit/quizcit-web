@@ -206,6 +206,7 @@
 .home-subject-card h3 {
   font-size: var(--fs-md);
   color: var(--color-text);
+  overflow-wrap: anywhere;
 }
 .home-subject-card__meta {
   font-size: var(--fs-sm);
@@ -235,21 +236,54 @@
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .home-page {
-    padding: var(--space-5);
+    gap: var(--space-5);
+    padding: var(--space-4);
   }
   .home-greeting h1 {
     font-size: var(--fs-xl);
   }
   .home-subjects-grid {
     grid-template-columns: 1fr;
+    gap: var(--space-4);
   }
-  .home-content-card__stats {
-    grid-template-columns: 1fr;
+  .home-subjects-section {
+    gap: var(--space-4);
   }
   .home-subjects-section__header {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
+  .home-subjects-section__header h2 {
+    font-size: var(--fs-lg);
+  }
+  /* Nút chính chiếm trọn bề ngang và đủ 44px để chạm thoải mái */
+  .home-page .ui-btn {
+    min-height: 44px;
+  }
+  .home-ability-card .ui-btn,
+  .home-subjects-section__header .ui-btn {
+    align-self: stretch;
+    width: 100%;
+  }
+  .home-ability-card__value {
+    font-size: var(--fs-2xl);
+  }
+}
+
+@media (max-width: 640px) {
+  .home-page {
+    padding: var(--space-3);
+  }
+  .home-page .ui-card--pad-lg {
+    padding: var(--space-4);
+  }
+  .home-content-card__stats {
+    gap: var(--space-2);
+  }
+  .home-stat-tile {
+    padding: var(--space-3);
   }
 }

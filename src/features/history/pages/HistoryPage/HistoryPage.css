@@ -38,9 +38,19 @@
 
 @media (max-width: 767px) {
   .history-page-wrapper {
-    padding: var(--space-5);
+    gap: var(--space-5);
+    padding: var(--space-4);
   }
   .history-title {
     font-size: var(--fs-xl);
+  }
+  .history-page-wrapper .ui-btn {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 640px) {
+  .history-page-wrapper {
+    padding: var(--space-3);
   }
 }

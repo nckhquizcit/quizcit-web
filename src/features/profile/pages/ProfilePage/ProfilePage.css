@@ -68,6 +68,7 @@
 .profile-header-card__email {
   color: var(--color-text-muted);
   font-size: var(--fs-sm);
+  overflow-wrap: anywhere;
 }
 .profile-header-card__edit {
   flex-shrink: 0;
@@ -272,19 +273,76 @@
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 767px) {
   .profile-page-wrapper {
-    padding: var(--space-5);
+    padding: var(--space-4);
+  }
+  .profile-page-wrapper .ui-btn {
+    min-height: 44px;
   }
   .profile-header-card {
     flex-direction: column;
     text-align: center;
     align-items: center;
+    gap: var(--space-4);
   }
   .profile-header-card__top {
     justify-content: center;
   }
+  .profile-header-card__avatar {
+    width: 80px;
+    height: 80px;
+    font-size: var(--fs-2xl);
+  }
   .profile-header-card__edit {
     width: 100%;
+  }
+  /* Modal chiếm gần trọn màn hình, có thể cuộn khi bàn phím ảo bật lên */
+  .profile-modal-backdrop {
+    padding: var(--space-3);
+    align-items: flex-end;
+  }
+  .profile-modal-card {
+    max-width: none;
+    max-height: calc(100dvh - var(--space-8));
+    overflow-y: auto;
+  }
+  .profile-modal-close {
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+  }
+  .profile-pwd-toggle {
+    width: 40px;
+    height: 40px;
+  }
+  .profile-modal-actions {
+    flex-direction: column-reverse;
+    gap: var(--space-2);
+  }
+  .profile-modal-actions .ui-btn {
+    width: 100%;
+  }
+  .profile-logout-link {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 640px) {
+  .profile-page-wrapper {
+    padding: var(--space-3);
+  }
+  .profile-page-wrapper .ui-card--pad-lg {
+    padding: var(--space-4);
+  }
+  /* Nhãn nằm trên, giá trị xuống dòng dưới để email dài không đẩy layout */
+  .profile-info-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-1);
+  }
+  .profile-info-row__value {
+    text-align: left;
   }
 }

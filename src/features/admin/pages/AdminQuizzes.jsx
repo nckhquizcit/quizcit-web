@@ -211,16 +211,23 @@ export default function AdminQuizzes() {
     },
     {
       key: "type",
-      label: "Cấu trúc",
-      width: 160,
+      label: "Loại",
+      width: 150,
       sortValue: (quiz) => QUIZ_TYPE_LABELS[quiz.type] || "Theo chương",
       render: (quiz) => (
-        <div className="quiz-structure-cell">
-          <span className={`adm2-badge ${quiz.type === "FINAL" ? "adm2-badge--amber" : "adm2-badge--gray"}`}>
-            {QUIZ_TYPE_LABELS[quiz.type] || QUIZ_TYPE_LABELS.CHAPTER}
-          </span>
-          <span className="quiz-meta-cell">{quiz.totalQuestion ?? 0} câu</span>
-        </div>
+        <span className={`adm2-badge ${quiz.type === "FINAL" ? "adm2-badge--amber" : "adm2-badge--gray"}`}>
+          {QUIZ_TYPE_LABELS[quiz.type] || QUIZ_TYPE_LABELS.CHAPTER}
+        </span>
+      ),
+    },
+    {
+      key: "totalQuestion",
+      label: "Số câu",
+      width: 100,
+      align: "center",
+      sortValue: (quiz) => quiz.totalQuestion ?? 0,
+      render: (quiz) => (
+        <span className="quiz-meta-cell">{quiz.totalQuestion ?? 0} câu</span>
       ),
     },
     {

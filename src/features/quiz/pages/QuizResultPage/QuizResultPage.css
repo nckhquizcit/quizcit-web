@@ -57,6 +57,7 @@
   font-size: var(--fs-2xl);
   color: var(--color-text);
   line-height: 1.2;
+  overflow-wrap: break-word;
 }
 .result-header__sub {
   font-size: var(--fs-sm);
@@ -75,15 +76,15 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  background: var(--color-text);
-  color: #fff;
-  border-color: var(--color-text);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-border);
 }
 .result-score-card__label {
   font-size: var(--fs-xs);
   font-weight: 700;
   letter-spacing: 0.06em;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-muted);
 }
 .result-score-card__body {
   display: flex;
@@ -105,7 +106,7 @@
 }
 .result-score-card__fraction {
   font-size: var(--fs-sm);
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--color-text-muted);
 }
 .result-score-card__theta {
   display: flex;
@@ -113,14 +114,14 @@
   align-items: flex-end;
   gap: 2px;
   padding-left: var(--space-4);
-  border-left: 1px solid rgba(255, 255, 255, 0.16);
+  border-left: 1px solid var(--color-border);
   font-size: var(--fs-xs);
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--color-text-muted);
 }
 .result-score-card__theta strong {
   font-size: var(--fs-md);
   font-weight: 800;
-  color: #fff;
+  color: var(--color-text);
   font-variant-numeric: tabular-nums;
 }
 
@@ -253,6 +254,7 @@
 }
 .result-advice-text {
   white-space: pre-wrap;
+  overflow-wrap: break-word;
   line-height: 1.6;
   color: var(--color-text-muted);
 }
@@ -353,11 +355,13 @@
   font-size: var(--fs-sm);
   font-weight: 600;
   line-height: 1.5;
+  overflow-wrap: break-word;
 }
 .result-question-row__answer {
   color: var(--color-text-muted);
   font-size: var(--fs-xs);
   line-height: 1.5;
+  overflow-wrap: break-word;
 }
 .result-question-row__answer strong {
   color: var(--color-text);
@@ -417,6 +421,7 @@
   color: var(--color-text);
   font-size: var(--fs-sm);
   line-height: 1.5;
+  overflow-wrap: break-word;
 }
 .result-option-tags {
   display: inline-flex;
@@ -464,6 +469,7 @@
   color: #1e40af;
   font-size: var(--fs-sm);
   line-height: 1.5;
+  overflow-wrap: break-word;
 }
 
 .result-empty-text {
@@ -487,31 +493,106 @@
 
 @media (max-width: 767px) {
   .quiz-result-page {
-    padding: var(--space-5);
+    padding: var(--space-4) var(--space-3);
+    gap: var(--space-4);
   }
+  /* Thẻ bớt đệm để nội dung còn chỗ thở trên màn ~390px */
+  .quiz-result-page .ui-card {
+    padding: var(--space-4);
+  }
+
+  .result-back-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin-bottom: 0;
+  }
+  .result-header__title {
+    font-size: var(--fs-lg);
+  }
+
+  .result-score-card__percent {
+    font-size: var(--fs-2xl);
+  }
+  .result-score-card__theta {
+    flex-shrink: 0;
+  }
+
   .overview-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .overview-tile__label {
+    font-size: var(--fs-sm);
+  }
+
+  /* Kỹ năng xếp 2 hàng: tên + theta, rồi thanh tiến độ + delta */
   .skill-analysis-row {
-    grid-template-columns: 1fr;
-    gap: var(--space-2);
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-2) var(--space-3);
   }
-  .skill-analysis-row__theta {
-    text-align: left;
+  .skill-analysis-row__name {
+    white-space: normal;
+    overflow: visible;
+    overflow-wrap: break-word;
   }
-  .skill-analysis-row__delta {
-    text-align: left;
+  .skill-analysis-row__bar {
+    align-self: center;
   }
+
+  .filter-chip {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 0.9rem;
+    font-size: var(--fs-sm);
+  }
+
   .result-question-row__top {
     flex-wrap: wrap;
   }
-  .result-question-row__toggle {
-    margin-left: calc(30px + var(--space-3));
+  .result-question-row__answer {
+    font-size: var(--fs-sm);
   }
+  .result-question-row__toggle {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin-left: auto;
+    font-size: var(--fs-sm);
+  }
+
+  /* Nhãn "Bạn chọn / Đáp án đúng" xuống dòng riêng để nội dung đáp án không bị bóp */
+  .result-option-item {
+    flex-wrap: wrap;
+  }
+  .result-option-tags {
+    flex-basis: 100%;
+    justify-content: flex-start;
+    padding-left: calc(24px + var(--space-3));
+  }
+  .result-option-tags:empty {
+    display: none;
+  }
+
   .result-actions {
     flex-direction: column;
   }
   .result-actions .ui-btn {
     width: 100%;
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 400px) {
+  .result-score-card__body {
+    flex-wrap: wrap;
+  }
+  .result-score-card__theta {
+    align-items: flex-start;
+    padding-left: 0;
+    border-left: none;
+  }
+  .result-question-row {
+    padding: var(--space-3);
   }
 }

@@ -51,7 +51,10 @@
   border-radius: 8px;
   background: #0f172a;
   color: #e2e8f0;
+  /* Khối code tự cuộn ngang thay vì kéo giãn cả trang */
+  max-width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .rich-text__pre code {
@@ -102,6 +105,12 @@
   margin: 0;
 }
 
+/* Lưới an toàn: mọi ảnh trong nội dung không được vượt quá bề ngang khung đọc */
+.rich-text img {
+  max-width: 100%;
+  height: auto;
+}
+
 .rich-text__figure img {
   display: block;
   max-width: 100%;
@@ -117,7 +126,9 @@
 }
 
 .rich-text__table-wrap {
+  max-width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .rich-text__table {
@@ -187,4 +198,35 @@
 
 .rich-text-editor--inline .bn-container {
   border-radius: 6px;
+}
+
+/* Điện thoại: giữ nội dung bài học / câu hỏi đọc được và không tràn ngang */
+@media (max-width: 767px) {
+  /* Sàn cỡ chữ cho khối nội dung; bản inline giữ nguyên vì hay nằm trong nhãn/chip */
+  .rich-text:not(.rich-text--inline) {
+    font-size: max(var(--fs-sm), 1em);
+  }
+
+  .rich-text__pre {
+    padding: 0.7em 0.75em;
+  }
+
+  .rich-text__list {
+    padding-left: 1.2em;
+  }
+
+  .rich-text__children {
+    padding-left: 0.75em;
+  }
+
+  /* Cột hẹp hơn ngưỡng này thì bảng cuộn ngang thay vì bị bóp nát chữ */
+  .rich-text__table td {
+    min-width: 7rem;
+  }
+
+  /* Compound selector để thắng rule sàn cỡ chữ ở trên */
+  .rich-text.theory-rich-text {
+    font-size: var(--fs-base);
+    line-height: 1.65;
+  }
 }

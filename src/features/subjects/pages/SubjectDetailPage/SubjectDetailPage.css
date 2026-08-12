@@ -329,18 +329,28 @@
 
 @media (max-width: 767px) {
   .subject-detail-page {
-    padding: var(--space-5);
+    gap: var(--space-4);
+    padding: var(--space-4);
+  }
+  .subject-detail-back {
+    min-height: 44px;
   }
   .subject-detail-header {
     flex-direction: column;
-    padding: var(--space-5);
+    /* stretch để nút hành động chính chiếm trọn bề ngang */
+    align-items: stretch;
+    padding: var(--space-4);
   }
   .subject-detail-header__main h1 {
     font-size: var(--fs-xl);
   }
+  .subject-detail-header__main p {
+    font-size: var(--fs-sm);
+  }
   .subject-detail-stats {
     flex-wrap: wrap;
     gap: var(--space-4);
+    padding: var(--space-4);
   }
   .subject-detail-stats__divider {
     display: none;
@@ -348,9 +358,39 @@
   .subject-detail-stats__cell {
     flex: 1 1 40%;
   }
+  .subject-detail-stats__value {
+    font-size: var(--fs-lg);
+  }
+  .chapter-nav {
+    padding: var(--space-3);
+  }
+  .chapter-nav__item {
+    min-height: 44px;
+  }
+  /* Tên chương dài cắt bớt để chip không đẩy tràn ngang */
+  .chapter-nav__name {
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* Ghi đè padding "lg" của Card cho vừa màn hình ~390px */
+  .ui-card.chapter-overview-card,
+  .ui-card.content-block {
+    padding: var(--space-4);
+  }
+  .theory-nav-row {
+    min-height: 44px;
+    padding: var(--space-3);
+  }
   .quiz-nav-row {
     flex-direction: column;
     align-items: stretch;
+    padding: var(--space-3);
+  }
+  .quiz-nav-row .ui-btn {
+    width: 100%;
+    min-height: 44px;
   }
 }
 .adaptive-dialog-backdrop {
@@ -369,3 +409,30 @@
   border: 1px solid var(--color-border, #d7dce5); border-radius: 8px;
 }
 .adaptive-dialog__actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+@media (max-width: 640px) {
+  .subject-detail-page {
+    padding: var(--space-3);
+  }
+  .adaptive-dialog-backdrop {
+    padding: var(--space-4);
+  }
+  .adaptive-dialog {
+    width: 100%;
+    max-height: calc(100vh - var(--space-8));
+    overflow-y: auto;
+    padding: var(--space-5);
+  }
+  /* 16px để iOS không phóng to trang khi focus vào ô số câu */
+  .adaptive-dialog input {
+    min-height: 44px;
+    font-size: var(--fs-base);
+  }
+  .adaptive-dialog__actions {
+    flex-direction: column;
+  }
+  .adaptive-dialog__actions .ui-btn {
+    width: 100%;
+    min-height: 44px;
+  }
+}

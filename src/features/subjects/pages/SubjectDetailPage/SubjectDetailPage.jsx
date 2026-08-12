@@ -15,6 +15,7 @@ import {
   ErrorState,
   Spinner,
 } from "../../../../components/ui";
+import ChatBox from "../../../../components/ChatBox/ChatBox";
 import { getErrorMessage } from "../../../../services/apiClient";
 import { getTheoryDisplayTitle } from "../../../content/utils/theoryDisplay.js";
 import { isValidAdaptiveQuestionCount } from "../../../quiz/pages/AdaptiveQuizPage/AdaptiveQuizPage.logic.js";
@@ -354,6 +355,10 @@ export default function SubjectDetailPage() {
             </Card>
           </div>
         </div>
+      )}
+
+      {theories.length > 0 && (
+        <ChatBox key={subjectId} subjectId={subjectId} chapterId={activeChapterId} />
       )}
     </div>
   );
