@@ -1,9 +1,12 @@
 import { useState } from "react";
-import "./ChangeForgotPasswordForm.css";
 import { useNavigate } from "react-router-dom";
+import { LockKeyhole } from "lucide-react";
 import { useForgotPassword } from "../../../../stores/contexts/ForgotPasswordContext.jsx";
 import { resetPassword } from "../../../../services/authService";
 import { getErrorMessage } from "../../../../services/apiClient";
+import { Button, Field, Input } from "../../../../components/ui";
+import "../../styles/authShared.css";
+
 export default function ChangeForgotPasswordForm() {
   const navigate = useNavigate();
   const { confirmedToken } = useForgotPassword();
@@ -44,39 +47,48 @@ export default function ChangeForgotPasswordForm() {
     }
   };
   return (
-    <form className="forgot-password-form-container" onSubmit={handleSend}>
-      <h1>Đặt mật khẩu mới</h1>
-      <p className="text-gray-500">Tạo mật khẩu mới cho tài khoản của bạn</p>
+    <form className="auth-form" onSubmit={handleSend}>
+      <div className="auth-form__head">
+        <h1>Tạo mật khẩu mới</h1>
+        <p>Mật khẩu tối thiểu 6 ký tự.</p>
+      </div>
 
       {error && <div className="auth-form__error">{error}</div>}
 
-      <div className="input-container">
-        <label htmlFor="newPassword">Mật khẩu mới</label>
-        <input
-          id="newPassword"
+      <Field label="Mật khẩu mới" htmlFor="new-password">
+        <Input
+          id="new-password"
           name="newPassword"
           type="password"
           placeholder="Nhập mật khẩu mới của bạn"
           value={formData.newPassword}
           onChange={handleChange}
+          iconLeft={<LockKeyhole size={18} />}
+          minLength={6}
           required
         />
-      </div>
-      <div className="input-container">
-        <label htmlFor="confirmNewPassword">Mật khẩu mới</label>
-        <input
-          id="confirmNewPassword"
+      </Field>
+      <Field label="Nhập lại mật khẩu" htmlFor="confirm-new-password">
+        <Input
+          id="confirm-new-password"
           name="confirmNewPassword"
           type="password"
           placeholder="Xác nhận mật khẩu mới của bạn"
           value={formData.confirmNewPassword}
           onChange={handleChange}
+          iconLeft={<LockKeyhole size={18} />}
+          minLength={6}
           required
         />
-      </div>
-      <button type="submit" className="send-button" disabled={loading}>
-        {loading ? "Đang đặt lại..." : "Đặt lại mật khẩu"}
-      </button>
+      </Field>
+
+      <p className="auth-info-box">
+        Không dùng lại mật khẩu cũ. Bạn sẽ quay về trang đăng nhập sau khi đổi.
+      </p>
+
+      <Button type="submit" variant="primary" fullWidth loading={loading}>
+        Đổi mật khẩu
+      </Button>
     </form>
   );
 }

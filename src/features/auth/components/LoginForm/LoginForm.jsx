@@ -4,6 +4,7 @@ import { Eye, EyeOff, LockKeyhole, User } from "lucide-react";
 import { getErrorMessage } from "../../../../services/apiClient";
 import { login } from "../../../../services/authService";
 import { Button, Field, Input } from "../../../../components/ui";
+import "../../styles/authShared.css";
 import "./LoginForm.css";
 
 export default function LoginForm() {
@@ -45,7 +46,7 @@ export default function LoginForm() {
     <form className="auth-form" onSubmit={handleLogin}>
       <div className="auth-form__head">
         <h1>Đăng nhập</h1>
-        <p>Nhập thông tin đăng nhập để tiếp tục</p>
+        <p>Nhập thông tin để tiếp tục học.</p>
       </div>
 
       {error && <div className="auth-form__error">{error}</div>}
@@ -107,6 +108,11 @@ export default function LoginForm() {
 
       <p className="auth-form__switch">
         Chưa có tài khoản? <Link to="/register">Đăng ký</Link>
+      </p>
+
+      <div className="auth-divider" />
+      <p className="auth-mini-note">
+        Đăng nhập sẽ chuyển theo vai trò User / Admin
       </p>
     </form>
   );

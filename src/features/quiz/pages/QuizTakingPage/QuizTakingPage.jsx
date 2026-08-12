@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { AlertCircle, Clock, Flag, X } from "lucide-react";
+import { AlertCircle, AlertTriangle, Flag, X } from "lucide-react";
 import {
   clearQuizDraft,
   getQuestionsByQuiz,
@@ -361,8 +361,8 @@ export default function QuizTakingPage() {
             hasTimeLimit && timeLeft < 60 ? "time-warning" : ""
           } ${hasTimeLimit ? "" : "quiz-timer--unlimited"}`}
         >
-          <Clock size={18} />
-          <span>{timerLabel}</span>
+          {hasTimeLimit && <span className="quiz-timer__label">Thời gian còn</span>}
+          <span className="quiz-timer__value">{timerLabel}</span>
         </div>
       </header>
 
@@ -390,6 +390,13 @@ export default function QuizTakingPage() {
 
       <div className="quiz-layout">
         <div className="quiz-main">
+          <div className="quiz-info-banner">
+            <span className="quiz-info-banner__icon" aria-hidden="true">
+              ⓘ
+            </span>
+            <span>Không hiển thị đúng sai hoặc lời giải trước khi nộp.</span>
+          </div>
+
           <div className="quiz-questions">
             {visibleQuestions.map((question) => {
               const questionIndex = questions.findIndex(
@@ -501,7 +508,7 @@ export default function QuizTakingPage() {
               onClick={() => goToPage(currentPage - 1)}
               disabled={currentPage === 0}
             >
-              Trước
+              ← Trang trước
             </Button>
             <span className="page-indicator">
               Trang {currentPage + 1} / {totalPages}
@@ -511,7 +518,7 @@ export default function QuizTakingPage() {
               onClick={() => goToPage(currentPage + 1)}
               disabled={currentPage >= totalPages - 1}
             >
-              Sau
+              Trang sau →
             </Button>
           </div>
         </div>
@@ -582,28 +589,42 @@ export default function QuizTakingPage() {
             aria-labelledby="submit-confirm-title"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="submit-confirm-header">
-              <h3 id="submit-confirm-title">Xác nhận nộp bài</h3>
-              <button
-                type="button"
-                className="submit-confirm-close"
-                onClick={closeSubmitConfirm}
-                aria-label="Đóng"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
             <div className="submit-confirm-body">
-              <p>
-                Bạn đã trả lời <strong>{answeredCount}/{questions.length}</strong> câu.
-                Sau khi nộp, hệ thống sẽ chấm bài và chuyển sang trang kết quả.
+              <div className="submit-confirm-icon">
+                <AlertTriangle size={22} />
+              </div>
+              <h3 id="submit-confirm-title">Xác nhận nộp bài</h3>
+              <p className="submit-confirm-sub">
+                Kết quả chỉ được chấm sau thao tác này.
               </p>
+
+              <div className="submit-confirm-divider" />
+
+              <div className="submit-confirm-stats">
+                <div className="submit-confirm-stat">
+                  <strong>{answeredCount}</strong>
+                  <span>Đã trả lời</span>
+                </div>
+                <div className="submit-confirm-stat">
+                  <strong>{flaggedQuestionIds.size}</strong>
+                  <span>Đánh dấu</span>
+                </div>
+                <div className="submit-confirm-stat">
+                  <strong>{questions.length - answeredCount}</strong>
+                  <span>Chưa trả lời</span>
+                </div>
+              </div>
+
               {answeredCount < questions.length && (
                 <p className="submit-confirm-warning">
-                  Vẫn còn {questions.length - answeredCount} câu chưa trả lời.
+                  Bạn còn {questions.length - answeredCount} câu chưa trả lời. Có
+                  thể quay lại phiếu trả lời trước khi nộp.
                 </p>
               )}
+
+              <p className="submit-confirm-note">
+                Sau khi nộp — Không thể sửa đáp án · timer dừng · mở trang kết quả
+              </p>
             </div>
 
             <div className="submit-confirm-actions">
@@ -612,14 +633,14 @@ export default function QuizTakingPage() {
                 onClick={closeSubmitConfirm}
                 disabled={submitting}
               >
-                Hủy
+                Quay lại bài thi
               </Button>
               <Button
                 variant="primary"
                 onClick={confirmSubmit}
                 loading={submitting}
               >
-                Nộp bài
+                Nộp và xem kết quả
               </Button>
             </div>
           </section>

@@ -1,10 +1,12 @@
 import { useState } from "react";
-import "./ForgotPasswordForm.css";
 import { Link } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { AtSign } from "lucide-react";
 import { useForgotPassword } from "../../../../stores/contexts/ForgotPasswordContext.jsx";
 import { forgotPassword } from "../../../../services/authService";
 import { getErrorMessage } from "../../../../services/apiClient";
+import { Button, Field, Input } from "../../../../components/ui";
+import "../../styles/authShared.css";
+
 export default function ForgotPasswordForm() {
   const { setCurrentState, setEmail, setResetToken } = useForgotPassword();
   const [formData, setFormData] = useState({
@@ -12,6 +14,7 @@ export default function ForgotPasswordForm() {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -19,6 +22,7 @@ export default function ForgotPasswordForm() {
       [name]: value,
     }));
   };
+
   const handleSend = async (e) => {
     e.preventDefault();
     try {
@@ -34,36 +38,42 @@ export default function ForgotPasswordForm() {
       setLoading(false);
     }
   };
+
   return (
-    <form className="forgot-password-form-container" onSubmit={handleSend}>
-      <h1>Quên mật khẩu</h1>
-      <p className="text-gray-500">Nhập email để nhận mã xác minh</p>
+    <form className="auth-form" onSubmit={handleSend}>
+      <div className="auth-form__head">
+        <h1>Quên mật khẩu</h1>
+        <p>Nhập email để nhận mã xác minh.</p>
+      </div>
 
       {error && <div className="auth-form__error">{error}</div>}
 
-      <div className="input-container">
-        <label htmlFor="email">Email</label>
-        <input
-          id="email"
+      <Field label="Email" htmlFor="forgot-email">
+        <Input
+          id="forgot-email"
           name="email"
           type="email"
           placeholder="Nhập email của bạn"
           value={formData.email}
           onChange={handleChange}
+          iconLeft={<AtSign size={18} />}
           required
         />
-      </div>
+      </Field>
 
-      <button type="submit" className="send-button" disabled={loading}>
-        {loading ? "Đang gửi..." : "Gửi mã xác minh"}
-      </button>
+      <p className="auth-info-box">
+        Mã xác minh có hiệu lực trong thời gian ngắn. Kiểm tra cả thư mục spam.
+      </p>
 
-      <div className="form-footer">
-        <Link to="/login" className="back-link">
-          <ArrowLeft size={18} />
-          <span>Quay lại đăng nhập</span>
+      <Button type="submit" variant="primary" fullWidth loading={loading}>
+        Gửi mã xác minh
+      </Button>
+
+      <p className="auth-form__switch">
+        <Link to="/login" className="auth-back-link">
+          ← Quay lại đăng nhập
         </Link>
-      </div>
+      </p>
     </form>
   );
 }

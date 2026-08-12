@@ -52,19 +52,32 @@
 }
 
 .quiz-timer {
-  display: inline-flex;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--space-2);
-  padding: 0.6rem 1rem;
+  gap: 2px;
+  padding: 0.5rem 1.1rem;
   border-radius: var(--radius-md);
   background: var(--color-primary-soft);
   color: var(--color-primary-700);
+  flex-shrink: 0;
+}
+.quiz-timer__label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-primary-600);
+  opacity: 0.85;
+}
+.quiz-timer__value {
+  font-family: ui-monospace, monospace;
   font-weight: 800;
   font-size: var(--fs-md);
   font-variant-numeric: tabular-nums;
-  flex-shrink: 0;
 }
-.quiz-timer--unlimited {
+.quiz-timer--unlimited .quiz-timer__value {
+  font-family: inherit;
   font-size: var(--fs-sm);
   font-weight: 600;
 }
@@ -72,6 +85,9 @@
   background: var(--color-error-soft);
   color: #dc2626;
   animation: quiz-pulse 1s ease-in-out infinite;
+}
+.quiz-timer.time-warning .quiz-timer__label {
+  color: #dc2626;
 }
 @keyframes quiz-pulse {
   50% {
@@ -89,6 +105,24 @@
   color: #b91c1c;
   font-size: var(--fs-sm);
   border: 1px solid #fecaca;
+}
+
+/* Info banner */
+.quiz-info-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-primary-100);
+  border-radius: var(--radius-md);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-700);
+  font-size: var(--fs-sm);
+}
+.quiz-info-banner__icon {
+  font-size: var(--fs-md);
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 /* Progress bar */
@@ -397,50 +431,83 @@
   background: var(--color-surface);
   box-shadow: var(--shadow-lg);
 }
-.submit-confirm-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--color-border);
-}
-.submit-confirm-header h3 {
-  color: var(--color-text);
-  font-size: var(--fs-md);
-}
-.submit-confirm-close {
-  display: inline-flex;
-  padding: 4px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--color-text-subtle);
-  cursor: pointer;
-}
-.submit-confirm-close:hover {
-  background: var(--color-surface-3);
-  color: var(--color-text);
-}
 .submit-confirm-body {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: var(--space-3);
-  padding: var(--space-5);
+  padding: var(--space-6) var(--space-5) var(--space-5);
+  text-align: center;
+}
+.submit-confirm-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--color-warning-soft);
+  color: #b45309;
+  margin-bottom: var(--space-1);
+}
+.submit-confirm-body h3 {
+  color: var(--color-text);
+  font-size: var(--fs-lg);
+}
+.submit-confirm-sub {
+  margin-top: calc(var(--space-1) * -1);
   color: var(--color-text-muted);
   font-size: var(--fs-sm);
-  line-height: 1.6;
 }
-.submit-confirm-body strong {
+.submit-confirm-divider {
+  width: 100%;
+  height: 1px;
+  background: var(--color-border);
+  margin: var(--space-1) 0;
+}
+.submit-confirm-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+  width: 100%;
+}
+.submit-confirm-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--space-3) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+}
+.submit-confirm-stat strong {
+  font-size: var(--fs-lg);
   color: var(--color-text);
 }
+.submit-confirm-stat span {
+  font-size: var(--fs-xs);
+  color: var(--color-text-muted);
+}
 .submit-confirm-warning {
+  width: 100%;
   padding: var(--space-3);
   border: 1px solid var(--color-warning);
   border-radius: var(--radius-md);
   background: var(--color-warning-soft);
   color: #92400e;
+  font-size: var(--fs-sm);
   font-weight: 600;
+  text-align: left;
+}
+.submit-confirm-note {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  color: var(--color-text-subtle);
+  font-size: var(--fs-xs);
+  text-align: left;
 }
 .submit-confirm-actions {
   display: flex;

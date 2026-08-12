@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Mail } from "lucide-react";
+import { Mail } from "lucide-react";
 import { getErrorMessage } from "../../../../services/apiClient";
 import { resendOtp, verifyEmail } from "../../../../services/authService";
 import { Button } from "../../../../components/ui";
+import "../../styles/authShared.css";
 import "./VerifyForm.css";
 
 export default function VerifyForm({ email = "", verificationToken = "" }) {
@@ -83,11 +84,11 @@ export default function VerifyForm({ email = "", verificationToken = "" }) {
     <form className="auth-form verify-form" onSubmit={handleVerify}>
       <div className="auth-form__head">
         <h1>Xác minh tài khoản</h1>
-        <p>Nhập mã 6 số được gửi đến email của bạn</p>
+        <p>Nhập mã 6 số đã gửi tới email.</p>
       </div>
 
       {email && (
-        <div className="verify-email">
+        <div className="auth-email-chip">
           <Mail size={16} />
           <span>{email}</span>
         </div>
@@ -95,7 +96,7 @@ export default function VerifyForm({ email = "", verificationToken = "" }) {
 
       {error && <div className="auth-form__error">{error}</div>}
 
-      <div className="verify-otp">
+      <div className="auth-otp">
         {otp.map((data, index) => (
           <input
             key={index}
@@ -114,11 +115,11 @@ export default function VerifyForm({ email = "", verificationToken = "" }) {
         Xác minh tài khoản
       </Button>
 
-      <div className="verify-resend">
+      <div className="auth-resend">
         <span>Không nhận được mã?</span>
         <button
           type="button"
-          className="verify-resend__btn"
+          className="auth-resend__btn"
           onClick={handleResend}
           disabled={resending || cooldown > 0 || !email}
         >
@@ -128,7 +129,7 @@ export default function VerifyForm({ email = "", verificationToken = "" }) {
 
       <p className="auth-form__switch">
         <Link to="/login" className="auth-back-link">
-          <ArrowLeft size={16} /> Quay lại đăng nhập
+          ← Quay lại đăng nhập
         </Link>
       </p>
     </form>

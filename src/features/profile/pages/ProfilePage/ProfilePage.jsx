@@ -1,17 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
-import { Award, BookOpen, Flame, Target, Trophy, Zap, X } from "lucide-react";
-import AchievementCard from "../../components/AchievementCard/AchievementCard";
-import ProfileHeader from "../../components/ProfileHeader/ProfileHeader";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Edit2, KeyRound, LogOut, X } from "lucide-react";
 import { getErrorMessage, getStoredUser, setStoredUser } from "../../../../services/apiClient";
 import {
   changeCurrentUserPassword,
   getCurrentUser,
   updateCurrentUserProfile,
 } from "../../../../services/userService";
-import { getUserAttempts } from "../../../../services/quizService";
+import { logout } from "../../../../services/authService";
 import {
   Badge,
   Button,
+  Card,
   Field,
   Input,
   Spinner,
@@ -22,24 +22,7 @@ import "./ProfilePage.css";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_MIN_LENGTH = 6;
-
-function capProgress(value, total) {
-  const progress = Number(value) || 0;
-  return Math.max(0, Math.min(progress, total));
-}
-
-function getAttemptPercentage(attempt) {
-  const directPercentage = Number(attempt?.percentage);
-  if (Number.isFinite(directPercentage)) return directPercentage;
-
-  const rawScore = Number(attempt?.rawScore);
-  const totalQuestion = Number(attempt?.totalQuestion);
-  if (!Number.isFinite(rawScore) || !Number.isFinite(totalQuestion) || totalQuestion <= 0) {
-    return 0;
-  }
-
-  return (rawScore / totalQuestion) * 100;
-}
+const DISPLAY_NAME_MAX_LENGTH = 100;
 
 function mergeAndStoreUser(nextUser) {
   const storedUser = getStoredUser() || {};
@@ -53,6 +36,11 @@ function mergeAndStoreUser(nextUser) {
 
   setStoredUser(mergedUser);
   return mergedUser;
+}
+
+function getInitial(name) {
+  const trimmed = (name || "").trim();
+  return trimmed ? trimmed.charAt(0).toUpperCase() : "?";
 }
 
 function ProfileModal({ title, children, onClose }) {
@@ -78,20 +66,14 @@ function ProfileModal({ title, children, onClose }) {
 }
 
 export default function ProfilePage() {
+  const navigate = useNavigate();
   const toast = useToast();
   const [profileUser, setProfileUser] = useState(() => getStoredUser());
-  const [attempts, setAttempts] = useState([]);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
-  const [isLoadingStats, setIsLoadingStats] = useState(false);
   const [profileError, setProfileError] = useState("");
-  const [statsError, setStatsError] = useState("");
   const [activeModal, setActiveModal] = useState(null);
-  const [form, setForm] = useState({
-    displayName: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
+  const [editForm, setEditForm] = useState({ displayName: "", email: "" });
+  const [passwordForm, setPasswordForm] = useState({ password: "", confirmPassword: "" });
   const [formError, setFormError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -101,41 +83,15 @@ export default function ProfilePage() {
     async function loadProfile() {
       setIsLoadingProfile(true);
       setProfileError("");
-      setStatsError("");
-
-      let mergedUser = null;
       try {
         const user = await getCurrentUser();
-        mergedUser = mergeAndStoreUser(user);
         if (!isMounted) return;
-        setProfileUser(mergedUser);
+        setProfileUser(mergeAndStoreUser(user));
       } catch (error) {
         if (!isMounted) return;
         setProfileError(getErrorMessage(error, "Không thể tải hồ sơ người dùng."));
-        return;
       } finally {
-        if (isMounted) {
-          setIsLoadingProfile(false);
-        }
-      }
-
-      if (!mergedUser?.userId || !isMounted) {
-        return;
-      }
-
-      setIsLoadingStats(true);
-      try {
-        const attemptRows = await getUserAttempts(mergedUser.userId);
-        if (!isMounted) return;
-        setAttempts(attemptRows || []);
-      } catch (error) {
-        if (!isMounted) return;
-        setAttempts([]);
-        setStatsError(getErrorMessage(error, "Không thể tải thống kê bài làm."));
-      } finally {
-        if (isMounted) {
-          setIsLoadingStats(false);
-        }
+        if (isMounted) setIsLoadingProfile(false);
       }
     }
 
@@ -146,164 +102,22 @@ export default function ProfilePage() {
     };
   }, []);
 
-  const completedQuizzes = attempts.length;
-  const highScoreQuizzes = attempts.filter((attempt) => getAttemptPercentage(attempt) >= 90).length;
-  const completedQuestions = attempts.reduce(
-    (sum, attempt) => sum + (Number(attempt?.totalQuestion) || 0),
-    0,
-  );
-  const achievementsCount = [
-    completedQuizzes >= 1,
-    completedQuizzes >= 10,
-    highScoreQuizzes >= 5,
-    completedQuestions >= 50,
-  ].filter(Boolean).length;
+  const displayName = profileUser?.displayName || profileUser?.username || "Người dùng";
+  const isVerified = profileUser?.status === "VERIFIED";
+  const roleLabel = profileUser?.role === "ADMINISTRATOR" ? "Quản trị viên" : "Học viên";
 
-  const userData = useMemo(
-    () => ({
-      name: profileUser?.displayName || profileUser?.username || "Người dùng",
-      username: profileUser?.username || "unknown",
-      xpLabel: "Đang phát triển",
-      completedQuizzes,
-      achievementsCount,
-    }),
-    [achievementsCount, completedQuizzes, profileUser],
-  );
-
-  const achievements = [
-    {
-      id: 1,
-      title: "Bước đầu tiên",
-      description: "Hoàn thành bài kiểm tra đầu tiên của bạn",
-      icon: Target,
-      progress: capProgress(completedQuizzes, 1),
-      total: 1,
-      rank: "Đồng",
-      isActive: completedQuizzes >= 1,
-      isLocked: completedQuizzes < 1,
-    },
-    {
-      id: 2,
-      title: "Học viên tập sự",
-      description: "Hoàn thành 10 bài kiểm tra",
-      icon: BookOpen,
-      progress: capProgress(completedQuizzes, 10),
-      total: 10,
-      rank: "Bạc",
-      isActive: completedQuizzes >= 10,
-      isLocked: false,
-    },
-    {
-      id: 3,
-      title: "Chuỗi học tập",
-      description: "Học tập liên tục trong 7 ngày",
-      icon: Flame,
-      progress: 0,
-      total: 7,
-      rank: "Vàng",
-      isActive: false,
-      isLocked: true,
-    },
-    {
-      id: 4,
-      title: "Bậc thầy quiz",
-      description: "Đạt điểm trên 90% trong 5 bài quiz",
-      icon: Trophy,
-      progress: 0,
-      total: 5,
-      rank: "Kim cương",
-      isActive: false,
-      isLocked: true,
-    },
-    {
-      id: 5,
-      title: "Tốc độ",
-      description: "Hoàn thành một bài quiz trong nửa thời gian",
-      icon: Zap,
-      progress: 0,
-      total: 1,
-      rank: "Bạc",
-      isActive: false,
-      isLocked: true,
-    },
-    {
-      id: 6,
-      title: "Nỗ lực bền bỉ",
-      description: "Hoàn thành 50 câu hỏi",
-      icon: Award,
-      progress: 0,
-      total: 50,
-      rank: "Vàng",
-      isActive: false,
-      isLocked: true,
-    },
-  ];
-
-  const resolvedAchievements = achievements.map((achievement) => {
-    if (achievement.id === 1) {
-      return {
-        ...achievement,
-        progress: capProgress(completedQuizzes, achievement.total),
-        isActive: completedQuizzes >= achievement.total,
-        isLocked: completedQuizzes < achievement.total,
-      };
-    }
-
-    if (achievement.id === 2) {
-      return {
-        ...achievement,
-        progress: capProgress(completedQuizzes, achievement.total),
-        isActive: completedQuizzes >= achievement.total,
-        isLocked: false,
-      };
-    }
-
-    if (achievement.id === 4) {
-      return {
-        ...achievement,
-        progress: capProgress(highScoreQuizzes, achievement.total),
-        isActive: highScoreQuizzes >= achievement.total,
-        isLocked: highScoreQuizzes < achievement.total,
-      };
-    }
-
-    if (achievement.id === 6) {
-      return {
-        ...achievement,
-        progress: capProgress(completedQuestions, achievement.total),
-        isActive: completedQuestions >= achievement.total,
-        isLocked: completedQuestions < achievement.total,
-      };
-    }
-
-    return achievement;
-  });
-
-  function openNameModal() {
+  function openEditModal() {
     setFormError("");
-    setForm((current) => ({
-      ...current,
+    setEditForm({
       displayName: profileUser?.displayName || profileUser?.username || "",
-    }));
-    setActiveModal("name");
-  }
-
-  function openEmailModal() {
-    setFormError("");
-    setForm((current) => ({
-      ...current,
       email: profileUser?.email || "",
-    }));
-    setActiveModal("email");
+    });
+    setActiveModal("edit");
   }
 
   function openPasswordModal() {
     setFormError("");
-    setForm((current) => ({
-      ...current,
-      password: "",
-      confirmPassword: "",
-    }));
+    setPasswordForm({ password: "", confirmPassword: "" });
     setActiveModal("password");
   }
 
@@ -313,54 +127,43 @@ export default function ProfilePage() {
     setFormError("");
   }
 
-  async function submitProfileUpdate(event, type) {
+  function handleLogout() {
+    logout();
+    navigate("/login");
+  }
+
+  async function submitEdit(event) {
     event.preventDefault();
     setFormError("");
 
-    const displayName = form.displayName.trim();
-    const email = form.email.trim();
-    const currentDisplayName = profileUser?.displayName || profileUser?.username || "";
-    const currentEmail = profileUser?.email || "";
+    const displayNameValue = editForm.displayName.trim();
+    const emailValue = editForm.email.trim();
 
-    let payload;
-    let successMessage;
-
-    if (type === "name") {
-      if (!displayName) {
-        setFormError("Vui lòng nhập tên hiển thị.");
-        return;
-      }
-
-      if (displayName.length > 100) {
-        setFormError("Tên hiển thị không được vượt quá 100 ký tự.");
-        return;
-      }
-
-      payload = { displayName, email: currentEmail };
-      successMessage = "Đã cập nhật tên hiển thị.";
+    if (!displayNameValue) {
+      setFormError("Vui lòng nhập tên hiển thị.");
+      return;
     }
-
-    if (type === "email") {
-      if (!email) {
-        setFormError("Vui lòng nhập email.");
-        return;
-      }
-
-      if (!EMAIL_PATTERN.test(email)) {
-        setFormError("Email không hợp lệ.");
-        return;
-      }
-
-      payload = { displayName: currentDisplayName, email };
-      successMessage = "Đã cập nhật email.";
+    if (displayNameValue.length > DISPLAY_NAME_MAX_LENGTH) {
+      setFormError(`Tên hiển thị không được vượt quá ${DISPLAY_NAME_MAX_LENGTH} ký tự.`);
+      return;
+    }
+    if (!emailValue) {
+      setFormError("Vui lòng nhập email.");
+      return;
+    }
+    if (!EMAIL_PATTERN.test(emailValue)) {
+      setFormError("Email không hợp lệ.");
+      return;
     }
 
     setIsSubmitting(true);
-
     try {
-      const updatedUser = await updateCurrentUserProfile(payload);
+      const updatedUser = await updateCurrentUserProfile({
+        displayName: displayNameValue,
+        email: emailValue,
+      });
       setProfileUser(mergeAndStoreUser(updatedUser));
-      toast.success(successMessage);
+      toast.success("Đã lưu thay đổi hồ sơ.");
       setActiveModal(null);
     } catch (error) {
       setFormError(getErrorMessage(error, "Không thể cập nhật hồ sơ."));
@@ -373,26 +176,24 @@ export default function ProfilePage() {
     event.preventDefault();
     setFormError("");
 
-    const password = form.password.trim();
-    const confirmPassword = form.confirmPassword.trim();
+    const password = passwordForm.password.trim();
+    const confirmPassword = passwordForm.confirmPassword.trim();
 
     if (password.length < PASSWORD_MIN_LENGTH) {
       setFormError(`Mật khẩu cần ít nhất ${PASSWORD_MIN_LENGTH} ký tự.`);
       return;
     }
-
     if (password !== confirmPassword) {
       setFormError("Mật khẩu xác nhận không khớp.");
       return;
     }
 
     setIsSubmitting(true);
-
     try {
       await changeCurrentUserPassword(password);
       toast.success("Đã cập nhật mật khẩu.");
       setActiveModal(null);
-      setForm((current) => ({ ...current, password: "", confirmPassword: "" }));
+      setPasswordForm({ password: "", confirmPassword: "" });
     } catch (error) {
       setFormError(getErrorMessage(error, "Không thể cập nhật mật khẩu."));
     } finally {
@@ -400,15 +201,16 @@ export default function ProfilePage() {
     }
   }
 
+  if (profileError && !profileUser) {
+    return (
+      <div className="profile-page-wrapper">
+        <ErrorState description={profileError} onRetry={() => window.location.reload()} />
+      </div>
+    );
+  }
+
   return (
     <div className="profile-page-wrapper">
-      <ProfileHeader
-        user={userData}
-        onOpenChangeName={openNameModal}
-        onOpenChangeEmail={openEmailModal}
-        onOpenChangePassword={openPasswordModal}
-      />
-
       {isLoadingProfile && (
         <div className="profile-inline-loading">
           <Spinner size={18} />
@@ -416,91 +218,102 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {profileError && (
-        <ErrorState
-          description={profileError}
-          onRetry={() => window.location.reload()}
-        />
-      )}
+      {profileError && <p className="profile-inline-error">{profileError}</p>}
 
-      <section className="achievements-section">
-        <div className="section-header">
-          <div>
-            <h2 className="section-title">Thành tích</h2>
-            <p className="section-subtitle">Theo dõi các mốc học tập của bạn</p>
+      <Card as="section" padding="lg" className="profile-header-card">
+        <div className="profile-header-card__avatar">{getInitial(displayName)}</div>
+        <div className="profile-header-card__body">
+          <div className="profile-header-card__top">
+            <h2>{displayName}</h2>
+            <Badge variant={isVerified ? "success" : "warning"}>
+              {isVerified ? "Đã xác minh" : "Chưa xác minh"}
+            </Badge>
           </div>
-          <Badge variant="primary">
-            {userData.achievementsCount} đã mở khóa
-          </Badge>
+          <p className="profile-header-card__handle">
+            @{profileUser?.username || "unknown"} · Học viên
+          </p>
+          <p className="profile-header-card__email">{profileUser?.email || "—"}</p>
         </div>
+        <Button
+          variant="secondary"
+          className="profile-header-card__edit"
+          iconLeft={<Edit2 size={16} />}
+          onClick={openEditModal}
+        >
+          Chỉnh sửa hồ sơ
+        </Button>
+      </Card>
 
-        {isLoadingStats && (
-          <div className="profile-stats-inline-state">
-            <Spinner size={16} />
-            <span>Đang tải thống kê...</span>
+      <div className="profile-cards-row">
+        <Card as="section" padding="lg" className="profile-info-card">
+          <h3>Thông tin tài khoản</h3>
+          <div className="profile-info-list">
+            <div className="profile-info-row">
+              <span className="profile-info-row__label">Tên hiển thị</span>
+              <span className="profile-info-row__value">{displayName}</span>
+            </div>
+            <div className="profile-info-row">
+              <span className="profile-info-row__label">Tên đăng nhập</span>
+              <span className="profile-info-row__value">{profileUser?.username || "—"}</span>
+            </div>
+            <div className="profile-info-row">
+              <span className="profile-info-row__label">Email</span>
+              <span className="profile-info-row__value">{profileUser?.email || "—"}</span>
+            </div>
+            <div className="profile-info-row">
+              <span className="profile-info-row__label">Vai trò</span>
+              <span className="profile-info-row__value">{roleLabel}</span>
+            </div>
           </div>
-        )}
+        </Card>
 
-        {statsError && (
-          <p className="profile-stats-inline-error">{statsError}</p>
-        )}
+        <Card as="section" padding="lg" className="profile-security-card">
+          <h3>Bảo mật</h3>
+          <div className="profile-security-row">
+            <span className="profile-security-row__label">Mật khẩu</span>
+            <span className="profile-security-row__value">••••••••</span>
+          </div>
+          <Button variant="secondary" fullWidth iconLeft={<KeyRound size={16} />} onClick={openPasswordModal}>
+            Đổi mật khẩu
+          </Button>
+          <div className="profile-security-divider" />
+          <button type="button" className="profile-logout-link" onClick={handleLogout}>
+            <LogOut size={14} />
+            Đăng xuất khỏi tài khoản
+          </button>
+        </Card>
+      </div>
 
-        <div className="achievements-grid">
-          {resolvedAchievements.map((achievement) => (
-            <AchievementCard key={achievement.id} {...achievement} />
-          ))}
-        </div>
-      </section>
-
-      {activeModal === "name" && (
-        <ProfileModal title="Đổi tên hiển thị" onClose={closeModal}>
-          <form
-            className="profile-modal-content"
-            onSubmit={(event) => submitProfileUpdate(event, "name")}
-          >
-            <Field label="Tên hiển thị" htmlFor="profile-display-name" error={formError}>
+      {activeModal === "edit" && (
+        <ProfileModal title="Chỉnh sửa hồ sơ" onClose={closeModal}>
+          <form className="profile-modal-content" onSubmit={submitEdit}>
+            {formError && <p className="profile-form-error">{formError}</p>}
+            <Field label="Tên hiển thị" htmlFor="profile-display-name">
               <Input
                 id="profile-display-name"
-                value={form.displayName}
-                maxLength={100}
-                invalid={Boolean(formError)}
+                value={editForm.displayName}
+                maxLength={DISPLAY_NAME_MAX_LENGTH}
                 onChange={(event) =>
-                  setForm((current) => ({ ...current, displayName: event.target.value }))
+                  setEditForm((current) => ({ ...current, displayName: event.target.value }))
                 }
                 autoFocus
               />
             </Field>
-            <div className="profile-modal-actions">
-              <Button variant="ghost" type="button" onClick={closeModal} disabled={isSubmitting}>
-                Hủy
-              </Button>
-              <Button variant="primary" type="submit" loading={isSubmitting}>
-                Lưu thay đổi
-              </Button>
-            </div>
-          </form>
-        </ProfileModal>
-      )}
-
-      {activeModal === "email" && (
-        <ProfileModal title="Đổi email" onClose={closeModal}>
-          <form
-            className="profile-modal-content"
-            onSubmit={(event) => submitProfileUpdate(event, "email")}
-          >
-            <Field label="Email" htmlFor="profile-email" error={formError}>
+            <Field label="Email" htmlFor="profile-email">
               <Input
                 id="profile-email"
                 type="email"
-                value={form.email}
+                value={editForm.email}
                 maxLength={100}
-                invalid={Boolean(formError)}
                 onChange={(event) =>
-                  setForm((current) => ({ ...current, email: event.target.value }))
+                  setEditForm((current) => ({ ...current, email: event.target.value }))
                 }
-                autoFocus
               />
             </Field>
+            <p className="profile-info-box">
+              Email mới cần đúng định dạng. Thông tin đăng nhập được cập nhật sau khi lưu
+              thành công.
+            </p>
             <div className="profile-modal-actions">
               <Button variant="ghost" type="button" onClick={closeModal} disabled={isSubmitting}>
                 Hủy
@@ -516,40 +329,40 @@ export default function ProfilePage() {
       {activeModal === "password" && (
         <ProfileModal title="Đổi mật khẩu" onClose={closeModal}>
           <form className="profile-modal-content" onSubmit={submitPasswordUpdate}>
+            <p className="profile-modal-sub">Mật khẩu mới tối thiểu 6 ký tự.</p>
+            {formError && <p className="profile-form-error">{formError}</p>}
             <Field label="Mật khẩu mới" htmlFor="profile-password">
               <Input
                 id="profile-password"
                 type="password"
-                value={form.password}
+                value={passwordForm.password}
                 minLength={PASSWORD_MIN_LENGTH}
                 onChange={(event) =>
-                  setForm((current) => ({ ...current, password: event.target.value }))
+                  setPasswordForm((current) => ({ ...current, password: event.target.value }))
                 }
                 autoFocus
               />
             </Field>
-            <Field
-              label="Xác nhận mật khẩu"
-              htmlFor="profile-confirm-password"
-              error={formError}
-            >
+            <Field label="Nhập lại mật khẩu" htmlFor="profile-confirm-password">
               <Input
                 id="profile-confirm-password"
                 type="password"
-                value={form.confirmPassword}
+                value={passwordForm.confirmPassword}
                 minLength={PASSWORD_MIN_LENGTH}
-                invalid={Boolean(formError)}
                 onChange={(event) =>
-                  setForm((current) => ({ ...current, confirmPassword: event.target.value }))
+                  setPasswordForm((current) => ({ ...current, confirmPassword: event.target.value }))
                 }
               />
             </Field>
+            <p className="profile-info-box">
+              Không dùng lại mật khẩu cũ. Sau khi đổi, hãy đăng nhập lại trên thiết bị khác.
+            </p>
             <div className="profile-modal-actions">
               <Button variant="ghost" type="button" onClick={closeModal} disabled={isSubmitting}>
                 Hủy
               </Button>
               <Button variant="primary" type="submit" loading={isSubmitting}>
-                Đổi mật khẩu
+                Cập nhật mật khẩu
               </Button>
             </div>
           </form>

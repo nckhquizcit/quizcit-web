@@ -1,9 +1,10 @@
-import "./VerifyForgotPasswordForm.css";
 import { useState, useRef, useEffect } from "react";
 import { Mail } from "lucide-react";
 import { useForgotPassword } from "../../../../stores/contexts/ForgotPasswordContext.jsx";
 import { forgotPassword, verifyResetOtp } from "../../../../services/authService";
 import { getErrorMessage } from "../../../../services/apiClient";
+import { Button } from "../../../../components/ui";
+import "../../styles/authShared.css";
 
 export default function VerifyForgotPasswordForm() {
   const { email, resetToken, setResetToken, setConfirmedToken, setCurrentState } =
@@ -76,44 +77,45 @@ export default function VerifyForgotPasswordForm() {
     }
   };
   return (
-    <form className="verify-form-container" onSubmit={handleVerify}>
-      <h2 className="form-title">Nhập mã xác minh</h2>
-      <p className="form-subtitle">Mã xác minh đã được gửi đến</p>
-
-      <div className="email-display">
-        <Mail size={18} />
-        <span>{email}</span>
+    <form className="auth-form" onSubmit={handleVerify}>
+      <div className="auth-form__head">
+        <h1>Xác minh email</h1>
+        <p>Nhập mã 6 số để đặt lại mật khẩu.</p>
       </div>
+
+      {email && (
+        <div className="auth-email-chip">
+          <Mail size={16} />
+          <span>{email}</span>
+        </div>
+      )}
 
       {error && <div className="auth-form__error">{error}</div>}
 
-      <div className="otp-section">
-        <p>Nhập 6 số mã xác minh</p>
-        <div className="otp-inputs">
-          {otp.map((data, index) => (
-            <input
-              key={index}
-              type="text"
-              inputMode="numeric"
-              maxLength="1"
-              ref={(el) => (inputRefs.current[index] = el)}
-              value={data}
-              onChange={(e) => handleChange(e.target, index)}
-              onKeyDown={(e) => handleKeyDown(e, index)}
-            />
-          ))}
-        </div>
+      <div className="auth-otp">
+        {otp.map((data, index) => (
+          <input
+            key={index}
+            type="text"
+            inputMode="numeric"
+            maxLength="1"
+            ref={(el) => (inputRefs.current[index] = el)}
+            value={data}
+            onChange={(e) => handleChange(e.target, index)}
+            onKeyDown={(e) => handleKeyDown(e, index)}
+          />
+        ))}
       </div>
 
-      <button type="submit" className="submit-btn" disabled={loading}>
-        {loading ? "Đang xác minh..." : "Xác minh"}
-      </button>
+      <Button type="submit" variant="primary" fullWidth loading={loading}>
+        Xác nhận mã
+      </Button>
 
-      <div className="resend-group">
+      <div className="auth-resend">
         <span>Không nhận được mã?</span>
         <button
           type="button"
-          className="resend-btn"
+          className="auth-resend__btn"
           onClick={handleResend}
           disabled={resending || cooldown > 0 || !email}
         >

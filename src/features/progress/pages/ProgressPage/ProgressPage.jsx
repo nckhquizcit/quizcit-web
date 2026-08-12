@@ -9,6 +9,7 @@ import {
   thetaRawToPercent,
 } from "../../../../services/mappers";
 import {
+  Badge,
   Card,
   EmptyState,
   ErrorState,
@@ -24,6 +25,15 @@ const getSkillDisplayName = (skillNameById, skillId, rowName) =>
   skillNameById.get(String(skillId ?? "").trim()) ||
   (rowName && rowName !== MISSING_SKILL_NAME ? rowName : "") ||
   MISSING_SKILL_NAME;
+
+function formatDelta(delta) {
+  if (delta > 0.001) return { text: `+${delta.toFixed(2)}`, trend: "up" };
+  if (delta < -0.001) return { text: `\u2212${Math.abs(delta).toFixed(2)}`, trend: "down" };
+  return { text: "0.00", trend: "flat" };
+}
+
+const TREND_ICON = { up: TrendingUp, down: TrendingDown, flat: Minus };
+const TREND_BADGE_VARIANT = { up: "success", down: "error", flat: "neutral" };
 
 export default function ProgressPage() {
   const [abilities, setAbilities] = useState([]);
@@ -101,70 +111,73 @@ export default function ProgressPage() {
   return (
     <div className="progress-page">
       <header className="progress-header">
-        <div className="progress-header__text">
-          <p className="progress-eyebrow">Tiến độ học tập</p>
-          <h1>Năng lực theo kỹ năng</h1>
-          <p className="progress-header__desc">
-            Điểm năng lực quy đổi thang 0–4; xếp loại theo theta sau mỗi bài
-            kiểm tra, và sau từng nhóm 5 câu trong bài thích ứng.
-          </p>
-          <p className={`progress-level progress-level--${averageLevel.key}`}>
-            {averageLevel.label}
-          </p>
-        </div>
-        <div className="progress-header__ring">
-          <ProgressRing
-            value={averagePercent}
-            size={130}
-            stroke={12}
-            label={formatScaledThetaValue(averageAbility)}
-            sublabel="trên 4"
-          />
-        </div>
+        <h1>Tiến độ</h1>
+        <p className="progress-header__desc">
+          Theo dõi theta theo kỹ năng và các lần hệ thống cập nhật năng lực.
+        </p>
       </header>
 
-      {abilities.length === 0 ? (
-        <EmptyState
-          title="Chưa có dữ liệu năng lực"
-          description="Hoàn thành một bài quiz để hệ thống cập nhật theta theo kỹ năng."
-        />
-      ) : (
-        <section className="progress-section">
-          <h2 className="progress-section__title">Kỹ năng của bạn</h2>
-          <div className="progress-grid">
-            {abilities.map((ability) => {
-              const thetaRaw = Number(ability.theta ?? 0);
-              const percent = thetaRawToPercent(thetaRaw);
-              const level = getAbilityLevel(thetaRaw);
-              return (
-                <Card
-                  className="skill-progress-card"
-                  key={ability.id || ability.skillId}
-                >
-                  <div className="skill-progress-card__head">
-                    <span className="skill-progress-card__name">
-                      {getSkillDisplayName(skillNameById, ability.skillId, ability.name)}
-                    </span>
-                    <div className="skill-progress-card__score">
-                      <strong className="skill-progress-card__theta">
-                        {formatScaledThetaValue(thetaRaw)}
-                        <span>/4</span>
-                      </strong>
-                      <span className={`skill-progress-card__level skill-progress-card__level--${level.key}`}>
-                        {level.label}
-                      </span>
-                    </div>
-                  </div>
-                  <ProgressBar value={percent} />
-                </Card>
-              );
-            })}
+      <div className="progress-top-grid">
+        <Card as="section" padding="lg" className="progress-overview-card">
+          <h2>Năng lực tổng quan</h2>
+          <p className="progress-overview-card__meta">
+            Mức {averageLevel.label} · Thang 0–4
+          </p>
+          <div className="progress-overview-card__ring">
+            <ProgressRing
+              value={averagePercent}
+              size={130}
+              stroke={12}
+              label={formatScaledThetaValue(averageAbility)}
+              sublabel="trên 4"
+            />
           </div>
-        </section>
-      )}
+          <p className="progress-overview-card__note">
+            Cập nhật sau bài kiểm tra hoặc mỗi nhóm 5 câu
+          </p>
+        </Card>
+
+        <Card as="section" padding="lg" className="progress-skills-card">
+          <h2>Kỹ năng của bạn</h2>
+          {abilities.length === 0 ? (
+            <EmptyState
+              title="Chưa có dữ liệu năng lực"
+              description="Hoàn thành một bài quiz để hệ thống cập nhật theta theo kỹ năng."
+            />
+          ) : (
+            <div className="progress-grid">
+              {abilities.map((ability) => {
+                const thetaRaw = Number(ability.theta ?? 0);
+                const percent = thetaRawToPercent(thetaRaw);
+                const level = getAbilityLevel(thetaRaw);
+                return (
+                  <div className="skill-tile" key={ability.id || ability.skillId}>
+                    <div className="skill-tile__head">
+                      <span className="skill-tile__name">
+                        {getSkillDisplayName(skillNameById, ability.skillId, ability.name)}
+                      </span>
+                      <span className="skill-tile__level">{level.label}</span>
+                    </div>
+                    <strong className="skill-tile__theta">
+                      {formatScaledThetaValue(thetaRaw)}
+                      <span>/ 4</span>
+                    </strong>
+                    <ProgressBar value={percent} />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Card>
+      </div>
 
       <section className="progress-section">
-        <h2 className="progress-section__title">Lịch sử cập nhật</h2>
+        <div className="progress-section__head">
+          <h2 className="progress-section__title">Lịch sử cập nhật</h2>
+          <p className="progress-section__sub">
+            Theta được lưu sau bài kiểm tra và sau từng nhóm 5 câu thích ứng.
+          </p>
+        </div>
         {histories.length === 0 ? (
           <p className="progress-muted">
             Chưa có lịch sử theta cho tài khoản này.
@@ -173,32 +186,25 @@ export default function ProgressPage() {
           <Card padding="none" className="progress-history-card">
             {histories.slice(0, 12).map((item) => {
               const thetaRaw = Number(item.theta ?? 0);
-              const delta = Number(item.delta ?? 0);
               const level = getAbilityLevel(thetaRaw);
-              const trend =
-                delta > 0 ? "up" : delta < 0 ? "down" : "flat";
-              const TrendIcon =
-                trend === "up"
-                  ? TrendingUp
-                  : trend === "down"
-                    ? TrendingDown
-                    : Minus;
+              const delta = formatDelta(Number(item.delta ?? 0));
+              const TrendIcon = TREND_ICON[delta.trend];
               return (
                 <div className="progress-history-row" key={item.id}>
                   <span className="progress-history-row__name">
                     {getSkillDisplayName(skillNameById, item.skillId, item.name)}
                   </span>
                   <span className="progress-history-row__theta">
-                    {formatScaledThetaValue(thetaRaw)}
-                    <small>{level.label}</small>
+                    θ {formatScaledThetaValue(thetaRaw)} / 4 · {level.label}
                   </span>
-                  <span
-                    className={`progress-history-row__delta progress-history-row__delta--${trend}`}
+                  <Badge
+                    variant={TREND_BADGE_VARIANT[delta.trend]}
+                    size="sm"
+                    className="progress-history-row__delta"
+                    iconLeft={<TrendIcon size={12} />}
                   >
-                    <TrendIcon size={14} />
-                    {delta > 0 ? "+" : ""}
-                    {delta.toFixed(2)}
-                  </span>
+                    {delta.text}
+                  </Badge>
                   {item.createdAt && (
                     <small className="progress-history-row__date">
                       {item.createdAt}

@@ -50,8 +50,8 @@ export default function RegisterForm() {
   return (
     <form className="auth-form" onSubmit={handleRegister}>
       <div className="auth-form__head">
-        <h1>Đăng ký</h1>
-        <p>Tạo tài khoản mới để bắt đầu ôn tập</p>
+        <h1>Tạo tài khoản</h1>
+        <p>Bắt đầu ôn tập cùng QuizCIT.</p>
       </div>
 
       {error && <div className="auth-form__error">{error}</div>}

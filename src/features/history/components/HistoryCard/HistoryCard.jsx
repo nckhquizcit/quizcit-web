@@ -1,71 +1,47 @@
-import { Calendar, FileText, TrendingUp } from "lucide-react";
-import { Badge, Button, Card } from "../../../../components/ui";
-import {
-  formatScaledThetaValue,
-  getAbilityLevel,
-} from "../../../../services/mappers";
+import { ChevronRight } from "lucide-react";
+import { Card } from "../../../../components/ui";
+import { formatScaledThetaValue } from "../../../../services/mappers";
 import "./HistoryCard.css";
 
 export default function HistoryCard({
   title,
   subjectName,
   date,
-  questionCount,
   score,
   totalQuestions,
   estimatedAbility,
   percentage,
   onViewDetail,
 }) {
-  const badgeVariant =
-    percentage >= 80 ? "success" : percentage >= 60 ? "info" : "warning";
+  const scoreTier = percentage >= 80 ? "good" : percentage >= 60 ? "fair" : "low";
 
   return (
-    <Card padding="lg" className="history-item-card">
-      <div className="history-item-header">
-        <h3 className="history-item-title">{title}</h3>
-        <Badge variant={badgeVariant}>{percentage}%</Badge>
-      </div>
+    <Card
+      as="button"
+      type="button"
+      interactive
+      padding="none"
+      className="history-row"
+      onClick={onViewDetail}
+    >
+      <span className={`history-row__badge history-row__badge--${scoreTier}`}>
+        {percentage}%
+      </span>
 
-      <div className="history-item-meta">
-        <div className="meta-info">
-          <Calendar size={14} />
-          <span>{date}</span>
-        </div>
-        <div className="meta-info">
-          <FileText size={14} />
-          <span>{subjectName}</span>
-        </div>
-        <div className="meta-info">
-          <FileText size={14} />
-          <span>{questionCount} câu hỏi</span>
-        </div>
-      </div>
+      <span className="history-row__main">
+        <span className="history-row__name">{title}</span>
+        <span className="history-row__meta">
+          {subjectName} · {score}/{totalQuestions} câu
+        </span>
+      </span>
 
-      <div className="history-item-stats-container">
-        <div className="stats-group">
-          <div className="stat-box">
-            <span className="stat-label">Điểm số</span>
-            <span className="stat-value">
-              {score}/{totalQuestions}
-            </span>
-          </div>
-          <div className="stat-box">
-            <div className="stat-label-with-icon">
-              <TrendingUp size={14} />
-              <span className="stat-label">Năng lực ước tính</span>
-            </div>
-            <span className="stat-value">
-              {formatScaledThetaValue(estimatedAbility)}
-              <small> /4 · {getAbilityLevel(estimatedAbility).label}</small>
-            </span>
-          </div>
-        </div>
-
-        <Button variant="secondary" size="sm" onClick={onViewDetail}>
-          Xem chi tiết
-        </Button>
-      </div>
+      <span className="history-row__side">
+        <span className="history-row__theta">
+          θ {formatScaledThetaValue(estimatedAbility)} / 4
+        </span>
+        <span className="history-row__date">{date}</span>
+        <ChevronRight size={18} className="history-row__chevron" />
+      </span>
     </Card>
   );
 }

@@ -98,15 +98,22 @@ export default function HistoryPage() {
           description="Hãy bắt đầu một bài quiz để xem lịch sử tại đây."
         />
       ) : (
-        <div className="history-list">
-          {historyData.map((item) => (
-            <HistoryCard
-              key={item.id}
-              {...item}
-              onViewDetail={() => navigate(`/app/quiz/result/${item.id}`)}
-            />
-          ))}
-        </div>
+        <section className="history-section">
+          <h2 className="history-section__label">Các bài đã hoàn thành</h2>
+          <div className="history-list">
+            {historyData.map((item) => (
+              <HistoryCard
+                key={item.id}
+                {...item}
+                onViewDetail={() =>
+                  navigate(`/app/quiz/result/${item.id}`, {
+                    state: { from: "history" },
+                  })
+                }
+              />
+            ))}
+          </div>
+        </section>
       )}
     </div>
   );
