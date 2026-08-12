@@ -105,7 +105,8 @@ export default function ProgressPage() {
     );
   }
 
-  const averagePercent = thetaRawToPercent(averageAbility);
+  const hasAbilityData = abilities.length > 0;
+  const averagePercent = hasAbilityData ? thetaRawToPercent(averageAbility) : 0;
   const averageLevel = getAbilityLevel(averageAbility);
 
   return (
@@ -121,14 +122,16 @@ export default function ProgressPage() {
         <Card as="section" padding="lg" className="progress-overview-card">
           <h2>Năng lực tổng quan</h2>
           <p className="progress-overview-card__meta">
-            Mức {averageLevel.label} · Thang 0–4
+            {hasAbilityData
+              ? `Mức ${averageLevel.label} · Thang 0–4`
+              : "Chưa có dữ liệu · Thang 0–4"}
           </p>
           <div className="progress-overview-card__ring">
             <ProgressRing
               value={averagePercent}
               size={130}
               stroke={12}
-              label={formatScaledThetaValue(averageAbility)}
+              label={hasAbilityData ? formatScaledThetaValue(averageAbility) : "—"}
               sublabel="trên 4"
             />
           </div>

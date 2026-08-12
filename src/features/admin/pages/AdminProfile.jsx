@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { BookOpen, ClipboardList, Eye, HelpCircle, LogOut, Shield, Users } from "lucide-react";
 import AdminPageHeader from "../components/AdminPageHeader";
 import { adminProfileService } from "../services/profileService.js";
+import { getStoredUser } from "../../../services/apiClient";
 import { enterUserPreview } from "../../../services/userPreviewMode";
 import { logout } from "../../../services/authService";
 import "./AdminProfile.css";
@@ -92,9 +93,16 @@ export default function AdminProfile() {
     };
   }, []);
 
-  const displayName = admin?.displayName || admin?.display_name || admin?.username || 'Admin';
-  const username = admin?.username || 'admin';
-  const email = admin?.email || 'admin@quizcit.vn';
+  const storedUser = useMemo(() => getStoredUser(), []);
+  const displayName =
+    admin?.displayName ||
+    admin?.display_name ||
+    admin?.username ||
+    storedUser?.displayName ||
+    storedUser?.username ||
+    "Quản trị viên";
+  const username = admin?.username || storedUser?.username || "—";
+  const email = admin?.email || storedUser?.email || "—";
   const formatStat = (value) => (loading ? "..." : numberFormatter.format(value ?? 0));
 
   const handlePreviewAsUser = () => {
