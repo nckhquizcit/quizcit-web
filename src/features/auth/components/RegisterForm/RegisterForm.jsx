@@ -7,6 +7,9 @@ import { Button, Field, Input } from "../../../../components/ui";
 import useCountdown from "../../hooks/useCountdown";
 import "./RegisterForm.css";
 
+// BE gioi han REGISTER 5 lan / 900s.
+const RATE_LIMIT_COOLDOWN_SECONDS = 900;
+
 export default function RegisterForm() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -52,8 +55,8 @@ export default function RegisterForm() {
       });
     } catch (apiError) {
       if (isRateLimited(apiError)) {
-        setError("Bạn thao tác quá nhanh. Vui lòng thử lại sau ít phút.");
-        startCooldown();
+        setError("Bạn đã thử quá nhiều lần. Vui lòng thử lại sau khoảng 15 phút.");
+        startCooldown(RATE_LIMIT_COOLDOWN_SECONDS);
       } else {
         setError(getErrorMessage(apiError, "Đăng ký thất bại."));
       }
@@ -81,6 +84,7 @@ export default function RegisterForm() {
           onChange={handleChange}
           iconLeft={<User size={18} />}
           autoComplete="username"
+          maxLength={50}
           required
         />
       </Field>
@@ -95,6 +99,7 @@ export default function RegisterForm() {
           onChange={handleChange}
           iconLeft={<AtSign size={18} />}
           autoComplete="email"
+          maxLength={100}
           required
         />
       </Field>
@@ -110,6 +115,8 @@ export default function RegisterForm() {
             onChange={handleChange}
             iconLeft={<LockKeyhole size={18} />}
             autoComplete="new-password"
+            minLength={6}
+            maxLength={255}
             required
           />
           <button
@@ -138,6 +145,8 @@ export default function RegisterForm() {
             onChange={handleChange}
             iconLeft={<LockKeyhole size={18} />}
             autoComplete="new-password"
+            minLength={6}
+            maxLength={255}
             invalid={Boolean(confirmError)}
             required
           />

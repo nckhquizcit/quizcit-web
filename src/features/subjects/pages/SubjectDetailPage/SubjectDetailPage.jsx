@@ -7,7 +7,11 @@ import {
   getTheoriesBySubject,
 } from "../../../../services/contentService";
 import { getQuizzesBySubject, startAdaptiveQuiz } from "../../../../services/quizService";
-import { enrollCourse, isAlreadyEnrolled } from "../../../../services/enrollmentService";
+import {
+  enrollCourse,
+  getMyEnrollments,
+  isAlreadyEnrolled,
+} from "../../../../services/enrollmentService";
 import {
   Badge,
   Button,
@@ -18,7 +22,8 @@ import {
   useToast,
 } from "../../../../components/ui";
 import ChatBox from "../../../../components/ChatBox/ChatBox";
-import { getErrorMessage, isAccessDenied } from "../../../../services/apiClient";
+import { getErrorMessage, getStoredUser, isAccessDenied } from "../../../../services/apiClient";
+import { isUserPreviewActive } from "../../../../services/userPreviewMode";
 import { getTheoryDisplayTitle } from "../../../content/utils/theoryDisplay.js";
 import { isValidAdaptiveQuestionCount } from "../../../quiz/pages/AdaptiveQuizPage/AdaptiveQuizPage.logic.js";
 import "./SubjectDetailPage.css";
@@ -82,11 +87,48 @@ export default function SubjectDetailPage() {
     }
   };
 
+  // Chỉ admin thật (không ở chế độ xem như học viên) hoặc người đã đăng ký mới
+  // được xem nội dung. BE chỉ chặn ở endpoint bài kiểm tra, còn chương và lý
+  // thuyết vẫn trả dữ liệu, nên FE phải tự chặn trước khi gọi.
+  const resolveContentAccess = useCallback(async () => {
+    const user = getStoredUser();
+    const isAdmin = user?.role === "ADMINISTRATOR";
+    const previewActive = isUserPreviewActive(user);
+    const adminAccess = isAdmin && !previewActive;
+
+    let enrolled = false;
+    if (!adminAccess) {
+      try {
+        const enrollments = await getMyEnrollments();
+        enrolled = (enrollments || []).some(
+          (item) => (item.subjectId || item.subject_id) === subjectId
+        );
+      } catch {
+        // Không xác định được thì coi như chưa đăng ký để tránh gọi nội dung khóa.
+        enrolled = false;
+      }
+    }
+
+    return adminAccess || enrolled;
+  }, [subjectId]);
+
   // Nội dung trong môn yêu cầu đã đăng ký, nên tách khỏi request thông tin môn.
   const loadContent = useCallback(async () => {
     const loadId = loadIdRef.current;
-    setContentBlocked(false);
     setContentError(null);
+
+    const canAccessContent = await resolveContentAccess();
+    if (loadIdRef.current !== loadId) return;
+
+    if (!canAccessContent) {
+      setChapters([]);
+      setTheoriesByChapter({});
+      setQuizzesByChapter({});
+      setActiveChapterId(null);
+      setContentBlocked(true);
+      return;
+    }
+    setContentBlocked(false);
 
     const results = await Promise.allSettled([
       getChaptersBySubject(subjectId),
@@ -129,7 +171,7 @@ export default function SubjectDetailPage() {
     setActiveChapterId((current) =>
       current && chapterIds.includes(current) ? current : chapterIds[0] || null
     );
-  }, [subjectId]);
+  }, [subjectId, resolveContentAccess]);
 
   const load = useCallback(async () => {
     const loadId = (loadIdRef.current += 1);
@@ -446,7 +488,7 @@ export default function SubjectDetailPage() {
         </>
       )}
 
-      {theories.length > 0 && (
+      {!contentUnavailable && totalTheories > 0 && (
         <ChatBox key={subjectId} subjectId={subjectId} chapterId={activeChapterId} />
       )}
     </div>

@@ -226,9 +226,15 @@ export default function AdminUsers() {
       align: "right",
       render: (user) => {
         const isSelf = String(user.userId) === currentUserId;
+        const resetPasswordAction = {
+          label: "Đặt lại mật khẩu",
+          icon: <KeyRound size={16} />,
+          onClick: () => setResetUser(user),
+        };
 
+        // BE chi chan tu khoa/xoa/doi vai tro chinh minh, van cho tu dat lai mat khau.
         if (isSelf) {
-          return <span className="adm2-note--muted">Tài khoản hiện tại</span>;
+          return <RowActions variant="menu" items={[resetPasswordAction]} />;
         }
 
         return (
@@ -243,11 +249,7 @@ export default function AdminUsers() {
                   setIsAuthModalOpen(true);
                 },
               },
-              {
-                label: "Đặt lại mật khẩu",
-                icon: <KeyRound size={16} />,
-                onClick: () => setResetUser(user),
-              },
+              resetPasswordAction,
               {
                 label: user.status === "BANNED" ? "Mở khóa tài khoản" : "Khóa tài khoản",
                 icon: user.status === "BANNED" ? <Unlock size={16} /> : <Lock size={16} />,
@@ -323,7 +325,7 @@ export default function AdminUsers() {
           />
 
           <p className="adm2-user-scope-note">
-            Tìm kiếm và bộ lọc trạng thái áp dụng trong trang hiện tại ({PAGE_SIZE} người dùng/trang).
+            Tìm kiếm, bộ lọc và sắp xếp áp dụng trong trang hiện tại ({PAGE_SIZE} người dùng/trang).
           </p>
 
           <div className="adm2-user-pager">

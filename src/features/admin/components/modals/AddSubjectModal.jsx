@@ -74,6 +74,7 @@ export default function AddSubjectModal({ open, onClose, onSubmit }) {
             placeholder="Tên môn học"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            maxLength={200}
           />
         </label>
         <label className="quiz-field" htmlFor="add-subject-code">
@@ -83,6 +84,7 @@ export default function AddSubjectModal({ open, onClose, onSubmit }) {
             placeholder="Mã môn học"
             value={courseCode}
             onChange={(e) => setCourseCode(e.target.value)}
+            maxLength={20}
           />
         </label>
         <label className="quiz-field" htmlFor="add-subject-description">

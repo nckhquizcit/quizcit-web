@@ -264,8 +264,21 @@ export function request(config) {
   return inFlightGets.get(key);
 }
 
+// Loi validation cua BE tra message chung "Du lieu khong hop le", chi tiet nam trong .validation.
+function joinValidationMessages(validation) {
+  if (!validation || typeof validation !== "object") return "";
+  return Object.values(validation)
+    .filter((message) => typeof message === "string" && message.trim())
+    .join(" ");
+}
+
 export function getErrorMessage(error, fallback = "Đã có lỗi xảy ra. Vui lòng thử lại.") {
-  return error?.message || error?.response?.data?.message || fallback;
+  return (
+    joinValidationMessages(error?.validation) ||
+    error?.message ||
+    error?.response?.data?.message ||
+    fallback
+  );
 }
 
 export function isAccessDenied(error) {

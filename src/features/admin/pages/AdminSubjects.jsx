@@ -303,7 +303,7 @@ export default function AdminSubjects() {
         open={Boolean(deletingSubject)}
         onClose={() => setDeletingSubject(null)}
         title="Xóa môn học"
-        message="Bạn có muốn xóa môn học này không? Tất cả chương, lý thuyết, câu hỏi và đề thi liên quan cũng sẽ bị xóa."
+        message="Bạn có muốn xóa môn học này không? Dữ liệu liên quan (chương, lý thuyết, câu hỏi, đề thi) sẽ không còn truy cập được. Hành động này không thể hoàn tác."
         itemName={deletingSubject?.name}
         onConfirm={handleDeleteSubject}
       />

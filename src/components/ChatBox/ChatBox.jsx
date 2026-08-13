@@ -5,7 +5,10 @@ import ChatMessages from "./ChatMessages";
 import ChatComposer from "./ChatComposer";
 import "./ChatBox.css";
 
-/** Trợ giảng RAG chỉ được mount trong vùng đọc lý thuyết. */
+/**
+ * Trợ giảng RAG chỉ được mount trong vùng đọc lý thuyết. Phạm vi trả lời do
+ * môn học quyết định, chương chỉ là ngữ cảnh nên có thể không có.
+ */
 export default function ChatBox({ subjectId, chapterId }) {
   const [open, setOpen] = useState(false);
   const inputRef = useRef(null);
@@ -26,7 +29,7 @@ export default function ChatBox({ subjectId, chapterId }) {
     };
   }, [open]);
 
-  if (!subjectId || !chapterId) return null;
+  if (!subjectId) return null;
 
   return (
     <div className={`chatbox-root ${open ? "chatbox-root--open" : ""}`}>

@@ -12,6 +12,9 @@ import useCountdown from "../../hooks/useCountdown";
 import "../../styles/authShared.css";
 import "./LoginForm.css";
 
+// BE gioi han LOGIN 10 lan / 900s.
+const RATE_LIMIT_COOLDOWN_SECONDS = 900;
+
 export default function LoginForm() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -53,8 +56,8 @@ export default function LoginForm() {
       navigate(auth.role === "ADMINISTRATOR" ? "/admin" : "/app");
     } catch (apiError) {
       if (isRateLimited(apiError)) {
-        setError("Bạn thao tác quá nhanh. Vui lòng thử lại sau ít phút.");
-        startCooldown();
+        setError("Bạn đã thử quá nhiều lần. Vui lòng thử lại sau khoảng 15 phút.");
+        startCooldown(RATE_LIMIT_COOLDOWN_SECONDS);
       } else {
         const message = getErrorMessage(apiError, "Đăng nhập thất bại.");
         // 403 co the la "chua xac thuc" hoac "bi khoa" (BE chua co ma loi rieng);

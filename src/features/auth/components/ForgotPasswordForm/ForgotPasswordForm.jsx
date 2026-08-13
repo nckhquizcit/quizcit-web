@@ -5,8 +5,11 @@ import { useForgotPassword } from "../../../../stores/contexts/ForgotPasswordCon
 import { forgotPassword } from "../../../../services/authService";
 import { getErrorMessage, isRateLimited } from "../../../../services/apiClient";
 import { Button, Field, Input } from "../../../../components/ui";
-import useCountdown from "../../hooks/useCountdown";
+import useCountdown, { isWindowRateLimit } from "../../hooks/useCountdown";
 import "../../styles/authShared.css";
+
+// BE gioi han FORGOT_PASSWORD 3 lan / 600s.
+const RATE_LIMIT_COOLDOWN_SECONDS = 600;
 
 export default function ForgotPasswordForm() {
   const { setCurrentState, setEmail, setResetToken } = useForgotPassword();
@@ -39,10 +42,12 @@ export default function ForgotPasswordForm() {
       setResetToken(res.resetToken);
       setCurrentState(2);
     } catch (apiError) {
-      if (isRateLimited(apiError)) {
-        setError("Bạn thao tác quá nhanh. Vui lòng thử lại sau ít phút.");
-        startCooldown();
+      if (isRateLimited(apiError) && isWindowRateLimit(apiError)) {
+        setError("Bạn đã thử quá nhiều lần. Vui lòng thử lại sau khoảng 10 phút.");
+        startCooldown(RATE_LIMIT_COOLDOWN_SECONDS);
       } else {
+        // 429 con lai la cooldown gui lai ma 60s cua challenge, khong phai gioi han cua so.
+        if (isRateLimited(apiError)) startCooldown();
         setError(getErrorMessage(apiError, "Không thể gửi mã xác minh."));
       }
     } finally {

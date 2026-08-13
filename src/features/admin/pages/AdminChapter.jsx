@@ -474,7 +474,7 @@ export default function AdminChapters() {
         open={Boolean(deletingChapter)}
         onClose={() => setDeletingChapter(null)}
         title="Xóa chương"
-        message="Bạn có muốn xóa chương này không? Tất cả câu hỏi và lý thuyết trong chương cũng sẽ bị xóa."
+        message="Bạn có muốn xóa chương này không? Dữ liệu liên quan (lý thuyết, câu hỏi, đề thi) sẽ không còn truy cập được. Hành động này không thể hoàn tác."
         itemName={deletingChapter?.name}
         onConfirm={handleDeleteChapter}
       />

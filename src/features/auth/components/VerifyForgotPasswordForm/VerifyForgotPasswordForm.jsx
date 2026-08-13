@@ -5,10 +5,12 @@ import { useForgotPassword } from "../../../../stores/contexts/ForgotPasswordCon
 import { forgotPassword, verifyResetOtp } from "../../../../services/authService";
 import { getErrorMessage, isRateLimited } from "../../../../services/apiClient";
 import { Button } from "../../../../components/ui";
-import useCountdown from "../../hooks/useCountdown";
+import useCountdown, { isWindowRateLimit } from "../../hooks/useCountdown";
 import "../../styles/authShared.css";
 
 const DEAD_TOKEN_MESSAGE = "Mã đã hết hiệu lực. Vui lòng bấm Gửi lại mã.";
+// BE gioi han FORGOT_PASSWORD 3 lan / 600s.
+const RATE_LIMIT_COOLDOWN_SECONDS = 600;
 
 export default function VerifyForgotPasswordForm() {
   const { email, resetToken, setResetToken, setConfirmedToken, setCurrentState } =
@@ -87,10 +89,14 @@ export default function VerifyForgotPasswordForm() {
       startCooldown();
       inputRefs.current[0]?.focus();
     } catch (apiError) {
-      if (isRateLimited(apiError)) {
-        startCooldown();
+      if (isRateLimited(apiError) && isWindowRateLimit(apiError)) {
+        startCooldown(RATE_LIMIT_COOLDOWN_SECONDS);
+        setError("Bạn đã thử quá nhiều lần. Vui lòng thử lại sau khoảng 10 phút.");
+      } else {
+        // 429 con lai la cooldown gui lai ma 60s cua challenge, khong phai gioi han cua so.
+        if (isRateLimited(apiError)) startCooldown();
+        setError(getErrorMessage(apiError, "Không thể gửi lại mã."));
       }
-      setError(getErrorMessage(apiError, "Không thể gửi lại mã."));
     } finally {
       setResending(false);
     }

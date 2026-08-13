@@ -84,6 +84,7 @@ export default function AddChapterModal({ open, onClose, subject, onSubmit }) {
             placeholder="Tên chương"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            maxLength={200}
           />
         </label>
         <label className="quiz-field" htmlFor="add-chapter-display-order">

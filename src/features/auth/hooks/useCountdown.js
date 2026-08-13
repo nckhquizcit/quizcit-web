@@ -2,6 +2,13 @@ import { useCallback, useEffect, useState } from "react";
 
 const DEFAULT_DURATION_SECONDS = 60;
 
+// BE tra 429 cho hai truong hop cho rat khac nhau va khong co Retry-After:
+// gioi han theo cua so (AuthRateLimitService: login/register 900s, gui lai ma 600s)
+// va cooldown gui lai ma cua challenge (60s). Chi phan biet duoc qua message.
+export function isWindowRateLimit(error) {
+  return String(error?.message || "").includes("quá nhiều yêu cầu");
+}
+
 function secondsLeft(deadline) {
   if (!deadline) return 0;
   return Math.max(0, Math.ceil((deadline - Date.now()) / 1000));

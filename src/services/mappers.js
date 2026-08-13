@@ -113,6 +113,8 @@ function normalizeVietnameseDisplayText(value) {
 export function mapSubject(raw = {}) {
   const subjectId = pick(raw, ["subjectId", "subject_id", "id"]);
   const courseCode = pick(raw, ["courseCode", "course_code", "code"], "");
+  // Danh sách môn đã đăng ký không kèm cờ hiển thị, không được suy ra là true.
+  const visible = pick(raw, ["visible", "isVisible", "is_visible"]);
 
   return {
     ...raw,
@@ -123,13 +125,11 @@ export function mapSubject(raw = {}) {
     course_code: courseCode,
     name: normalizeVietnameseDisplayText(pick(raw, ["name"], "")),
     description: normalizeVietnameseDisplayText(pick(raw, ["description"], "")),
-    visible: Boolean(pick(raw, ["visible", "isVisible", "is_visible"], true)),
+    visible: visible === undefined ? undefined : Boolean(visible),
     createdAt: pick(raw, ["createdAt", "created_at"], null),
     displayOrder: toNumber(pick(raw, ["displayOrder", "display_order"], 0)),
     chapterCount: toNumber(pick(raw, ["chapterCount", "chapter_count"], 0)),
     progress: toNumber(pick(raw, ["progress", "progressPercent"], 0)),
-    category: pick(raw, ["category"], "Nen tang"),
-    status: pick(raw, ["status"], "Đang học"),
   };
 }
 

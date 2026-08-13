@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
+import { getErrorMessage } from "../../../../services/apiClient";
 import "./modal.css";
 
 const PASSWORD_MIN_LENGTH = 6;
@@ -55,7 +56,7 @@ export default function ResetPasswordModal({ isOpen, onClose, user, onSave }) {
       onClose();
     } catch (error) {
       // Giu modal mo de admin khong mat mat khau vua go.
-      setFormError(error?.message || "Không thể đặt lại mật khẩu. Vui lòng thử lại.");
+      setFormError(getErrorMessage(error, "Không thể đặt lại mật khẩu. Vui lòng thử lại."));
     } finally {
       setIsSubmitting(false);
     }

@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Lock } from "lucide-react";
 import {
   getChaptersBySubject,
   getSubjectById,
   getTheoriesByChapter,
   getTheoryById,
 } from "../../../../services/contentService";
-import { getErrorMessage } from "../../../../services/apiClient";
-import { Badge, Card, ErrorState, Spinner } from "../../../../components/ui";
+import { getErrorMessage, isAccessDenied } from "../../../../services/apiClient";
+import { Badge, Button, Card, EmptyState, ErrorState, Spinner } from "../../../../components/ui";
 import ChatBox from "../../../../components/ChatBox/ChatBox";
 import { useChatSession } from "../../../../components/ChatBox/useChatSession";
 import ChatMessages from "../../../../components/ChatBox/ChatMessages";
@@ -29,6 +29,7 @@ export default function TheoryPage() {
   const [chapterTheories, setChapterTheories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [accessDenied, setAccessDenied] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -37,6 +38,7 @@ export default function TheoryPage() {
       try {
         setLoading(true);
         setError(null);
+        setAccessDenied(false);
         const [subjectData, chapters = [], theoryData] = await Promise.all([
           getSubjectById(subjectId),
           getChaptersBySubject(subjectId),
@@ -55,7 +57,13 @@ export default function TheoryPage() {
         setTheory(theoryData);
         setChapterTheories(theories);
       } catch (err) {
-        if (alive) setError(getErrorMessage(err, "Không thể tải nội dung bài học."));
+        if (!alive) return;
+        // BE trả 403 khi chưa đăng ký môn, hướng người dùng về trang đăng ký.
+        if (isAccessDenied(err)) {
+          setAccessDenied(true);
+        } else {
+          setError(getErrorMessage(err, "Không thể tải nội dung bài học."));
+        }
       } finally {
         if (alive) setLoading(false);
       }
@@ -76,6 +84,23 @@ export default function TheoryPage() {
       <div className="theory-page theory-page--center">
         <Spinner size={32} />
         <p>Đang tải bài học...</p>
+      </div>
+    );
+  }
+
+  if (accessDenied) {
+    return (
+      <div className="theory-page theory-page--center">
+        <EmptyState
+          icon={<Lock size={28} />}
+          title="Bạn chưa đăng ký môn này"
+          description="Bạn cần đăng ký môn học để xem bài học này."
+          action={
+            <Button variant="primary" onClick={() => navigate(`/app/subjects/${subjectId}`)}>
+              Đăng ký môn học
+            </Button>
+          }
+        />
       </div>
     );
   }
