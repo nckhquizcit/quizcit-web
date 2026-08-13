@@ -1,11 +1,14 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Mail } from "lucide-react";
 import { useForgotPassword } from "../../../../stores/contexts/ForgotPasswordContext.jsx";
 import { forgotPassword, verifyResetOtp } from "../../../../services/authService";
-import { getErrorMessage } from "../../../../services/apiClient";
+import { getErrorMessage, isRateLimited } from "../../../../services/apiClient";
 import { Button } from "../../../../components/ui";
+import useCountdown from "../../hooks/useCountdown";
 import "../../styles/authShared.css";
+
+const DEAD_TOKEN_MESSAGE = "Mã đã hết hiệu lực. Vui lòng bấm Gửi lại mã.";
 
 export default function VerifyForgotPasswordForm() {
   const { email, resetToken, setResetToken, setConfirmedToken, setCurrentState } =
@@ -14,14 +17,12 @@ export default function VerifyForgotPasswordForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
-  const [cooldown, setCooldown] = useState(0);
   const inputRefs = useRef([]);
 
-  useEffect(() => {
-    if (cooldown <= 0) return undefined;
-    const timer = setInterval(() => setCooldown((prev) => prev - 1), 1000);
-    return () => clearInterval(timer);
-  }, [cooldown]);
+  const trimmedEmail = (email || "").trim();
+  const [cooldown, startCooldown] = useCountdown(
+    trimmedEmail ? `otp-cooldown:reset:${trimmedEmail.toLowerCase()}` : "",
+  );
 
   const handleChange = (element, index) => {
     if (isNaN(element.value)) return false;
@@ -46,7 +47,7 @@ export default function VerifyForgotPasswordForm() {
       return;
     }
     if (!resetToken) {
-      setError("Phiên đặt lại mật khẩu đã hết hạn. Vui lòng thử lại.");
+      setError(DEAD_TOKEN_MESSAGE);
       return;
     }
     try {
@@ -59,25 +60,36 @@ export default function VerifyForgotPasswordForm() {
       setConfirmedToken(res.confirmedToken);
       setCurrentState(3);
     } catch (apiError) {
-      setError(getErrorMessage(apiError, "Xác minh thất bại."));
+      // 429 (sai qua so lan) va 400 (het han/da dung) deu giet challenge.
+      if (apiError?.status === 429 || apiError?.status === 400) {
+        setResetToken("");
+        setOtp(new Array(6).fill(""));
+        setError(DEAD_TOKEN_MESSAGE);
+      } else {
+        setError(getErrorMessage(apiError, "Xác minh thất bại."));
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const handleResend = async () => {
-    if (!email || cooldown > 0) return;
+    if (!trimmedEmail || resending || cooldown > 0) return;
     try {
       setResending(true);
       setError("");
-      const res = await forgotPassword(email);
+      const res = await forgotPassword(trimmedEmail);
       if (!res?.resetToken) {
         throw new Error("Không nhận được mã mới. Vui lòng thử lại.");
       }
       setResetToken(res.resetToken);
       setOtp(new Array(6).fill(""));
-      setCooldown(60);
+      startCooldown();
+      inputRefs.current[0]?.focus();
     } catch (apiError) {
+      if (isRateLimited(apiError)) {
+        startCooldown();
+      }
       setError(getErrorMessage(apiError, "Không thể gửi lại mã."));
     } finally {
       setResending(false);
@@ -87,7 +99,11 @@ export default function VerifyForgotPasswordForm() {
     <form className="auth-form" onSubmit={handleVerify}>
       <div className="auth-form__head">
         <h1>Xác minh email</h1>
-        <p>Nhập mã 6 số để đặt lại mật khẩu.</p>
+        <p>
+          {resetToken
+            ? "Nhập mã 6 số để đặt lại mật khẩu."
+            : "Bấm Gửi lại mã để nhận mã xác minh mới."}
+        </p>
       </div>
 
       {email && (
@@ -116,7 +132,13 @@ export default function VerifyForgotPasswordForm() {
         ))}
       </div>
 
-      <Button type="submit" variant="primary" fullWidth loading={loading}>
+      <Button
+        type="submit"
+        variant="primary"
+        fullWidth
+        loading={loading}
+        disabled={!resetToken}
+      >
         Xác nhận mã
       </Button>
 
@@ -126,7 +148,7 @@ export default function VerifyForgotPasswordForm() {
           type="button"
           className="auth-resend__btn"
           onClick={handleResend}
-          disabled={resending || cooldown > 0 || !email}
+          disabled={resending || cooldown > 0 || !trimmedEmail}
         >
           {cooldown > 0 ? `Gửi lại sau ${cooldown}s` : "Gửi lại mã"}
         </button>

@@ -3,8 +3,9 @@ import { Link } from "react-router-dom";
 import { AtSign } from "lucide-react";
 import { useForgotPassword } from "../../../../stores/contexts/ForgotPasswordContext.jsx";
 import { forgotPassword } from "../../../../services/authService";
-import { getErrorMessage } from "../../../../services/apiClient";
+import { getErrorMessage, isRateLimited } from "../../../../services/apiClient";
 import { Button, Field, Input } from "../../../../components/ui";
+import useCountdown from "../../hooks/useCountdown";
 import "../../styles/authShared.css";
 
 export default function ForgotPasswordForm() {
@@ -14,6 +15,7 @@ export default function ForgotPasswordForm() {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [cooldown, startCooldown] = useCountdown();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -25,6 +27,7 @@ export default function ForgotPasswordForm() {
 
   const handleSend = async (e) => {
     e.preventDefault();
+    if (cooldown > 0) return;
     try {
       setLoading(true);
       setError("");
@@ -36,7 +39,12 @@ export default function ForgotPasswordForm() {
       setResetToken(res.resetToken);
       setCurrentState(2);
     } catch (apiError) {
-      setError(getErrorMessage(apiError, "Không thể gửi mã xác minh."));
+      if (isRateLimited(apiError)) {
+        setError("Bạn thao tác quá nhanh. Vui lòng thử lại sau ít phút.");
+        startCooldown();
+      } else {
+        setError(getErrorMessage(apiError, "Không thể gửi mã xác minh."));
+      }
     } finally {
       setLoading(false);
     }
@@ -69,8 +77,14 @@ export default function ForgotPasswordForm() {
         Mã xác minh có hiệu lực trong thời gian ngắn. Kiểm tra cả thư mục spam.
       </p>
 
-      <Button type="submit" variant="primary" fullWidth loading={loading}>
-        Gửi mã xác minh
+      <Button
+        type="submit"
+        variant="primary"
+        fullWidth
+        loading={loading}
+        disabled={cooldown > 0}
+      >
+        {cooldown > 0 ? `Thử lại sau ${cooldown}s` : "Gửi mã xác minh"}
       </Button>
 
       <p className="auth-form__switch">

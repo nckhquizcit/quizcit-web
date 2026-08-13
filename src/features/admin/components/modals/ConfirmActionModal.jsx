@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import "./modal.css";
 
-export default function ConfirmActionModal({ isOpen, onClose, onConfirm, user }) {
+export default function ConfirmActionModal({ isOpen, onClose, onConfirm, user, message }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -47,7 +47,11 @@ export default function ConfirmActionModal({ isOpen, onClose, onConfirm, user })
         </div>
         <div className="modal-body">
           <p>
-            Bạn có muốn khóa người dùng "<strong>{username}</strong>" không?
+            {message || (
+              <>
+                Bạn có muốn khóa người dùng "<strong>{username}</strong>" không?
+              </>
+            )}
           </p>
         </div>
         <div className="modal-footer">

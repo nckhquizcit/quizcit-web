@@ -23,8 +23,8 @@ const getQuizId = (quiz) => String(quiz?.quizId ?? quiz?.id ?? "");
 
 const QUIZ_TYPE_LABELS = {
   CHAPTER: "Theo chương",
-  SUBJECT: "Theo môn học",
   FINAL: "Đề tổng kết",
+  ADAPTIVE: "Đề thích ứng",
 };
 
 export default function AdminQuizzes() {
@@ -213,10 +213,10 @@ export default function AdminQuizzes() {
       key: "type",
       label: "Loại",
       width: 150,
-      sortValue: (quiz) => QUIZ_TYPE_LABELS[quiz.type] || "Theo chương",
+      sortValue: (quiz) => QUIZ_TYPE_LABELS[quiz.type] || quiz.type || "Không rõ",
       render: (quiz) => (
         <span className={`adm2-badge ${quiz.type === "FINAL" ? "adm2-badge--amber" : "adm2-badge--gray"}`}>
-          {QUIZ_TYPE_LABELS[quiz.type] || QUIZ_TYPE_LABELS.CHAPTER}
+          {QUIZ_TYPE_LABELS[quiz.type] || quiz.type || "Không rõ"}
         </span>
       ),
     },

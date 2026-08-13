@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AtSign, Eye, EyeOff, LockKeyhole, User } from "lucide-react";
-import { getErrorMessage } from "../../../../services/apiClient";
+import { getErrorMessage, isRateLimited } from "../../../../services/apiClient";
 import { register } from "../../../../services/authService";
 import { Button, Field, Input } from "../../../../components/ui";
+import useCountdown from "../../hooks/useCountdown";
 import "./RegisterForm.css";
 
 export default function RegisterForm() {
@@ -19,6 +20,7 @@ export default function RegisterForm() {
   const [error, setError] = useState("");
   const [confirmError, setConfirmError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [cooldown, startCooldown] = useCountdown();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -27,6 +29,7 @@ export default function RegisterForm() {
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    if (cooldown > 0) return;
     setConfirmError("");
     if (formData.password !== formData.confirmPassword) {
       setConfirmError("Mật khẩu nhập lại không khớp.");
@@ -48,7 +51,12 @@ export default function RegisterForm() {
         state: { email: res.email, verificationToken: res.verificationToken },
       });
     } catch (apiError) {
-      setError(getErrorMessage(apiError, "Đăng ký thất bại."));
+      if (isRateLimited(apiError)) {
+        setError("Bạn thao tác quá nhanh. Vui lòng thử lại sau ít phút.");
+        startCooldown();
+      } else {
+        setError(getErrorMessage(apiError, "Đăng ký thất bại."));
+      }
     } finally {
       setLoading(false);
     }
@@ -148,8 +156,14 @@ export default function RegisterForm() {
         </div>
       </Field>
 
-      <Button type="submit" variant="primary" fullWidth loading={loading}>
-        Đăng ký
+      <Button
+        type="submit"
+        variant="primary"
+        fullWidth
+        loading={loading}
+        disabled={cooldown > 0}
+      >
+        {cooldown > 0 ? `Thử lại sau ${cooldown}s` : "Đăng ký"}
       </Button>
 
       <p className="auth-form__switch">

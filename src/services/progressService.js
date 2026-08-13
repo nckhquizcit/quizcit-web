@@ -33,5 +33,8 @@ export async function getAbilityHistoriesBySkill(userId, skillId) {
 
 export async function getAverageAbility(userId) {
   const result = await request({ method: "GET", url: `/api/users/${userId}/abilities/average` });
-  return Number.isFinite(Number(result)) ? Number(result) : 0;
+  // null/"" nghia la chua co du lieu, khong duoc ep thanh 0.
+  if (result == null || result === "") return null;
+  const value = Number(result);
+  return Number.isFinite(value) ? value : null;
 }

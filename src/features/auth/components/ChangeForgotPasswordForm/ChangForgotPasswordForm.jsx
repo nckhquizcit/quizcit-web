@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, LockKeyhole } from "lucide-react";
 import { useForgotPassword } from "../../../../stores/contexts/ForgotPasswordContext.jsx";
 import { resetPassword } from "../../../../services/authService";
-import { getErrorMessage, setStoredUser } from "../../../../services/apiClient";
+import { getErrorMessage, saveAuthSession } from "../../../../services/apiClient";
 import { Button, Field, Input } from "../../../../components/ui";
 import "../../styles/authShared.css";
 
@@ -44,8 +44,7 @@ export default function ChangeForgotPasswordForm() {
       if (!auth?.accessToken) {
         throw new Error("Đặt lại mật khẩu thất bại. Vui lòng thử lại.");
       }
-      localStorage.setItem("accessToken", auth.accessToken);
-      setStoredUser(auth);
+      saveAuthSession(auth);
       navigate("/app");
     } catch (apiError) {
       setError(getErrorMessage(apiError, "Đặt lại mật khẩu thất bại."));

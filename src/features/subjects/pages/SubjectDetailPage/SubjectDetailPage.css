@@ -57,6 +57,39 @@
   max-width: 640px;
 }
 
+/* CTA khi chưa đăng ký môn */
+.subject-enroll-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+}
+.subject-enroll-cta__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+.subject-enroll-cta h2 {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--color-text);
+}
+.subject-enroll-cta p {
+  font-size: var(--fs-sm);
+  color: var(--color-text-muted);
+  line-height: 1.55;
+  max-width: 460px;
+}
+.subject-enroll-cta .ui-btn {
+  margin-top: var(--space-1);
+}
+
 /* Stats strip */
 .subject-detail-stats {
   display: flex;

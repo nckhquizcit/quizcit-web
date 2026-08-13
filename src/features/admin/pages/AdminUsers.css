@@ -292,6 +292,59 @@
   color: var(--color-text-subtle, #94a3b8);
 }
 
+/* Ghi chu pham vi tim kiem/loc theo trang */
+.adm2-user-scope-note {
+  margin: 8px 2px 0;
+  font-size: 12px;
+  color: var(--color-text-subtle, #94a3b8);
+}
+
+/* ---- Server-side pager below the users table ---- */
+.adm2-user-pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.adm2-user-pager__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: var(--radius-sm, 8px);
+  background: var(--color-surface, #fff);
+  color: var(--color-text, #0f172a);
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+
+.adm2-user-pager__btn:hover:not(:disabled) {
+  background: var(--color-surface-3, #f1f5f9);
+}
+
+.adm2-user-pager__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.adm2-user-pager__btn:focus-visible {
+  outline: 3px solid rgba(16, 185, 129, 0.18);
+  outline-offset: 2px;
+}
+
+.adm2-user-pager__page {
+  min-width: 96px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted, #64748b);
+}
+
 @media (max-width: 1023px) {
   .adm2-stat-row {
     grid-template-columns: repeat(2, 1fr);

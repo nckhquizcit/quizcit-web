@@ -11,6 +11,7 @@ import {
 } from "../../../../components/ui";
 import ProgressBar from "../../components/ProgressBar";
 import { getAllChapters } from "../../../../services/chapterService";
+import { getMyEnrollments } from "../../../../services/enrollmentService";
 import { getSubjects } from "../../../../services/subjectService";
 import {
   getAverageAbility,
@@ -40,6 +41,7 @@ function getFirstName(displayName) {
 export default function HomePage() {
   const [subjects, setSubjects] = useState([]);
   const [chapters, setChapters] = useState([]);
+  const [enrolledIds, setEnrolledIds] = useState(() => new Set());
   const [skillCount, setSkillCount] = useState(0);
   const [averageTheta, setAverageTheta] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -54,13 +56,17 @@ export default function HomePage() {
       try {
         setLoading(true);
         setError("");
-        const [subjectData = [], chaptersData = []] = await Promise.all([
-          getSubjects(), getAllChapters(),
+        // Enrollment loi thi degrade ve rong, khong lam chet trang chu.
+        const [subjectData = [], chaptersData = [], enrolledData = []] = await Promise.all([
+          getSubjects(), getAllChapters(), getMyEnrollments().catch(() => []),
         ]);
 
         if (!alive) return;
         setSubjects(subjectData);
         setChapters(chaptersData.filter(Boolean));
+        setEnrolledIds(
+          new Set(enrolledData.map((subject) => String(subject.subjectId || subject.subject_id))),
+        );
 
         if (user?.userId) {
           const [abilitiesResult, averageResult] = await Promise.allSettled([
@@ -103,11 +109,12 @@ export default function HomePage() {
     () =>
       subjects.map((subject) => ({
         ...subject,
+        enrolled: enrolledIds.has(String(subject.subjectId)),
         chapterCount: chapters.filter(
           (chapter) => chapter.subjectId === subject.subjectId
         ).length,
       })),
-    [subjects, chapters]
+    [subjects, chapters, enrolledIds]
   );
 
   if (loading) {
@@ -205,7 +212,7 @@ export default function HomePage() {
             <div className="home-stat-tile">
               <Layers3 size={18} />
               <strong>{chapters.length}</strong>
-              <span>Chương khả dụng</span>
+              <span>Chương đã mở khóa</span>
             </div>
           </div>
 
@@ -262,7 +269,11 @@ export default function HomePage() {
                 )}
                 <h3>{subject.name}</h3>
                 <p className="home-subject-card__meta">
-                  {subject.chapterCount} chương · Lý thuyết và bài kiểm tra
+                  {!subject.enrolled
+                    ? "Đăng ký để xem nội dung"
+                    : subject.chapterCount > 0
+                      ? `${subject.chapterCount} chương · Lý thuyết và bài kiểm tra`
+                      : "Chưa mở khóa chương nào"}
                 </p>
                 <span className="home-subject-card__link">
                   Xem chi tiết <ArrowRight size={14} />

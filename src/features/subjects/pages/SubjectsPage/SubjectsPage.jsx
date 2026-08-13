@@ -1,62 +1,133 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BookOpen, GraduationCap, Layers3, Library, Search } from "lucide-react";
 import {
   getAllChapters,
   getSubjects,
 } from "../../../../services/contentService";
 import {
+  enrollCourse,
+  getMyEnrollments,
+  isAlreadyEnrolled,
+  unenrollCourse,
+} from "../../../../services/enrollmentService";
+import {
+  Button,
   EmptyState,
   ErrorState,
   SkeletonCard,
+  useToast,
 } from "../../../../components/ui";
 import { getErrorMessage } from "../../../../services/apiClient";
 import SubjectCard from "../../components/SubjectCard";
 import "./SubjectsPage.css";
 
+function buildSubjectCollection(subjects, allChapters) {
+  return subjects.map((subject) => {
+    const chapters = allChapters.filter((chapter) => chapter.subjectId === subject.subjectId);
+    return {
+      ...subject,
+      subject_id: subject.subjectId,
+      course_code: subject.courseCode,
+      chapterCount: chapters.length,
+      chapterPreview: chapters.slice(0, 3).map((chapter) => ({
+        chapter_id: chapter.chapterId,
+        name: chapter.name,
+      })),
+    };
+  });
+}
+
 export default function SubjectsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [subjectCollection, setSubjectCollection] = useState([]);
+  const [enrollments, setEnrollments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+  const toast = useToast();
+  const aliveRef = useRef(true);
 
-  useEffect(() => {
-    let alive = true;
-
-    const loadSubjects = async () => {
-      try {
+  const loadData = useCallback(async ({ silent = false } = {}) => {
+    try {
+      if (!silent) {
         setLoading(true);
         setError("");
-        const [subjects = [], allChapters = []] = await Promise.all([getSubjects(), getAllChapters()]);
-        const withChapters = subjects.map((subject) => {
-            const chapters = allChapters.filter((chapter) => chapter.subjectId === subject.subjectId);
-            return {
-              ...subject,
-              subject_id: subject.subjectId,
-              course_code: subject.courseCode,
-              chapterCount: chapters.length,
-              chapterPreview: chapters.slice(0, 3).map((chapter) => ({
-                chapter_id: chapter.chapterId,
-                name: chapter.name,
-              })),
-            };
-          });
-        if (alive) setSubjectCollection(withChapters);
-      } catch (loadError) {
-        if (alive)
-          setError(
-            getErrorMessage(loadError, "Không thể tải danh sách môn học.")
-          );
-      } finally {
-        if (alive) setLoading(false);
       }
-    };
-
-    loadSubjects();
-    return () => {
-      alive = false;
-    };
+      // Chi getSubjects fail moi coi la loi ca trang; chapters/enrollments fail
+      // thi degrade ve rong de nut Dang ky van dung duoc.
+      const [subjectsResult, chaptersResult, enrolledResult] = await Promise.allSettled([
+        getSubjects(),
+        getAllChapters(),
+        getMyEnrollments(),
+      ]);
+      if (subjectsResult.status === "rejected") throw subjectsResult.reason;
+      if (!aliveRef.current) return;
+      const subjects = subjectsResult.value || [];
+      const allChapters = chaptersResult.status === "fulfilled" ? chaptersResult.value || [] : [];
+      const enrolled = enrolledResult.status === "fulfilled" ? enrolledResult.value || [] : [];
+      setSubjectCollection(buildSubjectCollection(subjects, allChapters));
+      setEnrollments(enrolled);
+    } catch (loadError) {
+      if (silent) throw loadError;
+      if (aliveRef.current) {
+        setError(getErrorMessage(loadError, "Không thể tải danh sách môn học."));
+      }
+    } finally {
+      if (!silent && aliveRef.current) setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    aliveRef.current = true;
+    loadData();
+    return () => {
+      aliveRef.current = false;
+    };
+  }, [loadData]);
+
+  const refreshAfterChange = async (message) => {
+    toast.success(message);
+    try {
+      await loadData({ silent: true });
+    } catch (refreshError) {
+      toast.error(getErrorMessage(refreshError, "Không tải lại được danh sách môn học."));
+    }
+  };
+
+  const handleEnroll = async (subject) => {
+    const targetId = subject.subjectId || subject.subject_id;
+    try {
+      await enrollCourse(targetId);
+    } catch (enrollError) {
+      if (!isAlreadyEnrolled(enrollError)) {
+        toast.error(getErrorMessage(enrollError, "Không thể đăng ký môn học."));
+        return;
+      }
+    }
+    await refreshAfterChange("Đã đăng ký môn học.");
+  };
+
+  const handleUnenroll = async (subject) => {
+    if (!window.confirm("Hủy đăng ký môn này?")) return;
+    const targetId = subject.subjectId || subject.subject_id;
+    try {
+      await unenrollCourse(targetId);
+    } catch (unenrollError) {
+      toast.error(getErrorMessage(unenrollError, "Không thể hủy đăng ký môn học."));
+      return;
+    }
+    await refreshAfterChange("Đã hủy đăng ký môn học.");
+  };
+
+  const enrolledIds = useMemo(
+    () => new Set(enrollments.map((item) => item.subjectId)),
+    [enrollments]
+  );
+
+  const mySubjects = useMemo(() => {
+    const byId = new Map(subjectCollection.map((subject) => [subject.subjectId, subject]));
+    return enrollments.map((item) => byId.get(item.subjectId) || item);
+  }, [enrollments, subjectCollection]);
 
   const filteredSubjects = useMemo(() => {
     const normalized = searchTerm.trim().toLowerCase();
@@ -80,7 +151,7 @@ export default function SubjectsPage() {
           <p className="subjects-page__eyebrow">Không gian học tập</p>
           <h1>Danh sách môn học</h1>
           <p className="subjects-page__description">
-            Chọn môn học để xem lý thuyết theo từng chương và làm quiz ôn tập.
+            Đăng ký môn học để mở khóa lý thuyết theo từng chương và quiz ôn tập.
           </p>
         </div>
         <div className="subjects-page__stats">
@@ -99,7 +170,7 @@ export default function SubjectsPage() {
             </span>
             <div>
               <strong>{totalChapters}</strong>
-              <p>Chương</p>
+              <p>Chương đã đăng ký</p>
             </div>
           </div>
         </div>
@@ -125,6 +196,9 @@ export default function SubjectsPage() {
         >
           <GraduationCap size={16} />
           Môn của tôi
+          {enrolledIds.size > 0 && (
+            <span className="subjects-tab__count">{enrolledIds.size}</span>
+          )}
         </button>
       </div>
 
@@ -169,7 +243,13 @@ export default function SubjectsPage() {
           ) : (
             <section className="subjects-page__grid">
               {filteredSubjects.map((subject) => (
-                <SubjectCard key={subject.subject_id} subject={subject} />
+                <SubjectCard
+                  key={subject.subject_id}
+                  subject={subject}
+                  enrolled={enrolledIds.has(subject.subjectId)}
+                  onEnroll={handleEnroll}
+                  onUnenroll={handleUnenroll}
+                />
               ))}
             </section>
           )}
@@ -177,10 +257,42 @@ export default function SubjectsPage() {
       )}
 
       {activeTab === "mine" && (
-        <EmptyState
-          title="Tính năng đăng ký môn học đang được phát triển"
-          description="Sắp tới bạn có thể đăng ký môn để theo dõi riêng các môn mình đang học. Hiện tại hãy xem toàn bộ môn học ở tab bên cạnh."
-        />
+        <>
+          {loading ? (
+            <div className="subjects-page__grid">
+              <SkeletonCard lines={4} />
+              <SkeletonCard lines={4} />
+              <SkeletonCard lines={4} />
+            </div>
+          ) : error ? (
+            <ErrorState
+              description={error}
+              onRetry={() => window.location.reload()}
+            />
+          ) : mySubjects.length === 0 ? (
+            <EmptyState
+              title="Bạn chưa đăng ký môn nào"
+              description="Hãy sang tab Toàn bộ môn học và bấm Đăng ký để mở khóa lý thuyết cùng bài kiểm tra của môn."
+              action={
+                <Button variant="primary" onClick={() => setActiveTab("all")}>
+                  Xem toàn bộ môn học
+                </Button>
+              }
+            />
+          ) : (
+            <section className="subjects-page__grid">
+              {mySubjects.map((subject) => (
+                <SubjectCard
+                  key={subject.subject_id}
+                  subject={subject}
+                  enrolled
+                  onEnroll={handleEnroll}
+                  onUnenroll={handleUnenroll}
+                />
+              ))}
+            </section>
+          )}
+        </>
       )}
     </section>
   );

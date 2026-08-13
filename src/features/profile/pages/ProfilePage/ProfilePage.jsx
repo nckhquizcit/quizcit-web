@@ -1,12 +1,17 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Edit2, Eye, EyeOff, KeyRound, LogOut, X } from "lucide-react";
+import { Edit2, Eye, EyeOff, KeyRound, LogOut, Mail, X } from "lucide-react";
 import { getErrorMessage, getStoredUser, setStoredUser } from "../../../../services/apiClient";
 import {
   changeCurrentUserPassword,
   getCurrentUser,
   updateCurrentUserProfile,
 } from "../../../../services/userService";
+import {
+  confirmEmailChange,
+  requestEmailChange,
+  verifyOldEmail,
+} from "../../../../services/emailChangeService";
 import { logout } from "../../../../services/authService";
 import {
   Badge,
@@ -20,19 +25,15 @@ import {
 } from "../../../../components/ui";
 import "./ProfilePage.css";
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_MIN_LENGTH = 6;
 const DISPLAY_NAME_MAX_LENGTH = 100;
+const OTP_LENGTH = 6;
+const OTP_PATTERN = /^\d{6}$/;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function mergeAndStoreUser(nextUser) {
   const storedUser = getStoredUser() || {};
-  const mergedUser = {
-    ...storedUser,
-    ...nextUser,
-    accessToken: storedUser.accessToken,
-    tokenType: storedUser.tokenType,
-    expiresAt: storedUser.expiresAt,
-  };
+  const mergedUser = { ...storedUser, ...nextUser };
 
   setStoredUser(mergedUser);
   return mergedUser;
@@ -81,13 +82,24 @@ export default function ProfilePage() {
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [profileError, setProfileError] = useState("");
   const [activeModal, setActiveModal] = useState(null);
-  const [editForm, setEditForm] = useState({ displayName: "", email: "" });
-  const [passwordForm, setPasswordForm] = useState({ password: "", confirmPassword: "" });
+  const [editForm, setEditForm] = useState({ displayName: "" });
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    password: "",
+    confirmPassword: "",
+  });
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formError, setFormError] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // "loading" | "ready" | "expired" (challenge chet, phai bat dau lai) | "failed" (khong mo duoc luong)
+  const [emailStatus, setEmailStatus] = useState("loading");
+  const [emailStep, setEmailStep] = useState(1);
+  const [emailChallenge, setEmailChallenge] = useState(null);
+  const [emailOtp, setEmailOtp] = useState("");
+  const [newEmail, setNewEmail] = useState("");
 
   useEffect(() => {
     let isMounted = true;
@@ -122,7 +134,6 @@ export default function ProfilePage() {
     setFormError("");
     setEditForm({
       displayName: profileUser?.displayName || profileUser?.username || "",
-      email: profileUser?.email || "",
     });
     setActiveModal("edit");
   }
@@ -130,10 +141,37 @@ export default function ProfilePage() {
   function openPasswordModal() {
     setFormError("");
     setConfirmPasswordError("");
-    setPasswordForm({ password: "", confirmPassword: "" });
+    setPasswordForm({ currentPassword: "", password: "", confirmPassword: "" });
+    setShowCurrentPassword(false);
     setShowPassword(false);
     setShowConfirmPassword(false);
     setActiveModal("password");
+  }
+
+  async function startEmailChange() {
+    setFormError("");
+    setEmailStep(1);
+    setEmailChallenge(null);
+    setEmailOtp("");
+    setNewEmail("");
+    setEmailStatus("loading");
+
+    try {
+      const challenge = await requestEmailChange();
+      setEmailChallenge({
+        challengeId: challenge?.challengeId,
+        email: challenge?.email || profileUser?.email || "",
+      });
+      setEmailStatus("ready");
+    } catch (error) {
+      setFormError(getErrorMessage(error, "Không thể gửi mã xác thực. Vui lòng thử lại sau."));
+      setEmailStatus("failed");
+    }
+  }
+
+  function openEmailModal() {
+    setActiveModal("email");
+    startEmailChange();
   }
 
   function closeModal() {
@@ -152,7 +190,6 @@ export default function ProfilePage() {
     setFormError("");
 
     const displayNameValue = editForm.displayName.trim();
-    const emailValue = editForm.email.trim();
 
     if (!displayNameValue) {
       setFormError("Vui lòng nhập tên hiển thị.");
@@ -162,20 +199,11 @@ export default function ProfilePage() {
       setFormError(`Tên hiển thị không được vượt quá ${DISPLAY_NAME_MAX_LENGTH} ký tự.`);
       return;
     }
-    if (!emailValue) {
-      setFormError("Vui lòng nhập email.");
-      return;
-    }
-    if (!EMAIL_PATTERN.test(emailValue)) {
-      setFormError("Email không hợp lệ.");
-      return;
-    }
 
     setIsSubmitting(true);
     try {
       const updatedUser = await updateCurrentUserProfile({
         displayName: displayNameValue,
-        email: emailValue,
       });
       setProfileUser(mergeAndStoreUser(updatedUser));
       toast.success("Đã lưu thay đổi hồ sơ.");
@@ -192,9 +220,15 @@ export default function ProfilePage() {
     setFormError("");
     setConfirmPasswordError("");
 
-    const password = passwordForm.password.trim();
-    const confirmPassword = passwordForm.confirmPassword.trim();
+    // Khong trim mat khau: khoang trang dau/cuoi la ky tu hop le.
+    const currentPassword = passwordForm.currentPassword;
+    const password = passwordForm.password;
+    const confirmPassword = passwordForm.confirmPassword;
 
+    if (!currentPassword) {
+      setFormError("Vui lòng nhập mật khẩu hiện tại.");
+      return;
+    }
     if (password.length < PASSWORD_MIN_LENGTH) {
       setFormError(`Mật khẩu cần ít nhất ${PASSWORD_MIN_LENGTH} ký tự.`);
       return;
@@ -206,13 +240,82 @@ export default function ProfilePage() {
 
     setIsSubmitting(true);
     try {
-      await changeCurrentUserPassword(password);
-      toast.success("Đã cập nhật mật khẩu.");
-      setActiveModal(null);
-      setPasswordForm({ password: "", confirmPassword: "" });
+      await changeCurrentUserPassword(currentPassword, password);
+      // BE thu hoi moi phien sau khi doi mat khau -> phai dang nhap lai.
+      toast.success("Đã cập nhật mật khẩu. Vui lòng đăng nhập lại.");
+      logout();
+      navigate("/login");
     } catch (error) {
       setFormError(getErrorMessage(error, "Không thể cập nhật mật khẩu."));
+      setIsSubmitting(false);
+    }
+  }
+
+  function showEmailFlowError(error, fallback, isDeadOnConflict = false) {
+    const status = error?.status;
+    setFormError(getErrorMessage(error, fallback));
+    if (status === 400 || status === 429 || (isDeadOnConflict && status === 409)) {
+      setEmailStatus("expired");
+    }
+  }
+
+  async function submitEmailVerifyOld(event) {
+    event.preventDefault();
+    setFormError("");
+
+    const newEmailValue = newEmail.trim();
+
+    if (!OTP_PATTERN.test(emailOtp)) {
+      setFormError(`Mã xác thực gồm ${OTP_LENGTH} chữ số.`);
+      return;
+    }
+    if (!EMAIL_PATTERN.test(newEmailValue)) {
+      setFormError("Email mới không hợp lệ.");
+      return;
+    }
+    if (newEmailValue.toLowerCase() === (profileUser?.email || "").trim().toLowerCase()) {
+      setFormError("Email mới phải khác email hiện tại.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const challenge = await verifyOldEmail({
+        challengeId: emailChallenge?.challengeId,
+        otp: emailOtp,
+        newEmail: newEmailValue,
+      });
+      setEmailChallenge({
+        challengeId: challenge?.challengeId,
+        email: challenge?.email || newEmailValue,
+      });
+      setEmailOtp("");
+      setEmailStep(2);
+    } catch (error) {
+      showEmailFlowError(error, "Không thể xác thực mã. Vui lòng thử lại.");
     } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function submitEmailConfirm(event) {
+    event.preventDefault();
+    setFormError("");
+
+    if (!OTP_PATTERN.test(emailOtp)) {
+      setFormError(`Mã xác thực gồm ${OTP_LENGTH} chữ số.`);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await confirmEmailChange({ challengeId: emailChallenge?.challengeId, otp: emailOtp });
+      // BE thu hoi moi phien sau khi doi email -> phai dang nhap lai.
+      toast.success("Đã đổi email. Vui lòng đăng nhập lại.");
+      logout();
+      navigate("/login");
+    } catch (error) {
+      showEmailFlowError(error, "Không thể xác nhận đổi email.", true);
       setIsSubmitting(false);
     }
   }
@@ -289,9 +392,24 @@ export default function ProfilePage() {
             <span className="profile-security-row__label">Mật khẩu</span>
             <span className="profile-security-row__value">••••••••</span>
           </div>
-          <Button variant="secondary" fullWidth iconLeft={<KeyRound size={16} />} onClick={openPasswordModal}>
-            Đổi mật khẩu
-          </Button>
+          <div className="profile-security-actions">
+            <Button
+              variant="secondary"
+              fullWidth
+              iconLeft={<KeyRound size={16} />}
+              onClick={openPasswordModal}
+            >
+              Đổi mật khẩu
+            </Button>
+            <Button
+              variant="secondary"
+              fullWidth
+              iconLeft={<Mail size={16} />}
+              onClick={openEmailModal}
+            >
+              Đổi email
+            </Button>
+          </div>
           <div className="profile-security-divider" />
           <button type="button" className="profile-logout-link" onClick={handleLogout}>
             <LogOut size={14} />
@@ -316,19 +434,22 @@ export default function ProfilePage() {
               />
             </Field>
             <Field label="Email" htmlFor="profile-email">
-              <Input
-                id="profile-email"
-                type="email"
-                value={editForm.email}
-                maxLength={100}
-                onChange={(event) =>
-                  setEditForm((current) => ({ ...current, email: event.target.value }))
-                }
-              />
+              <div className="profile-email-row">
+                <Input id="profile-email" type="email" value={profileUser?.email || ""} disabled />
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  type="button"
+                  onClick={openEmailModal}
+                  disabled={isSubmitting}
+                >
+                  Đổi email
+                </Button>
+              </div>
             </Field>
             <p className="profile-info-box">
-              Email mới cần đúng định dạng. Thông tin đăng nhập được cập nhật sau khi lưu
-              thành công.
+              Email không đổi trực tiếp tại đây. Nhấn “Đổi email” để xác thực OTP ở email hiện tại
+              và email mới.
             </p>
             <div className="profile-modal-actions">
               <Button variant="ghost" type="button" onClick={closeModal} disabled={isSubmitting}>
@@ -347,6 +468,31 @@ export default function ProfilePage() {
           <form className="profile-modal-content" onSubmit={submitPasswordUpdate}>
             <p className="profile-modal-sub">Mật khẩu mới tối thiểu 6 ký tự.</p>
             {formError && <p className="profile-form-error">{formError}</p>}
+            <Field label="Mật khẩu hiện tại" htmlFor="profile-current-password">
+              <div className="profile-pwd">
+                <Input
+                  id="profile-current-password"
+                  type={showCurrentPassword ? "text" : "password"}
+                  value={passwordForm.currentPassword}
+                  autoComplete="current-password"
+                  onChange={(event) =>
+                    setPasswordForm((current) => ({
+                      ...current,
+                      currentPassword: event.target.value,
+                    }))
+                  }
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  className="profile-pwd-toggle"
+                  onClick={() => setShowCurrentPassword((value) => !value)}
+                  aria-label={showCurrentPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                >
+                  {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </Field>
             <Field label="Mật khẩu mới" htmlFor="profile-password">
               <div className="profile-pwd">
                 <Input
@@ -358,7 +504,6 @@ export default function ProfilePage() {
                   onChange={(event) =>
                     setPasswordForm((current) => ({ ...current, password: event.target.value }))
                   }
-                  autoFocus
                 />
                 <button
                   type="button"
@@ -411,6 +556,128 @@ export default function ProfilePage() {
               </Button>
             </div>
           </form>
+        </ProfileModal>
+      )}
+
+      {activeModal === "email" && (
+        <ProfileModal title="Đổi email" onClose={closeModal}>
+          {emailStatus === "loading" && (
+            <div className="profile-modal-content profile-email-loading">
+              <Spinner size={18} />
+              <span>Đang gửi mã xác thực...</span>
+            </div>
+          )}
+
+          {emailStatus === "failed" && (
+            <div className="profile-modal-content">
+              <p className="profile-form-error">{formError}</p>
+              <div className="profile-modal-actions">
+                <Button variant="secondary" type="button" onClick={closeModal}>
+                  Đóng
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {emailStatus === "expired" && (
+            <div className="profile-modal-content">
+              <p className="profile-form-error">{formError}</p>
+              <p className="profile-info-box">
+                Phiên xác thực đã kết thúc. Hãy bắt đầu lại để nhận mã mới.
+              </p>
+              <div className="profile-modal-actions">
+                <Button variant="ghost" type="button" onClick={closeModal}>
+                  Hủy
+                </Button>
+                <Button variant="primary" type="button" onClick={startEmailChange}>
+                  Bắt đầu lại
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {emailStatus === "ready" && emailStep === 1 && (
+            <form className="profile-modal-content" onSubmit={submitEmailVerifyOld}>
+              <p className="profile-modal-sub">
+                Mã xác thực đã gửi tới <strong>{emailChallenge?.email || "email hiện tại"}</strong>.
+                Mã có hiệu lực trong 5 phút.
+              </p>
+              {formError && <p className="profile-form-error">{formError}</p>}
+              <Field label="Mã xác thực" htmlFor="profile-email-otp">
+                <Input
+                  id="profile-email-otp"
+                  className="profile-otp-input"
+                  inputMode="numeric"
+                  maxLength={OTP_LENGTH}
+                  autoComplete="one-time-code"
+                  placeholder="000000"
+                  value={emailOtp}
+                  onChange={(event) =>
+                    setEmailOtp(event.target.value.replace(/\D/g, "").slice(0, OTP_LENGTH))
+                  }
+                  autoFocus
+                />
+              </Field>
+              <Field label="Email mới" htmlFor="profile-new-email">
+                <Input
+                  id="profile-new-email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="email-moi@example.com"
+                  value={newEmail}
+                  onChange={(event) => setNewEmail(event.target.value)}
+                />
+              </Field>
+              <p className="profile-info-box">
+                Sau bước này, một mã xác thực khác sẽ được gửi tới email mới để xác nhận.
+              </p>
+              <div className="profile-modal-actions">
+                <Button variant="ghost" type="button" onClick={closeModal} disabled={isSubmitting}>
+                  Hủy
+                </Button>
+                <Button variant="primary" type="submit" loading={isSubmitting}>
+                  Tiếp tục
+                </Button>
+              </div>
+            </form>
+          )}
+
+          {emailStatus === "ready" && emailStep === 2 && (
+            <form className="profile-modal-content" onSubmit={submitEmailConfirm}>
+              <p className="profile-modal-sub">
+                Mã xác thực đã gửi tới <strong>{emailChallenge?.email || "email mới"}</strong>. Mã có
+                hiệu lực trong 5 phút.
+              </p>
+              {formError && <p className="profile-form-error">{formError}</p>}
+              <Field label="Mã xác thực" htmlFor="profile-email-otp-new">
+                <Input
+                  id="profile-email-otp-new"
+                  className="profile-otp-input"
+                  inputMode="numeric"
+                  maxLength={OTP_LENGTH}
+                  autoComplete="one-time-code"
+                  placeholder="000000"
+                  value={emailOtp}
+                  onChange={(event) =>
+                    setEmailOtp(event.target.value.replace(/\D/g, "").slice(0, OTP_LENGTH))
+                  }
+                  autoFocus
+                />
+              </Field>
+              <p className="profile-info-box">
+                Sau khi đổi email thành công, mọi phiên đăng nhập sẽ bị thu hồi và bạn cần đăng nhập
+                lại.
+              </p>
+              <div className="profile-modal-actions">
+                <Button variant="ghost" type="button" onClick={closeModal} disabled={isSubmitting}>
+                  Hủy
+                </Button>
+                <Button variant="primary" type="submit" loading={isSubmitting}>
+                  Xác nhận đổi email
+                </Button>
+              </div>
+            </form>
+          )}
         </ProfileModal>
       )}
     </div>

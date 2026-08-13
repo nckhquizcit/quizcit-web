@@ -1,9 +1,14 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, LockKeyhole, User } from "lucide-react";
-import { getErrorMessage, setStoredUser } from "../../../../services/apiClient";
+import {
+  getErrorMessage,
+  isRateLimited,
+  saveAuthSession,
+} from "../../../../services/apiClient";
 import { login } from "../../../../services/authService";
 import { Button, Field, Input } from "../../../../components/ui";
+import useCountdown from "../../hooks/useCountdown";
 import "../../styles/authShared.css";
 import "./LoginForm.css";
 
@@ -15,7 +20,9 @@ export default function LoginForm() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [needsVerify, setNeedsVerify] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [cooldown, startCooldown] = useCountdown();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -25,8 +32,16 @@ export default function LoginForm() {
     }));
   };
 
+  const goToVerify = () => {
+    const identifier = formData.username.trim();
+    navigate("/verify", {
+      state: { email: identifier.includes("@") ? identifier : "" },
+    });
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (cooldown > 0) return;
     try {
       setLoading(true);
       setError("");
@@ -34,11 +49,21 @@ export default function LoginForm() {
       if (!auth?.accessToken) {
         throw new Error("Đăng nhập thất bại. Vui lòng thử lại.");
       }
-      localStorage.setItem("accessToken", auth.accessToken);
-      setStoredUser(auth);
+      saveAuthSession(auth);
       navigate(auth.role === "ADMINISTRATOR" ? "/admin" : "/app");
     } catch (apiError) {
-      setError(getErrorMessage(apiError, "Đăng nhập thất bại."));
+      if (isRateLimited(apiError)) {
+        setError("Bạn thao tác quá nhanh. Vui lòng thử lại sau ít phút.");
+        startCooldown();
+      } else {
+        const message = getErrorMessage(apiError, "Đăng nhập thất bại.");
+        // 403 co the la "chua xac thuc" hoac "bi khoa" (BE chua co ma loi rieng);
+        // chi moi xac thuc khi dung truong hop, tranh day user bi khoa vao vong lap verify.
+        setNeedsVerify(
+          apiError?.status === 403 && message.toLowerCase().includes("chưa xác thực"),
+        );
+        setError(message);
+      }
     } finally {
       setLoading(false);
     }
@@ -51,14 +76,27 @@ export default function LoginForm() {
         <p>Nhập thông tin để tiếp tục học.</p>
       </div>
 
-      {error && <div className="auth-form__error">{error}</div>}
+      {error && (
+        <div className="auth-form__error-group">
+          <div className="auth-form__error">{error}</div>
+          {needsVerify && (
+            <button
+              type="button"
+              className="auth-form__error-action"
+              onClick={goToVerify}
+            >
+              Xác thực tài khoản
+            </button>
+          )}
+        </div>
+      )}
 
-      <Field label="Tên đăng nhập" htmlFor="username">
+      <Field label="Tên đăng nhập hoặc email" htmlFor="username">
         <Input
           id="username"
           name="username"
           type="text"
-          placeholder="Nhập tên đăng nhập"
+          placeholder="Nhập tên đăng nhập hoặc email"
           value={formData.username}
           onChange={handleChange}
           iconLeft={<User size={18} />}
@@ -97,8 +135,14 @@ export default function LoginForm() {
         </span>
       </div>
 
-      <Button type="submit" variant="primary" fullWidth loading={loading}>
-        Đăng nhập
+      <Button
+        type="submit"
+        variant="primary"
+        fullWidth
+        loading={loading}
+        disabled={cooldown > 0}
+      >
+        {cooldown > 0 ? `Thử lại sau ${cooldown}s` : "Đăng nhập"}
       </Button>
 
       <p className="auth-form__switch">
