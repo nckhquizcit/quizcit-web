@@ -43,11 +43,18 @@
   font-size: var(--fs-md);
   color: var(--color-text);
 }
+.progress-overview-card__scale {
+  align-self: flex-start;
+  text-align: left;
+  font-size: var(--fs-xs);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin-top: calc(var(--space-2) * -1);
+}
 .progress-overview-card__meta {
   align-self: flex-start;
   font-size: var(--fs-xs);
   color: var(--color-text-muted);
-  margin-top: calc(var(--space-2) * -1);
 }
 /* Lề auto giúp vòng năng lực luôn nằm giữa phần trống khi cột phải cao hơn. */
 .progress-overview-card__ring {
@@ -84,7 +91,8 @@
 }
 .progress-overview-card__note {
   font-size: var(--fs-xs);
-  color: var(--color-text-subtle);
+  /* text-subtle ở cỡ ≤12px không đủ tương phản — dùng text-muted. */
+  color: var(--color-text-muted);
   line-height: 1.5;
 }
 
@@ -189,10 +197,26 @@
 }
 .progress-history-row__date {
   font-size: var(--fs-xs);
-  color: var(--color-text-subtle);
+  color: var(--color-text-muted);
   min-width: 120px;
   text-align: right;
   flex-shrink: 0;
+}
+
+/* EmptyState gọn cho mục lịch sử: bớt đệm so với mặc định. */
+.progress-history-empty {
+  padding: var(--space-6) var(--space-4);
+}
+.progress-history-empty .ui-empty__icon {
+  width: 44px;
+  height: 44px;
+}
+
+/* Dải 768–900px: 120px cố định làm hàng bị bó — nới lỏng cho ngày tháng. */
+@media (max-width: 900px) {
+  .progress-history-row__date {
+    min-width: 96px;
+  }
 }
 
 @media (max-width: 1023px) {

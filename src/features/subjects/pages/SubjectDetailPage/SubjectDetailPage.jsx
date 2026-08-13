@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ChevronRight, Clock3, ListChecks, Lock, Plus } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import {
+  ArrowLeft,
+  BookOpen,
+  ChevronRight,
+  Clock3,
+  Layers3,
+  ListChecks,
+  Lock,
+  Plus,
+} from "lucide-react";
 import {
   getChaptersBySubject,
   getSubjectById,
@@ -18,7 +27,10 @@ import {
   Card,
   EmptyState,
   ErrorState,
+  Input,
+  Modal,
   Spinner,
+  StatTile,
   useToast,
 } from "../../../../components/ui";
 import ChatBox from "../../../../components/ChatBox/ChatBox";
@@ -47,29 +59,20 @@ export default function SubjectDetailPage() {
   const [startingAdaptive, setStartingAdaptive] = useState(false);
   const [adaptiveError, setAdaptiveError] = useState("");
   const adaptiveCancelledRef = useRef(false);
+  const adaptiveInputRef = useRef(null);
   const loadIdRef = useRef(0);
 
+  // Escape/backdrop/focus trap do Modal dùng chung đảm nhiệm.
   const closeAdaptiveDialog = useCallback(() => {
     adaptiveCancelledRef.current = true;
     setAdaptiveOpen(false);
     setAdaptiveError("");
   }, []);
 
-  useEffect(() => {
-    if (!adaptiveOpen) return undefined;
-    const closeOnEscape = (event) => {
-      if (event.key === "Escape") closeAdaptiveDialog();
-    };
-    window.addEventListener("keydown", closeOnEscape);
-    return () => {
-      window.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [adaptiveOpen, closeAdaptiveDialog]);
-
   const handleStartAdaptive = async () => {
     const count = Number(adaptiveCount);
     if (!isValidAdaptiveQuestionCount(count)) {
-      setAdaptiveError("Số câu của bài thích ứng phải từ 15 trở lên và chia hết cho 5.");
+      setAdaptiveError("Số câu của bài kiểm tra thích ứng phải từ 15 trở lên và chia hết cho 5.");
       return;
     }
     try {
@@ -267,14 +270,10 @@ export default function SubjectDetailPage() {
 
   return (
     <div className="subject-detail-page">
-      <button
-        type="button"
-        className="subject-detail-back"
-        onClick={() => navigate("/app/subjects")}
-      >
+      <Link to="/app/subjects" className="subject-detail-back">
         <ArrowLeft size={16} />
         Môn học
-      </button>
+      </Link>
 
       <header className="subject-detail-header">
         <div className="subject-detail-header__main">
@@ -284,7 +283,7 @@ export default function SubjectDetailPage() {
         </div>
         {!contentUnavailable && (
           <Button variant="primary" onClick={() => setAdaptiveOpen(true)}>
-            Ôn tập thích ứng
+            Bài kiểm tra thích ứng
           </Button>
         )}
       </header>
@@ -316,51 +315,40 @@ export default function SubjectDetailPage() {
       ) : (
         <>
           <div className="subject-detail-stats">
-            <div className="subject-detail-stats__cell">
-              <span className="subject-detail-stats__value">{chapters.length}</span>
-              <span className="subject-detail-stats__label">Chương</span>
-            </div>
-            <span className="subject-detail-stats__divider" aria-hidden="true" />
-            <div className="subject-detail-stats__cell">
-              <span className="subject-detail-stats__value">{totalTheories}</span>
-              <span className="subject-detail-stats__label">Bài lý thuyết</span>
-            </div>
-            <span className="subject-detail-stats__divider" aria-hidden="true" />
-            <div className="subject-detail-stats__cell">
-              <span className="subject-detail-stats__value">{totalQuizzes}</span>
-              <span className="subject-detail-stats__label">Bài kiểm tra</span>
-            </div>
+            <StatTile value={chapters.length} label="Chương" icon={<Layers3 size={18} />} />
+            <StatTile value={totalTheories} label="Bài lý thuyết" icon={<BookOpen size={18} />} />
+            <StatTile value={totalQuizzes} label="Bài kiểm tra" icon={<ListChecks size={18} />} />
           </div>
 
-          {adaptiveOpen && (
-            <div className="adaptive-dialog-backdrop" onClick={closeAdaptiveDialog}>
-              <section
-                className="adaptive-dialog"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="adaptive-dialog-title"
-                onClick={(event) => event.stopPropagation()}
-              >
-                <h2 id="adaptive-dialog-title">Tạo bài kiểm tra thích ứng</h2>
-                <p>Nhập số câu (tối thiểu 15 và chia hết cho 5).</p>
-                {adaptiveError && <p className="adaptive-dialog__error">{adaptiveError}</p>}
-                <input
-                  type="number"
-                  min="15"
-                  step="5"
-                  aria-label="Số câu hỏi"
-                  value={adaptiveCount}
-                  onChange={(event) => setAdaptiveCount(event.target.value)}
-                />
-                <div className="adaptive-dialog__actions">
-                  <Button variant="ghost" onClick={closeAdaptiveDialog}>Hủy</Button>
-                  <Button variant="primary" loading={startingAdaptive} onClick={handleStartAdaptive}>
-                    Bắt đầu
-                  </Button>
-                </div>
-              </section>
+          <Modal
+            open={adaptiveOpen}
+            onClose={closeAdaptiveDialog}
+            title="Bài kiểm tra thích ứng"
+            size="sm"
+            initialFocusRef={adaptiveInputRef}
+            footer={
+              <>
+                <Button variant="ghost" onClick={closeAdaptiveDialog}>Hủy</Button>
+                <Button variant="primary" loading={startingAdaptive} onClick={handleStartAdaptive}>
+                  Bắt đầu
+                </Button>
+              </>
+            }
+          >
+            <div className="adaptive-form">
+              <p className="adaptive-form__desc">Nhập số câu (tối thiểu 15 và chia hết cho 5).</p>
+              {adaptiveError && <p className="adaptive-form__error">{adaptiveError}</p>}
+              <Input
+                ref={adaptiveInputRef}
+                type="number"
+                min="15"
+                step="5"
+                aria-label="Số câu hỏi"
+                value={adaptiveCount}
+                onChange={(event) => setAdaptiveCount(event.target.value)}
+              />
             </div>
-          )}
+          </Modal>
 
           {chapters.length === 0 ? (
             <EmptyState

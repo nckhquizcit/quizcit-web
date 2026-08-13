@@ -9,6 +9,7 @@
   --color-primary-500: #10b981; /* primary */
   --color-primary-600: #059669;
   --color-primary-700: #047857;
+  --color-primary-800: #065f46;
   --color-primary: var(--color-primary-500);
   --color-primary-hover: var(--color-primary-600);
   --color-primary-soft: var(--color-primary-50);
@@ -28,6 +29,7 @@
   /* Semantic */
   --color-success: #10b981;
   --color-success-soft: #ecfdf5;
+  --color-success-strong: #047857;
   --color-warning: #f59e0b;
   --color-warning-soft: #fffbeb;
   --color-warning-strong: #b45309;

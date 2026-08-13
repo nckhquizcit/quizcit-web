@@ -21,8 +21,8 @@ export default function ChatComposer({
           if (event.key === "Enter" && !event.shiftKey) onSend(event);
         }}
         placeholder={placeholder}
-        disabled={loading}
       />
+      {/* Chỉ khóa nút gửi khi đang chờ AI trả lời; vẫn cho gõ tiếp câu hỏi mới. */}
       <button type="submit" disabled={loading || !draft.trim()} aria-label="Gửi câu hỏi">
         <Send size={19} />
       </button>

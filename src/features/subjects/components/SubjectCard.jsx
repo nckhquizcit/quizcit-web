@@ -85,36 +85,49 @@ export default function SubjectCard({ subject, enrolled = false, onEnroll, onUne
       )}
 
       <div className="subject-card__actions">
-        <Button
-          variant={enrolled ? "primary" : "secondary"}
-          fullWidth
-          iconRight={<ArrowRight size={16} />}
-          onClick={() => navigate(`/app/subjects/${targetId}`)}
-          className="subject-card__cta"
-        >
-          Vào học
-        </Button>
+        {/* Mỗi trạng thái chỉ có một hành động primary; hủy đăng ký là link chữ nhỏ */}
         {enrolled ? (
-          <Button
-            variant="ghost"
-            fullWidth
-            loading={busy}
-            onClick={() => runAction(onUnenroll)}
-            className="subject-card__enroll"
-          >
-            Hủy đăng ký
-          </Button>
+          <>
+            <Button
+              variant="primary"
+              fullWidth
+              iconRight={<ArrowRight size={16} />}
+              onClick={() => navigate(`/app/subjects/${targetId}`)}
+              className="subject-card__cta"
+            >
+              Vào học
+            </Button>
+            <button
+              type="button"
+              className="subject-card__unenroll"
+              disabled={busy}
+              onClick={() => runAction(onUnenroll)}
+            >
+              Hủy đăng ký
+            </button>
+          </>
         ) : (
-          <Button
-            variant="primary"
-            fullWidth
-            loading={busy}
-            iconLeft={<Plus size={16} />}
-            onClick={() => runAction(onEnroll)}
-            className="subject-card__enroll"
-          >
-            Đăng ký
-          </Button>
+          <>
+            <Button
+              variant="primary"
+              fullWidth
+              loading={busy}
+              iconLeft={<Plus size={16} />}
+              onClick={() => runAction(onEnroll)}
+              className="subject-card__enroll"
+            >
+              Đăng ký
+            </Button>
+            <Button
+              variant="ghost"
+              fullWidth
+              iconRight={<ArrowRight size={16} />}
+              onClick={() => navigate(`/app/subjects/${targetId}`)}
+              className="subject-card__cta"
+            >
+              Vào học
+            </Button>
+          </>
         )}
       </div>
     </Card>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import {
@@ -19,6 +19,7 @@ import {
   ErrorState,
   ProgressRing,
   SkeletonCard,
+  StatTile,
 } from "../../../../components/ui";
 import ProgressBar from "../../../home/components/ProgressBar";
 import ThetaTrendChart from "../../components/ThetaTrendChart/ThetaTrendChart";
@@ -38,6 +39,38 @@ const OTHER_SKILL_LIMIT = 5;
 const INVALID_SESSION_MESSAGE = "Phiên đăng nhập không hợp lệ, vui lòng đăng nhập lại.";
 const LOAD_ERROR_MESSAGE = "Không thể tải chi tiết kỹ năng.";
 
+const shortTimeFormatter = new Intl.DateTimeFormat("vi-VN", {
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+function formatShortTime(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : shortTimeFormatter.format(date);
+}
+
+/* Nhãn trục X: ngày; khi nhiều điểm trùng ngày thì kèm giờ để phân biệt. */
+function buildChartPoints(histories) {
+  const dayCounts = new Map();
+  histories.forEach((item) => {
+    const day = formatShortDate(item.createdAt);
+    dayCounts.set(day, (dayCounts.get(day) || 0) + 1);
+  });
+
+  return histories.map((item) => {
+    const value = Number(item.thetaScaled ?? 0);
+    const day = formatShortDate(item.createdAt);
+    const time = formatShortTime(item.createdAt);
+    const duplicatedDay = (dayCounts.get(day) || 0) > 1;
+    return {
+      value,
+      label: duplicatedDay && time ? `${day} ${time}` : day,
+      aria: `${time ? `${time} ` : ""}${day} — năng lực ${value.toFixed(2)}/4`,
+    };
+  });
+}
+
 export default function SkillDetailPage() {
   const { skillId } = useParams();
   const [abilities, setAbilities] = useState([]);
@@ -46,16 +79,19 @@ export default function SkillDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const user = useMemo(() => getStoredUser(), []);
+  const loadIdRef = useRef(0);
 
-  useEffect(() => {
-    let alive = true;
+  // Tách phần tải dữ liệu thành hàm gọi lại được: effect ban đầu và nút "Thử lại" dùng chung.
+  const loadSkillDetail = useCallback(async () => {
+    const loadId = ++loadIdRef.current;
+    const isCurrent = () => loadIdRef.current === loadId;
 
-    async function loadSkillDetail() {
-      if (!user?.userId) {
-        setError(INVALID_SESSION_MESSAGE);
-        setLoading(false);
-        return;
-      }
+    if (!user?.userId) {
+      setError(INVALID_SESSION_MESSAGE);
+      setLoading(false);
+      return;
+    }
+    try {
       setLoading(true);
       setError("");
       const [abilityRows, skillRows, historyRows] = await Promise.allSettled([
@@ -64,25 +100,27 @@ export default function SkillDetailPage() {
         getAbilityHistoriesBySkill(user.userId, skillId),
       ]);
 
-      if (!alive) return;
+      if (!isCurrent()) return;
 
       if (abilityRows.status === "rejected" && historyRows.status === "rejected") {
         setError(getErrorMessage(abilityRows.reason, LOAD_ERROR_MESSAGE));
-        setLoading(false);
         return;
       }
 
       setAbilities(abilityRows.status === "fulfilled" ? abilityRows.value : []);
       setSkills(skillRows.status === "fulfilled" ? skillRows.value : []);
       setHistories(historyRows.status === "fulfilled" ? historyRows.value || [] : []);
-      setLoading(false);
+    } finally {
+      if (isCurrent()) setLoading(false);
     }
+  }, [user?.userId, skillId]);
 
+  useEffect(() => {
     loadSkillDetail();
     return () => {
-      alive = false;
+      loadIdRef.current += 1;
     };
-  }, [user?.userId, skillId]);
+  }, [loadSkillDetail]);
 
   const { nameById, descriptionById } = useMemo(() => buildSkillMaps(skills), [skills]);
   const ascendingHistories = useMemo(() => sortHistoriesAscending(histories), [histories]);
@@ -112,7 +150,7 @@ export default function SkillDetailPage() {
     return (
       <div className="skill-detail-page">
         {backLink}
-        <ErrorState description={error} onRetry={() => window.location.reload()} />
+        <ErrorState description={error} onRetry={loadSkillDetail} />
       </div>
     );
   }
@@ -123,7 +161,7 @@ export default function SkillDetailPage() {
         {backLink}
         <EmptyState
           title={`Chưa có dữ liệu cho ${skillName}`}
-          description="Hoàn thành một bài quiz có kỹ năng này để hệ thống ghi nhận theta."
+          description="Hoàn thành một bài kiểm tra có kỹ năng này để hệ thống ghi nhận năng lực."
         />
       </div>
     );
@@ -140,10 +178,7 @@ export default function SkillDetailPage() {
     level.thetaScaled,
   );
   const lastUpdatedAt = ability?.updatedAt || latestHistory?.createdAt;
-  const chartPoints = ascendingHistories.map((item) => ({
-    value: Number(item.thetaScaled ?? 0),
-    label: formatShortDate(item.createdAt),
-  }));
+  const chartPoints = buildChartPoints(ascendingHistories);
   const descendingHistories = [...ascendingHistories].reverse();
   const otherAbilities = abilities.filter(
     (row) => normalizeSkillId(row.skillId) && normalizeSkillId(row.skillId) !== currentSkillId,
@@ -172,37 +207,42 @@ export default function SkillDetailPage() {
           stroke={12}
           label={formatScaledThetaValue(thetaRaw)}
           sublabel="trên 4"
-          ariaLabel={`Theta ${formatScaledThetaValue(thetaRaw)} trên 4, mức ${level.label}`}
+          ariaLabel={`Năng lực ${formatScaledThetaValue(thetaRaw)} trên 4, mức ${level.label}`}
         />
       </Card>
 
       <div className="skill-detail-stats">
-        <div className="skill-detail-stats__cell">
-          <span className="skill-detail-stats__value">{formatScaledThetaValue(thetaRaw)}</span>
-          <span className="skill-detail-stats__label">Theta hiện tại</span>
-        </div>
-        <div className="skill-detail-stats__cell">
-          <span className={`skill-detail-stats__value skill-detail-stats__value--${latestDelta.trend}`}>
-            <LatestTrendIcon size={18} />
-            {latestDelta.text}
-          </span>
-          <span className="skill-detail-stats__label">Thay đổi gần nhất</span>
-        </div>
-        <div className="skill-detail-stats__cell">
-          <span className="skill-detail-stats__value">{peakScaled.toFixed(2)}</span>
-          <span className="skill-detail-stats__label">Mức cao nhất</span>
-        </div>
-        <div className="skill-detail-stats__cell">
-          <span className="skill-detail-stats__value skill-detail-stats__value--sm">
-            {formatSubmittedAt(lastUpdatedAt)}
-          </span>
-          <span className="skill-detail-stats__label">Cập nhật lần cuối</span>
-        </div>
+        <StatTile value={formatScaledThetaValue(thetaRaw)} label="Năng lực hiện tại" />
+        <StatTile
+          tone={
+            latestDelta.trend === "up"
+              ? "success"
+              : latestDelta.trend === "down"
+                ? "danger"
+                : "default"
+          }
+          value={
+            <span className="skill-detail-stats__trend">
+              <LatestTrendIcon size={18} />
+              {latestDelta.text}
+            </span>
+          }
+          label="Thay đổi gần nhất"
+        />
+        <StatTile value={peakScaled.toFixed(2)} label="Mức cao nhất" />
+        <StatTile
+          value={
+            <span className="skill-detail-stats__datetime">
+              {formatSubmittedAt(lastUpdatedAt)}
+            </span>
+          }
+          label="Cập nhật lần cuối"
+        />
       </div>
 
       <Card padding="lg" className="skill-detail-chart-card">
         <div className="skill-detail-section__head">
-          <h2>Diễn biến theta</h2>
+          <h2>Diễn biến năng lực</h2>
           <p>{ascendingHistories.length} lần cập nhật, theo thang 0–4.</p>
         </div>
         {chartPoints.length < 2 ? (
@@ -212,7 +252,7 @@ export default function SkillDetailPage() {
         ) : (
           <ThetaTrendChart
             points={chartPoints}
-            ariaLabel={`Diễn biến theta của kỹ năng ${skillName}`}
+            ariaLabel={`Diễn biến năng lực của kỹ năng ${skillName}`}
           />
         )}
       </Card>
@@ -220,10 +260,10 @@ export default function SkillDetailPage() {
       <section className="skill-detail-section">
         <div className="skill-detail-section__head">
           <h2>Lịch sử cập nhật</h2>
-          <p>Theta được lưu sau bài kiểm tra và sau từng nhóm 5 câu thích ứng.</p>
+          <p>Năng lực được lưu sau bài kiểm tra và sau từng nhóm 5 câu thích ứng.</p>
         </div>
         {descendingHistories.length === 0 ? (
-          <p className="skill-detail-muted">Chưa có lịch sử theta cho kỹ năng này.</p>
+          <p className="skill-detail-muted">Chưa có lịch sử cập nhật cho kỹ năng này.</p>
         ) : (
           <Card padding="none" className="skill-detail-history">
             {descendingHistories.map((item, index) => {
@@ -234,7 +274,11 @@ export default function SkillDetailPage() {
                   <span className="skill-detail-history__date">
                     {formatSubmittedAt(item.createdAt)}
                   </span>
-                  <span className="skill-detail-history__theta">
+                  <span
+                    className="skill-detail-history__theta"
+                    title="Năng lực"
+                    aria-label={`Năng lực ${formatScaledThetaValue(item.theta)} trên 4`}
+                  >
                     θ {formatScaledThetaValue(item.theta)} / 4
                   </span>
                   <Badge

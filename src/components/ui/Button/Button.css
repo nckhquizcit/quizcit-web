@@ -20,6 +20,10 @@
 .ui-btn:active:not(:disabled) {
   transform: translateY(1px);
 }
+.ui-btn:focus-visible {
+  outline: 2px solid var(--color-primary-600);
+  outline-offset: 2px;
+}
 
 /* sizes */
 .ui-btn--sm {
@@ -39,14 +43,18 @@
 }
 
 /* variants */
+/* Nền primary dùng tông 700/800 để chữ trắng 14-16px đạt AA 4.5:1 (500 ~2.5:1, 600 ~3.8:1) */
 .ui-btn--primary {
-  background: var(--color-primary);
+  background: var(--color-primary-700);
   color: #fff;
   box-shadow: var(--shadow-sm);
 }
 .ui-btn--primary:hover:not(:disabled) {
-  background: var(--color-primary-hover);
+  background: var(--color-primary-800);
   box-shadow: var(--shadow-primary);
+}
+.ui-btn--primary:active:not(:disabled) {
+  background: var(--color-primary-800);
 }
 
 .ui-btn--secondary {

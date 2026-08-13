@@ -6,6 +6,7 @@ import AuthLayout from "../layouts/AuthLayout.jsx";
 import AdminLayout from "../features/admin/AdminLayout.jsx";
 import ProtectedRoute from "../features/admin/components/guard/ProtectedRoute.jsx";
 import { ForgotPasswordProvider } from "../stores/contexts/ForgotPasswordContext.jsx";
+import { Spinner } from "../components/ui";
 
 const HomePage = lazy(() => import("../features/home/pages/HomePage/HomePage.jsx"));
 const SubjectsPage = lazy(() => import("../features/subjects/pages/SubjectsPage/SubjectsPage.jsx"));
@@ -48,7 +49,12 @@ const ForgotPasswordPage = lazy(
 );
 
 function PageLoader() {
-  return <div className="page-loader">Đang tải...</div>;
+  return (
+    <div className="page-loader">
+      <Spinner size={28} />
+      <span>Đang tải...</span>
+    </div>
+  );
 }
 
 function AccessDeniedPage() {

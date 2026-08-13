@@ -7,6 +7,16 @@
   margin: 0 auto;
 }
 
+.profile-page-header h1 {
+  font-size: var(--fs-2xl);
+  color: var(--color-text);
+}
+.profile-page-header__sub {
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--fs-sm);
+}
+
 .profile-inline-loading {
   display: inline-flex;
   align-items: center;
@@ -74,12 +84,12 @@
   flex-shrink: 0;
 }
 
-/* Two-card row */
+/* Two-card row — stretch để hai card cao bằng nhau, đáy thẳng hàng. */
 .profile-cards-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-5);
-  align-items: start;
+  align-items: stretch;
 }
 .profile-info-card,
 .profile-security-card {
@@ -163,57 +173,13 @@
   color: #b91c1c;
 }
 
-/* Modal */
-.profile-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: var(--color-overlay);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-4);
-  z-index: var(--z-modal);
-}
-.profile-modal-card {
-  width: 100%;
-  max-width: 440px;
-  background: var(--color-surface);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  overflow: hidden;
-}
-.profile-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--color-border);
-}
-.profile-modal-header h3 {
-  font-size: var(--fs-md);
-  color: var(--color-text);
-}
-.profile-modal-close {
-  display: inline-flex;
-  border: none;
-  background: transparent;
-  color: var(--color-text-subtle);
-  cursor: pointer;
-  padding: 4px;
-  border-radius: var(--radius-sm);
-}
-.profile-modal-close:hover {
-  background: var(--color-surface-3);
-  color: var(--color-text);
-}
+/* Modal: khung dùng Modal dùng chung, ở đây chỉ style phần nội dung form. */
 .profile-modal-content {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  padding: var(--space-5);
 }
 .profile-modal-sub {
-  margin-top: calc(var(--space-3) * -1);
   color: var(--color-text-muted);
   font-size: var(--fs-sm);
 }
@@ -290,11 +256,12 @@
   font-size: var(--fs-xs);
   line-height: 1.5;
 }
+/* Hàng nút trong footer của Modal dùng chung. */
 .profile-modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: var(--space-3);
-  margin-top: var(--space-2);
+  width: 100%;
 }
 
 @media (max-width: 900px) {
@@ -306,6 +273,9 @@
 @media (max-width: 767px) {
   .profile-page-wrapper {
     padding: var(--space-4);
+  }
+  .profile-page-header h1 {
+    font-size: var(--fs-xl);
   }
   .profile-page-wrapper .ui-btn {
     min-height: 44px;
@@ -327,22 +297,6 @@
   .profile-header-card__edit {
     width: 100%;
   }
-  /* Modal chiếm gần trọn màn hình, có thể cuộn khi bàn phím ảo bật lên */
-  .profile-modal-backdrop {
-    padding: var(--space-3);
-    align-items: flex-end;
-  }
-  .profile-modal-card {
-    max-width: none;
-    max-height: calc(100dvh - var(--space-8));
-    overflow-y: auto;
-  }
-  .profile-modal-close {
-    align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
-  }
   .profile-pwd-toggle {
     width: 40px;
     height: 40px;
@@ -355,8 +309,10 @@
     flex-direction: column-reverse;
     gap: var(--space-2);
   }
+  /* Modal render qua portal ngoài .profile-page-wrapper nên đặt min-height tại đây. */
   .profile-modal-actions .ui-btn {
     width: 100%;
+    min-height: 44px;
   }
   .profile-logout-link {
     min-height: 44px;

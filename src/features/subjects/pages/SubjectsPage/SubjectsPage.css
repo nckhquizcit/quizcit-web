@@ -21,7 +21,8 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--color-primary);
+  /* Chữ xanh cỡ nhỏ trên nền sáng: tông 700 cho đủ tương phản */
+  color: var(--color-primary-700);
 }
 .subjects-page__hero h1 {
   font-size: var(--fs-2xl);
@@ -38,33 +39,15 @@
   display: flex;
   gap: var(--space-4);
 }
-.subjects-stat {
+.subjects-page__stats .ui-stat-tile {
+  min-width: 140px;
+}
+
+/* Panel của tab giữ nhịp dọc như khi toolbar và lưới còn là con trực tiếp của trang */
+.subjects-panel {
   display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  min-width: 120px;
-}
-.subjects-stat__icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  border-radius: var(--radius-md);
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-}
-.subjects-stat strong {
-  font-size: var(--fs-lg);
-  color: var(--color-text);
-}
-.subjects-stat p {
-  font-size: var(--fs-xs);
-  color: var(--color-text-muted);
+  flex-direction: column;
+  gap: var(--space-6);
 }
 
 .subjects-tabs {
@@ -91,7 +74,7 @@
   color: var(--color-text);
 }
 .subjects-tab.is-active {
-  color: var(--color-primary);
+  color: var(--color-primary-700);
   border-bottom-color: var(--color-primary);
 }
 .subjects-tab__count {
@@ -140,6 +123,24 @@
   color: var(--color-text);
   background: transparent;
 }
+.subjects-toolbar__clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin: -4px 0;
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+.subjects-toolbar__clear:hover {
+  background: var(--color-surface-3);
+  color: var(--color-text);
+}
 
 .subjects-page__grid {
   display: grid;
@@ -159,7 +160,7 @@
 
 @media (max-width: 767px) {
   .subjects-page {
-    padding: var(--space-5);
+    padding: var(--space-4);
   }
   .subjects-page__grid {
     grid-template-columns: 1fr;
@@ -167,11 +168,17 @@
   .subjects-page__stats {
     width: 100%;
   }
-  .subjects-stat {
+  .subjects-page__stats .ui-stat-tile {
     flex: 1;
     min-width: 0;
   }
   .subjects-toolbar__search {
     max-width: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .subjects-page {
+    padding: var(--space-3);
   }
 }

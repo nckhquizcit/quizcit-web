@@ -1,3 +1,7 @@
+.theta-chart-wrap {
+  width: 100%;
+  min-width: 0;
+}
 .theta-chart {
   display: block;
   width: 100%;
@@ -10,7 +14,9 @@
   stroke-dasharray: 4 6;
 }
 .theta-chart__axis {
-  fill: var(--color-text-subtle);
+  /* viewBox = bề rộng thật nên 11px ở đây là 11px hiển thị thật;
+     text-subtle ở cỡ ≤12px không đủ tương phản — dùng text-muted. */
+  fill: var(--color-text-muted);
   font-size: 11px;
   font-weight: 600;
 }
@@ -29,4 +35,9 @@
   fill: var(--color-surface);
   stroke: var(--color-primary);
   stroke-width: 2.5;
+}
+.theta-chart__hit {
+  fill: transparent;
+  stroke: none;
+  pointer-events: all;
 }

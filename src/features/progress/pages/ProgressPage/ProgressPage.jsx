@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import {
@@ -46,50 +46,53 @@ export default function ProgressPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const user = useMemo(() => getStoredUser(), []);
+  const loadIdRef = useRef(0);
 
-  useEffect(() => {
-    let alive = true;
+  // Tách phần tải dữ liệu thành hàm gọi lại được: effect ban đầu và nút "Thử lại" dùng chung.
+  const loadProgress = useCallback(async () => {
+    const loadId = ++loadIdRef.current;
+    const isCurrent = () => loadIdRef.current === loadId;
 
-    async function loadProgress() {
-      if (!user?.userId) {
-        setError(INVALID_SESSION_MESSAGE);
-        setLoading(false);
+    if (!user?.userId) {
+      setError(INVALID_SESSION_MESSAGE);
+      setLoading(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      setError("");
+      const [abilityRows, historyRows, skillRows, average] = await Promise.allSettled([
+        getUserSkillAbilities(user.userId),
+        getAbilityHistories(user.userId),
+        getSkills(),
+        getAverageAbility(user.userId),
+      ]);
+
+      if (!isCurrent()) return;
+
+      // allSettled không bao giờ reject nên phải tự kiểm tra từng kết quả.
+      if (abilityRows.status === "rejected" && historyRows.status === "rejected") {
+        setError(getErrorMessage(abilityRows.reason, LOAD_ERROR_MESSAGE));
         return;
       }
-      try {
-        setLoading(true);
-        setError("");
-        const [abilityRows, historyRows, skillRows, average] = await Promise.allSettled([
-          getUserSkillAbilities(user.userId),
-          getAbilityHistories(user.userId),
-          getSkills(),
-          getAverageAbility(user.userId),
-        ]);
 
-        if (!alive) return;
-
-        // allSettled không bao giờ reject nên phải tự kiểm tra từng kết quả.
-        if (abilityRows.status === "rejected" && historyRows.status === "rejected") {
-          setError(getErrorMessage(abilityRows.reason, LOAD_ERROR_MESSAGE));
-          return;
-        }
-
-        setAbilities(abilityRows.status === "fulfilled" ? abilityRows.value : []);
-        setHistories(historyRows.status === "fulfilled" ? historyRows.value : []);
-        setSkills(skillRows.status === "fulfilled" ? skillRows.value : []);
-        setAverageAbility(average.status === "fulfilled" ? average.value : null);
-      } catch (loadError) {
-        if (alive) setError(getErrorMessage(loadError, LOAD_ERROR_MESSAGE));
-      } finally {
-        if (alive) setLoading(false);
-      }
+      setAbilities(abilityRows.status === "fulfilled" ? abilityRows.value : []);
+      setHistories(historyRows.status === "fulfilled" ? historyRows.value : []);
+      setSkills(skillRows.status === "fulfilled" ? skillRows.value : []);
+      setAverageAbility(average.status === "fulfilled" ? average.value : null);
+    } catch (loadError) {
+      if (isCurrent()) setError(getErrorMessage(loadError, LOAD_ERROR_MESSAGE));
+    } finally {
+      if (isCurrent()) setLoading(false);
     }
+  }, [user?.userId]);
 
+  useEffect(() => {
     loadProgress();
     return () => {
-      alive = false;
+      loadIdRef.current += 1;
     };
-  }, [user?.userId]);
+  }, [loadProgress]);
 
   const { nameById, descriptionById } = useMemo(() => buildSkillMaps(skills), [skills]);
 
@@ -105,10 +108,7 @@ export default function ProgressPage() {
   if (error) {
     return (
       <div className="progress-page">
-        <ErrorState
-          description={error}
-          onRetry={() => window.location.reload()}
-        />
+        <ErrorState description={error} onRetry={loadProgress} />
       </div>
     );
   }
@@ -126,17 +126,18 @@ export default function ProgressPage() {
       <header className="progress-header">
         <h1>Tiến độ</h1>
         <p className="progress-header__desc">
-          Theo dõi theta theo kỹ năng và các lần hệ thống cập nhật năng lực.
+          Theo dõi năng lực theo từng kỹ năng và các lần hệ thống cập nhật.
         </p>
       </header>
 
       <div className="progress-top-grid">
         <Card as="section" padding="lg" className="progress-overview-card">
           <h2>Năng lực tổng quan</h2>
+          <p className="progress-overview-card__scale">
+            Năng lực (θ) ước tính theo thang 0–4, cập nhật sau mỗi bài kiểm tra.
+          </p>
           <p className="progress-overview-card__meta">
-            {hasAverage
-              ? `Mức ${averageLevel.label} · Thang 0–4`
-              : "Chưa có dữ liệu · Thang 0–4"}
+            {hasAverage ? `Mức ${averageLevel.label}` : "Chưa có dữ liệu"}
           </p>
           <div className="progress-overview-card__ring">
             <ProgressRing
@@ -173,12 +174,12 @@ export default function ProgressPage() {
           {abilities.length === 0 ? (
             <EmptyState
               title="Chưa có dữ liệu năng lực"
-              description="Hoàn thành một bài quiz để hệ thống cập nhật theta theo kỹ năng."
+              description="Hoàn thành một bài kiểm tra để hệ thống cập nhật năng lực theo kỹ năng."
             />
           ) : (
             <>
               <p className="progress-skills-card__hint">
-                Chọn một kỹ năng để mở trang chi tiết với biểu đồ và lịch sử theta.
+                Chọn một kỹ năng để mở trang chi tiết với biểu đồ và lịch sử năng lực.
               </p>
               <div className="progress-grid">
                 {visibleAbilities.map((ability) => {
@@ -209,7 +210,7 @@ export default function ProgressPage() {
         <div className="progress-section__head">
           <h2 className="progress-section__title">Lịch sử cập nhật</h2>
           <p className="progress-section__sub">
-            Theta được lưu sau bài kiểm tra và sau từng nhóm 5 câu thích ứng.
+            Năng lực được lưu sau bài kiểm tra và sau từng nhóm 5 câu thích ứng.
           </p>
           {histories.length > HISTORY_LIMIT && (
             <p className="progress-muted">
@@ -218,7 +219,11 @@ export default function ProgressPage() {
           )}
         </div>
         {visibleHistories.length === 0 ? (
-          <p className="progress-muted">Chưa có lịch sử theta cho tài khoản này.</p>
+          <EmptyState
+            className="progress-history-empty"
+            title="Chưa có lịch sử cập nhật"
+            description="Hoàn thành một bài kiểm tra để hệ thống ghi nhận năng lực."
+          />
         ) : (
           <Card padding="none" className="progress-history-card">
             {visibleHistories.map((item) => {
@@ -231,7 +236,11 @@ export default function ProgressPage() {
                   <span className="progress-history-row__name">
                     {getSkillDisplayName(nameById, item.skillId, item.name)}
                   </span>
-                  <span className="progress-history-row__theta">
+                  <span
+                    className="progress-history-row__theta"
+                    title="Năng lực"
+                    aria-label={`Năng lực ${formatScaledThetaValue(thetaRaw)} trên 4, mức ${level.label}`}
+                  >
                     θ {formatScaledThetaValue(thetaRaw)} / 4 · {level.label}
                   </span>
                   <Badge

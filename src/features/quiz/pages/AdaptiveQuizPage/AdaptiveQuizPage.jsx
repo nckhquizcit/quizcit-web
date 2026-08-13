@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { AlertCircle, X } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { Button, EmptyState, ErrorState, Spinner } from "../../../../components/ui";
 import RichTextView from "../../../../components/richtext/RichTextView";
+import SkillInfoModal from "../../components/SkillInfoModal";
 import { getErrorMessage } from "../../../../services/apiClient";
 import {
   getAdaptiveAttempt,
@@ -36,7 +37,9 @@ export default function AdaptiveQuizPage() {
         if (data.completed) navigate(`/app/quiz/result/${attemptId}`, { replace: true });
         else setState(data);
       })
-      .catch((err) => setError(getErrorMessage(err, "Không thể tải bài thích ứng.")))
+      .catch((err) =>
+        setError(getErrorMessage(err, "Không thể tải bài kiểm tra thích ứng.")),
+      )
       .finally(() => setLoading(false));
   }, [attemptId, navigate]);
 
@@ -80,7 +83,7 @@ export default function AdaptiveQuizPage() {
   };
 
   if (loading) return <div className="quiz-loading"><Spinner size={32} /><p>Đang chọn câu hỏi phù hợp...</p></div>;
-  if (!state) return <div className="quiz-taking-page adaptive-quiz-page"><ErrorState title="Không thể mở bài thích ứng" description={error} onRetry={() => navigate("/app/subjects")} /></div>;
+  if (!state) return <div className="quiz-taking-page adaptive-quiz-page"><ErrorState title="Không thể mở bài kiểm tra thích ứng" description={error} onRetry={() => navigate("/app/subjects")} /></div>;
 
   const questions = state.questions || [];
   const totalGroups = Math.ceil((state.totalQuestion || 0) / ADAPTIVE_PAGE_SIZE);
@@ -98,9 +101,16 @@ export default function AdaptiveQuizPage() {
           <h1>Bài kiểm tra thích ứng</h1>
           {subjectLine && <p className="adaptive-header__subject">{subjectLine}</p>}
         </div>
-        <span className="adaptive-header__chip">
-          Nhóm {state.page}/{totalGroups}
-        </span>
+        <div className="adaptive-header__status">
+          {questions.length > 0 && (
+            <span className="adaptive-header__count">
+              {answeredInBatch}/{questions.length} câu
+            </span>
+          )}
+          <span className="adaptive-header__chip">
+            Nhóm {state.page}/{totalGroups}
+          </span>
+        </div>
       </header>
 
       {error && <div className="quiz-inline-error"><AlertCircle size={16} /><span>{error}</span></div>}
@@ -137,18 +147,17 @@ export default function AdaptiveQuizPage() {
               <article className="quiz-question-card" key={question.questionId}>
                 <div className="question-top">
                   <div className="question-number">Câu {state.answeredQuestion + index + 1}</div>
-                  <div className="question-actions">
-                    <button
-                      type="button"
-                      className="skill-btn"
-                      disabled={!question.skills?.length}
-                      onClick={() => setActiveSkillQuestion(question)}
-                    >
-                      {question.skills?.length
-                        ? `${question.skills.length} kỹ năng`
-                        : "Chưa gắn kỹ năng"}
-                    </button>
-                  </div>
+                  {(question.skills?.length ?? 0) > 0 && (
+                    <div className="question-actions">
+                      <button
+                        type="button"
+                        className="skill-btn"
+                        onClick={() => setActiveSkillQuestion(question)}
+                      >
+                        {question.skills.length} kỹ năng
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <RichTextView className="question-content" content={question.content} contentFormat={question.contentFormat} />
                 <div className="options-list">
@@ -185,7 +194,7 @@ export default function AdaptiveQuizPage() {
 
         <aside className="adaptive-rail">
           <div className="adaptive-rail__card">
-            <p className="adaptive-rail__title">Cách làm bài thích ứng</p>
+            <p className="adaptive-rail__title">Cách làm bài kiểm tra thích ứng</p>
             <p className="adaptive-rail__text">
               Mỗi nhóm gồm 5 câu. Trả lời đủ rồi nộp để nhận nhóm câu tiếp theo theo
               năng lực hiện tại.
@@ -217,41 +226,10 @@ export default function AdaptiveQuizPage() {
         </div>
       )}
 
-      {activeSkillQuestion && (
-        <div className="skill-modal-overlay" onClick={() => setActiveSkillQuestion(null)}>
-          <div
-            className="skill-modal"
-            role="dialog"
-            aria-modal="true"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="skill-modal-header">
-              <h3>Kỹ năng của câu hỏi</h3>
-              <button
-                type="button"
-                className="skill-modal-close"
-                onClick={() => setActiveSkillQuestion(null)}
-                aria-label="Đóng"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <ul className="skill-list">
-              {(activeSkillQuestion.skills || []).map((skill) => (
-                <li key={skill.skillId} className="skill-item">
-                  <span className="skill-item__name">
-                    {skill.name || "Kỹ năng chưa đặt tên"}
-                  </span>
-                  {skill.primary && <span className="skill-primary-badge">Chính</span>}
-                  <span className="skill-weight">
-                    Trọng số: {skill.weight > 0 ? skill.weight : "—"}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
+      <SkillInfoModal
+        question={activeSkillQuestion}
+        onClose={() => setActiveSkillQuestion(null)}
+      />
     </div>
   );
 }

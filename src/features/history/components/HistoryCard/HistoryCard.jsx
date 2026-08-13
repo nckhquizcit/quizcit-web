@@ -36,7 +36,11 @@ export default function HistoryCard({
       </span>
 
       <span className="history-row__side">
-        <span className="history-row__theta">
+        <span
+          className="history-row__theta"
+          title="Năng lực"
+          aria-label={`Năng lực ${formatScaledThetaValue(estimatedAbility)} trên 4`}
+        >
           θ {formatScaledThetaValue(estimatedAbility)} / 4
         </span>
         <span className="history-row__date">{date}</span>

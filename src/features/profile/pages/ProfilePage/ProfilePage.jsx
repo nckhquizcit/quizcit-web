@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Edit2, Eye, EyeOff, KeyRound, LogOut, Mail, X } from "lucide-react";
+import { Edit2, Eye, EyeOff, KeyRound, LogOut, Mail } from "lucide-react";
 import { getErrorMessage, getStoredUser, setStoredUser } from "../../../../services/apiClient";
 import {
   changeCurrentUserPassword,
@@ -19,6 +19,7 @@ import {
   Card,
   Field,
   Input,
+  Modal,
   Spinner,
   ErrorState,
   useToast,
@@ -42,37 +43,6 @@ function mergeAndStoreUser(nextUser) {
 function getInitial(name) {
   const trimmed = (name || "").trim();
   return trimmed ? trimmed.charAt(0).toUpperCase() : "?";
-}
-
-function ProfileModal({ title, children, onClose }) {
-  useEffect(() => {
-    const closeOnEscape = (event) => {
-      if (event.key === "Escape") onClose();
-    };
-
-    document.addEventListener("keydown", closeOnEscape);
-    return () => document.removeEventListener("keydown", closeOnEscape);
-  }, [onClose]);
-
-  return (
-    <div className="profile-modal-backdrop" onMouseDown={onClose}>
-      <div
-        className="profile-modal-card"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="profile-modal-title"
-        onMouseDown={(event) => event.stopPropagation()}
-      >
-        <div className="profile-modal-header">
-          <h3 id="profile-modal-title">{title}</h3>
-          <button className="profile-modal-close" type="button" onClick={onClose} aria-label="Đóng">
-            <X size={18} />
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
 }
 
 export default function ProfilePage() {
@@ -100,31 +70,37 @@ export default function ProfilePage() {
   const [emailChallenge, setEmailChallenge] = useState(null);
   const [emailOtp, setEmailOtp] = useState("");
   const [newEmail, setNewEmail] = useState("");
+  // Modal dùng chung tự focus phần tử đầu tiên; trỏ vào ô nhập chính thay vì nút đóng.
+  const editNameInputRef = useRef(null);
+  const currentPasswordInputRef = useRef(null);
+
+  const loadIdRef = useRef(0);
+
+  // Tách phần tải hồ sơ thành hàm gọi lại được: effect ban đầu và nút "Thử lại" dùng chung.
+  const loadProfile = useCallback(async () => {
+    const loadId = ++loadIdRef.current;
+    const isCurrent = () => loadIdRef.current === loadId;
+
+    setIsLoadingProfile(true);
+    setProfileError("");
+    try {
+      const user = await getCurrentUser();
+      if (!isCurrent()) return;
+      setProfileUser(mergeAndStoreUser(user));
+    } catch (error) {
+      if (!isCurrent()) return;
+      setProfileError(getErrorMessage(error, "Không thể tải hồ sơ người dùng."));
+    } finally {
+      if (isCurrent()) setIsLoadingProfile(false);
+    }
+  }, []);
 
   useEffect(() => {
-    let isMounted = true;
-
-    async function loadProfile() {
-      setIsLoadingProfile(true);
-      setProfileError("");
-      try {
-        const user = await getCurrentUser();
-        if (!isMounted) return;
-        setProfileUser(mergeAndStoreUser(user));
-      } catch (error) {
-        if (!isMounted) return;
-        setProfileError(getErrorMessage(error, "Không thể tải hồ sơ người dùng."));
-      } finally {
-        if (isMounted) setIsLoadingProfile(false);
-      }
-    }
-
     loadProfile();
-
     return () => {
-      isMounted = false;
+      loadIdRef.current += 1;
     };
-  }, []);
+  }, [loadProfile]);
 
   const displayName = profileUser?.displayName || profileUser?.username || "Người dùng";
   const isVerified = profileUser?.status === "VERIFIED";
@@ -320,16 +296,28 @@ export default function ProfilePage() {
     }
   }
 
+  const pageHeader = (
+    <header className="profile-page-header">
+      <h1>Cá nhân</h1>
+      <p className="profile-page-header__sub">
+        Quản lý thông tin tài khoản và bảo mật của bạn.
+      </p>
+    </header>
+  );
+
   if (profileError && !profileUser) {
     return (
       <div className="profile-page-wrapper">
-        <ErrorState description={profileError} onRetry={() => window.location.reload()} />
+        {pageHeader}
+        <ErrorState description={profileError} onRetry={loadProfile} />
       </div>
     );
   }
 
   return (
     <div className="profile-page-wrapper">
+      {pageHeader}
+
       {isLoadingProfile && (
         <div className="profile-inline-loading">
           <Spinner size={18} />
@@ -419,18 +407,35 @@ export default function ProfilePage() {
       </div>
 
       {activeModal === "edit" && (
-        <ProfileModal title="Chỉnh sửa hồ sơ" onClose={closeModal}>
-          <form className="profile-modal-content" onSubmit={submitEdit}>
+        <Modal
+          open
+          title="Chỉnh sửa hồ sơ"
+          size="sm"
+          onClose={closeModal}
+          initialFocusRef={editNameInputRef}
+          footer={
+            <div className="profile-modal-actions">
+              <Button variant="ghost" type="button" onClick={closeModal} disabled={isSubmitting}>
+                Hủy
+              </Button>
+              {/* Nút submit nằm ngoài <form> nên liên kết qua thuộc tính form. */}
+              <Button variant="primary" type="submit" form="profile-edit-form" loading={isSubmitting}>
+                Lưu thay đổi
+              </Button>
+            </div>
+          }
+        >
+          <form id="profile-edit-form" className="profile-modal-content" onSubmit={submitEdit}>
             {formError && <p className="profile-form-error">{formError}</p>}
             <Field label="Tên hiển thị" htmlFor="profile-display-name">
               <Input
                 id="profile-display-name"
+                ref={editNameInputRef}
                 value={editForm.displayName}
                 maxLength={DISPLAY_NAME_MAX_LENGTH}
                 onChange={(event) =>
                   setEditForm((current) => ({ ...current, displayName: event.target.value }))
                 }
-                autoFocus
               />
             </Field>
             <Field label="Email" htmlFor="profile-email">
@@ -451,27 +456,45 @@ export default function ProfilePage() {
               Email không đổi trực tiếp tại đây. Nhấn “Đổi email” để xác thực OTP ở email hiện tại
               và email mới.
             </p>
+          </form>
+        </Modal>
+      )}
+
+      {activeModal === "password" && (
+        <Modal
+          open
+          title="Đổi mật khẩu"
+          size="sm"
+          onClose={closeModal}
+          initialFocusRef={currentPasswordInputRef}
+          footer={
             <div className="profile-modal-actions">
               <Button variant="ghost" type="button" onClick={closeModal} disabled={isSubmitting}>
                 Hủy
               </Button>
-              <Button variant="primary" type="submit" loading={isSubmitting}>
-                Lưu thay đổi
+              <Button
+                variant="primary"
+                type="submit"
+                form="profile-password-form"
+                loading={isSubmitting}
+              >
+                Cập nhật mật khẩu
               </Button>
             </div>
-          </form>
-        </ProfileModal>
-      )}
-
-      {activeModal === "password" && (
-        <ProfileModal title="Đổi mật khẩu" onClose={closeModal}>
-          <form className="profile-modal-content" onSubmit={submitPasswordUpdate}>
+          }
+        >
+          <form
+            id="profile-password-form"
+            className="profile-modal-content"
+            onSubmit={submitPasswordUpdate}
+          >
             <p className="profile-modal-sub">Mật khẩu mới tối thiểu 6 ký tự.</p>
             {formError && <p className="profile-form-error">{formError}</p>}
             <Field label="Mật khẩu hiện tại" htmlFor="profile-current-password">
               <div className="profile-pwd">
                 <Input
                   id="profile-current-password"
+                  ref={currentPasswordInputRef}
                   type={showCurrentPassword ? "text" : "password"}
                   value={passwordForm.currentPassword}
                   autoComplete="current-password"
@@ -481,7 +504,6 @@ export default function ProfilePage() {
                       currentPassword: event.target.value,
                     }))
                   }
-                  autoFocus
                 />
                 <button
                   type="button"
@@ -547,20 +569,60 @@ export default function ProfilePage() {
             <p className="profile-info-box">
               Không dùng lại mật khẩu cũ. Sau khi đổi, hãy đăng nhập lại trên thiết bị khác.
             </p>
-            <div className="profile-modal-actions">
-              <Button variant="ghost" type="button" onClick={closeModal} disabled={isSubmitting}>
-                Hủy
-              </Button>
-              <Button variant="primary" type="submit" loading={isSubmitting}>
-                Cập nhật mật khẩu
-              </Button>
-            </div>
           </form>
-        </ProfileModal>
+        </Modal>
       )}
 
       {activeModal === "email" && (
-        <ProfileModal title="Đổi email" onClose={closeModal}>
+        <Modal
+          open
+          title="Đổi email"
+          size="sm"
+          onClose={closeModal}
+          footer={
+            emailStatus === "failed" ? (
+              <div className="profile-modal-actions">
+                <Button variant="secondary" type="button" onClick={closeModal}>
+                  Đóng
+                </Button>
+              </div>
+            ) : emailStatus === "expired" ? (
+              <div className="profile-modal-actions">
+                <Button variant="ghost" type="button" onClick={closeModal}>
+                  Hủy
+                </Button>
+                <Button variant="primary" type="button" onClick={startEmailChange}>
+                  Bắt đầu lại
+                </Button>
+              </div>
+            ) : emailStatus === "ready" ? (
+              <div className="profile-modal-actions">
+                <Button variant="ghost" type="button" onClick={closeModal} disabled={isSubmitting}>
+                  Hủy
+                </Button>
+                {emailStep === 1 ? (
+                  <Button
+                    variant="primary"
+                    type="submit"
+                    form="profile-email-verify-form"
+                    loading={isSubmitting}
+                  >
+                    Tiếp tục
+                  </Button>
+                ) : (
+                  <Button
+                    variant="primary"
+                    type="submit"
+                    form="profile-email-confirm-form"
+                    loading={isSubmitting}
+                  >
+                    Xác nhận đổi email
+                  </Button>
+                )}
+              </div>
+            ) : null
+          }
+        >
           {emailStatus === "loading" && (
             <div className="profile-modal-content profile-email-loading">
               <Spinner size={18} />
@@ -571,11 +633,6 @@ export default function ProfilePage() {
           {emailStatus === "failed" && (
             <div className="profile-modal-content">
               <p className="profile-form-error">{formError}</p>
-              <div className="profile-modal-actions">
-                <Button variant="secondary" type="button" onClick={closeModal}>
-                  Đóng
-                </Button>
-              </div>
             </div>
           )}
 
@@ -585,19 +642,15 @@ export default function ProfilePage() {
               <p className="profile-info-box">
                 Phiên xác thực đã kết thúc. Hãy bắt đầu lại để nhận mã mới.
               </p>
-              <div className="profile-modal-actions">
-                <Button variant="ghost" type="button" onClick={closeModal}>
-                  Hủy
-                </Button>
-                <Button variant="primary" type="button" onClick={startEmailChange}>
-                  Bắt đầu lại
-                </Button>
-              </div>
             </div>
           )}
 
           {emailStatus === "ready" && emailStep === 1 && (
-            <form className="profile-modal-content" onSubmit={submitEmailVerifyOld}>
+            <form
+              id="profile-email-verify-form"
+              className="profile-modal-content"
+              onSubmit={submitEmailVerifyOld}
+            >
               <p className="profile-modal-sub">
                 Mã xác thực đã gửi tới <strong>{emailChallenge?.email || "email hiện tại"}</strong>.
                 Mã có hiệu lực trong 5 phút.
@@ -631,19 +684,15 @@ export default function ProfilePage() {
               <p className="profile-info-box">
                 Sau bước này, một mã xác thực khác sẽ được gửi tới email mới để xác nhận.
               </p>
-              <div className="profile-modal-actions">
-                <Button variant="ghost" type="button" onClick={closeModal} disabled={isSubmitting}>
-                  Hủy
-                </Button>
-                <Button variant="primary" type="submit" loading={isSubmitting}>
-                  Tiếp tục
-                </Button>
-              </div>
             </form>
           )}
 
           {emailStatus === "ready" && emailStep === 2 && (
-            <form className="profile-modal-content" onSubmit={submitEmailConfirm}>
+            <form
+              id="profile-email-confirm-form"
+              className="profile-modal-content"
+              onSubmit={submitEmailConfirm}
+            >
               <p className="profile-modal-sub">
                 Mã xác thực đã gửi tới <strong>{emailChallenge?.email || "email mới"}</strong>. Mã có
                 hiệu lực trong 5 phút.
@@ -668,17 +717,9 @@ export default function ProfilePage() {
                 Sau khi đổi email thành công, mọi phiên đăng nhập sẽ bị thu hồi và bạn cần đăng nhập
                 lại.
               </p>
-              <div className="profile-modal-actions">
-                <Button variant="ghost" type="button" onClick={closeModal} disabled={isSubmitting}>
-                  Hủy
-                </Button>
-                <Button variant="primary" type="submit" loading={isSubmitting}>
-                  Xác nhận đổi email
-                </Button>
-              </div>
             </form>
           )}
-        </ProfileModal>
+        </Modal>
       )}
     </div>
   );

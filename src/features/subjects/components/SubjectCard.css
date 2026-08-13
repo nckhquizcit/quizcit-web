@@ -114,3 +114,25 @@
 .subject-card__enroll {
   width: 100%;
 }
+
+/* Hành động phá hủy hạ cấp thành nút chữ nhỏ, đổi sang màu lỗi khi hover */
+.subject-card__unenroll {
+  align-self: center;
+  border: none;
+  background: transparent;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+.subject-card__unenroll:hover:not(:disabled) {
+  color: var(--color-error);
+  background: var(--color-error-soft);
+}
+.subject-card__unenroll:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { BookOpen, History } from "lucide-react";
+import { BookOpen, ChevronDown, ChevronUp, History } from "lucide-react";
 import { getErrorMessage } from "../../../../services/apiClient";
 import { getAttemptResult, getQuizById } from "../../../../services/quizService";
 import { getSubjectById } from "../../../../services/subjectService";
@@ -8,31 +8,30 @@ import {
   formatScaledThetaValue,
   thetaScaledToPercent,
 } from "../../../../services/mappers";
-import { Badge, Button, Card, Spinner } from "../../../../components/ui";
+import { Badge, Button, Card, Spinner, StatTile } from "../../../../components/ui";
 import RichTextView from "../../../../components/richtext/RichTextView";
 import { isRichTextEmpty, toPreviewText } from "../../../../components/richtext/richTextUtils";
+import { formatSubmittedAt } from "../../../../utils/dateFormat";
+import { formatDelta } from "../../../progress/utils/skillProgress";
 import "./QuizResultPage.css";
 
 const FALLBACK_QUIZ_NAME = "Bài kiểm tra";
+// Chuỗi giữ chỗ backend trả về khi thiếu tên — dùng để so khớp, không hiển thị.
 const MISSING_QUIZ_NAME = "Chưa có tên bài quiz";
 const FALLBACK_SUBJECT_NAME = "Không rõ môn học";
-const FALLBACK_DATE = "—";
 const DIFFICULTY_BADGES = {
-  Easy: { label: "Dễ", variant: "success" },
-  Medium: { label: "Trung bình", variant: "warning" },
-  Hard: { label: "Khó", variant: "error" },
+  easy: { label: "Dễ", variant: "success" },
+  medium: { label: "Trung bình", variant: "warning" },
+  hard: { label: "Khó", variant: "error" },
 };
-const submittedAtFormatter = new Intl.DateTimeFormat("vi-VN", {
-  dateStyle: "short",
-  timeStyle: "short",
-});
 
-const formatSubmittedAt = (value) => {
-  if (!value) return FALLBACK_DATE;
-  const submittedDate = new Date(value);
-  return Number.isNaN(submittedDate.getTime())
-    ? FALLBACK_DATE
-    : submittedAtFormatter.format(submittedDate);
+/** So khớp không phân biệt hoa thường; giá trị lạ vẫn hiện badge trung tính. */
+const getDifficultyBadge = (difficulty) => {
+  const raw = String(difficulty ?? "").trim();
+  if (!raw) return null;
+  return (
+    DIFFICULTY_BADGES[raw.toLowerCase()] ?? { label: raw, variant: "neutral" }
+  );
 };
 
 const isMissingName = (value) => {
@@ -65,12 +64,6 @@ async function resolveResultMetadata(result) {
   }
 
   return { ...result, quizName, subjectName, duration };
-}
-
-function formatDelta(delta) {
-  if (delta > 0.001) return { text: `+${delta.toFixed(2)}`, tone: "up" };
-  if (delta < -0.001) return { text: `\u2212${Math.abs(delta).toFixed(2)}`, tone: "down" };
-  return { text: "0.00", tone: "flat" };
 }
 
 function findOption(question, optionId) {
@@ -185,7 +178,7 @@ export default function QuizResultPage() {
     : result.subjectName;
   const displaySubmittedAt = formatSubmittedAt(result.submittedAt);
   const durationLabel =
-    result.duration > 0 ? ` · Thời lượng đề ${result.duration} phút` : "";
+    result.duration > 0 ? ` · Thời lượng ${result.duration} phút` : "";
 
   const backLabel = cameFromHistory ? "← Quay lại lịch sử" : "← Về môn học";
   const backTarget = cameFromHistory ? "/app/history" : "/app/subjects";
@@ -200,17 +193,16 @@ export default function QuizResultPage() {
         >
           {backLabel}
         </button>
-        <h1 className="result-header__title">
-          {displayQuizName} · {displaySubjectName}
-        </h1>
+        <h1 className="result-header__title">{displayQuizName}</h1>
+        <p className="result-header__subject">{displaySubjectName}</p>
         <p className="result-header__sub">
-          Bắt đầu {displaySubmittedAt} · {total} câu{durationLabel}
+          Nộp lúc {displaySubmittedAt} · {total} câu{durationLabel}
         </p>
       </div>
 
       <div className="result-top-grid">
         <Card padding="lg" className="result-score-card">
-          <p className="result-score-card__label">ĐIỂM BÀI THI</p>
+          <p className="result-score-card__label">Điểm bài kiểm tra</p>
           <div className="result-score-card__body">
             <div className="result-score-card__main">
               <span className="result-score-card__percent">{percentage}%</span>
@@ -219,31 +211,22 @@ export default function QuizResultPage() {
               </span>
             </div>
             <div className="result-score-card__theta">
-              <span>Theta</span>
+              <span>Năng lực</span>
               <strong>{formatScaledThetaValue(result.overallTheta)} / 4</strong>
             </div>
           </div>
+          <p className="result-score-card__hint">
+            Năng lực (θ) ước tính theo thang 0–4.
+          </p>
         </Card>
 
         <Card padding="lg" className="result-overview-card">
           <h2>Tổng quan</h2>
           <div className="overview-grid">
-            <div className="overview-tile overview-tile--correct">
-              <span className="overview-tile__value">{correctCount}</span>
-              <span className="overview-tile__label">Đúng</span>
-            </div>
-            <div className="overview-tile overview-tile--wrong">
-              <span className="overview-tile__value">{wrongCount}</span>
-              <span className="overview-tile__label">Sai</span>
-            </div>
-            <div className="overview-tile overview-tile--blank">
-              <span className="overview-tile__value">{blankCount}</span>
-              <span className="overview-tile__label">Bỏ trống</span>
-            </div>
-            <div className="overview-tile">
-              <span className="overview-tile__value">{total}</span>
-              <span className="overview-tile__label">Tổng số câu</span>
-            </div>
+            <StatTile value={correctCount} label="Đúng" tone="success" />
+            <StatTile value={wrongCount} label="Sai" tone="danger" />
+            <StatTile value={blankCount} label="Bỏ trống" tone="warning" />
+            <StatTile value={total} label="Tổng số câu" />
           </div>
           <div className="overview-bar">
             <span
@@ -283,7 +266,7 @@ export default function QuizResultPage() {
                       style={{ width: `${fillPercent}%` }}
                     />
                   </span>
-                  <span className={`skill-analysis-row__delta skill-analysis-row__delta--${delta.tone}`}>
+                  <span className={`skill-analysis-row__delta skill-analysis-row__delta--${delta.trend}`}>
                     {delta.text}
                   </span>
                 </div>
@@ -291,7 +274,7 @@ export default function QuizResultPage() {
             })}
           </div>
         ) : (
-          <p className="result-empty-text">
+          <p className="result-empty-row">
             Chưa có dữ liệu kỹ năng cho bài làm này.
           </p>
         )}
@@ -353,7 +336,7 @@ export default function QuizResultPage() {
                 ? toPreviewText(correctOption.content, correctOption.contentFormat, 60)
                 : "—";
               const expanded = expandedIds.has(question.questionId || questionIndex);
-              const difficultyBadge = DIFFICULTY_BADGES[question.difficulty];
+              const difficultyBadge = getDifficultyBadge(question.difficulty);
 
               return (
                 <article
@@ -389,9 +372,15 @@ export default function QuizResultPage() {
                     <button
                       type="button"
                       className="result-question-row__toggle"
+                      aria-expanded={expanded}
                       onClick={() => toggleExpanded(question.questionId || questionIndex)}
                     >
-                      Xem lời giải →
+                      {expanded ? "Ẩn lời giải" : "Xem lời giải"}
+                      {expanded ? (
+                        <ChevronUp size={14} aria-hidden="true" />
+                      ) : (
+                        <ChevronDown size={14} aria-hidden="true" />
+                      )}
                     </button>
                   </div>
 
@@ -452,7 +441,7 @@ export default function QuizResultPage() {
             })}
           </div>
         ) : (
-          <p className="result-empty-text">
+          <p className="result-empty-row">
             {questionResults.length
               ? "Không có câu hỏi phù hợp với bộ lọc."
               : "Chưa có dữ liệu câu trả lời cho bài làm này."}

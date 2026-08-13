@@ -60,21 +60,14 @@
   color: var(--color-text-muted);
   font-size: var(--fs-sm);
 }
+/* EmptyState gọn bên trong card năng lực: bớt đệm so với mặc định. */
 .home-ability-card__empty {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
   margin-top: var(--space-2);
+  padding: var(--space-5) var(--space-4);
 }
-.home-ability-card__empty-title {
-  font-size: var(--fs-lg);
-  font-weight: 700;
-  color: var(--color-text);
-}
-.home-ability-card__empty-hint {
-  color: var(--color-text-muted);
-  font-size: var(--fs-sm);
-  line-height: 1.5;
+.home-ability-card__empty .ui-empty__icon {
+  width: 44px;
+  height: 44px;
 }
 .home-ability-card__chips {
   display: flex;
@@ -102,17 +95,19 @@
   justify-content: space-between;
   font-size: var(--fs-xs);
   font-weight: 600;
-  color: var(--color-text-subtle);
+  /* text-subtle ở cỡ ≤12px không đủ tương phản — dùng text-muted. */
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
+/* Ghim nút xuống đáy để hai card tổng quan thẳng hàng đáy với nhau. */
 .home-ability-card .ui-btn {
   align-self: flex-start;
-  margin-top: var(--space-1);
+  margin-top: auto;
 }
 .home-ability-card__note {
   font-size: var(--fs-xs);
-  color: var(--color-text-subtle);
+  color: var(--color-text-muted);
 }
 
 .home-content-card {
@@ -135,26 +130,9 @@
   gap: var(--space-3);
   margin-bottom: var(--space-4);
 }
-.home-stat-tile {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  padding: var(--space-4);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-2);
+/* StatTile dùng chung, thêm viền cho khớp nền card. */
+.home-content-card__stats .ui-stat-tile {
   border: 1px solid var(--color-border);
-}
-.home-stat-tile svg {
-  color: var(--color-primary);
-}
-.home-stat-tile strong {
-  font-size: var(--fs-xl);
-  font-weight: 800;
-  color: var(--color-text);
-}
-.home-stat-tile span {
-  font-size: var(--fs-xs);
-  color: var(--color-text-muted);
 }
 .home-content-card .ui-btn {
   margin-top: auto;
@@ -283,7 +261,7 @@
   .home-content-card__stats {
     gap: var(--space-2);
   }
-  .home-stat-tile {
+  .home-content-card__stats .ui-stat-tile {
     padding: var(--space-3);
   }
 }

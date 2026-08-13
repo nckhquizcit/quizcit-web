@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { getUserSkillAbilities } from "../../../../services/progressService";
@@ -22,43 +22,46 @@ export default function SkillsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const user = useMemo(() => getStoredUser(), []);
+  const loadIdRef = useRef(0);
 
-  useEffect(() => {
-    let alive = true;
+  // Tách phần tải dữ liệu thành hàm gọi lại được: effect ban đầu và nút "Thử lại" dùng chung.
+  const loadSkills = useCallback(async () => {
+    const loadId = ++loadIdRef.current;
+    const isCurrent = () => loadIdRef.current === loadId;
 
-    async function loadSkills() {
-      if (!user?.userId) {
-        setError(INVALID_SESSION_MESSAGE);
-        setLoading(false);
+    if (!user?.userId) {
+      setError(INVALID_SESSION_MESSAGE);
+      setLoading(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      setError("");
+      const [abilityRows, skillRows] = await Promise.allSettled([
+        getUserSkillAbilities(user.userId),
+        getSkills(),
+      ]);
+
+      if (!isCurrent()) return;
+
+      if (abilityRows.status === "rejected") {
+        setError(getErrorMessage(abilityRows.reason, LOAD_ERROR_MESSAGE));
         return;
       }
-      try {
-        setLoading(true);
-        setError("");
-        const [abilityRows, skillRows] = await Promise.allSettled([
-          getUserSkillAbilities(user.userId),
-          getSkills(),
-        ]);
 
-        if (!alive) return;
-
-        if (abilityRows.status === "rejected") {
-          setError(getErrorMessage(abilityRows.reason, LOAD_ERROR_MESSAGE));
-          return;
-        }
-
-        setAbilities(abilityRows.value || []);
-        setSkills(skillRows.status === "fulfilled" ? skillRows.value : []);
-      } finally {
-        if (alive) setLoading(false);
-      }
+      setAbilities(abilityRows.value || []);
+      setSkills(skillRows.status === "fulfilled" ? skillRows.value : []);
+    } finally {
+      if (isCurrent()) setLoading(false);
     }
+  }, [user?.userId]);
 
+  useEffect(() => {
     loadSkills();
     return () => {
-      alive = false;
+      loadIdRef.current += 1;
     };
-  }, [user?.userId]);
+  }, [loadSkills]);
 
   const { nameById, descriptionById } = useMemo(() => buildSkillMaps(skills), [skills]);
 
@@ -71,17 +74,17 @@ export default function SkillsPage() {
 
       <header className="skills-page__header">
         <h1>Tất cả kỹ năng</h1>
-        <p>Chọn một kỹ năng để xem diễn biến theta và lịch sử cập nhật chi tiết.</p>
+        <p>Chọn một kỹ năng để xem diễn biến năng lực và lịch sử cập nhật chi tiết.</p>
       </header>
 
       {loading ? (
         <SkeletonCard lines={5} />
       ) : error ? (
-        <ErrorState description={error} onRetry={() => window.location.reload()} />
+        <ErrorState description={error} onRetry={loadSkills} />
       ) : abilities.length === 0 ? (
         <EmptyState
           title="Chưa có dữ liệu năng lực"
-          description="Hoàn thành một bài quiz để hệ thống cập nhật theta theo kỹ năng."
+          description="Hoàn thành một bài kiểm tra để hệ thống cập nhật năng lực theo kỹ năng."
         />
       ) : (
         <div className="skills-page__grid">

@@ -59,49 +59,29 @@
 }
 .skill-detail-hero__bar span {
   font-size: var(--fs-xs);
-  color: var(--color-text-subtle);
+  /* text-subtle ở cỡ ≤12px không đủ tương phản — dùng text-muted. */
+  color: var(--color-text-muted);
 }
 
-/* Stats */
+/* Stats — dùng StatTile dùng chung, chỉ giữ lưới và hai kiểu giá trị đặc thù. */
 .skill-detail-stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-3);
 }
-.skill-detail-stats__cell {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  padding: var(--space-4);
+.skill-detail-stats .ui-stat-tile {
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
   background: var(--color-surface);
 }
-.skill-detail-stats__value {
+.skill-detail-stats__trend {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  font-size: var(--fs-xl);
-  font-weight: 800;
-  color: var(--color-text);
-  font-variant-numeric: tabular-nums;
 }
-.skill-detail-stats__value--sm {
+.skill-detail-stats__datetime {
   font-size: var(--fs-base);
   font-weight: 700;
-}
-.skill-detail-stats__value--up {
-  color: var(--color-success);
-}
-.skill-detail-stats__value--down {
-  color: var(--color-error);
-}
-.skill-detail-stats__value--flat {
-  color: var(--color-text-muted);
-}
-.skill-detail-stats__label {
-  font-size: var(--fs-xs);
-  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
 }
 
 /* Sections */

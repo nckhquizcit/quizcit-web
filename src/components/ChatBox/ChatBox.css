@@ -1,6 +1,7 @@
 .chatbox-root { position: fixed; right: clamp(1rem, 2vw, 2rem); bottom: clamp(1rem, 2vw, 2rem); z-index: var(--z-topbar); }
-.chatbox-fab { min-width: 58px; height: 58px; padding: 0 1.1rem; display: flex; align-items: center; gap: .55rem; border: 0; border-radius: var(--radius-pill); background: var(--color-primary); color: #fff; font: inherit; font-weight: 700; cursor: pointer; box-shadow: var(--shadow-primary); transition: transform .2s ease, box-shadow .2s ease; }
-.chatbox-fab:hover { transform: translateY(-2px); background: var(--color-primary-hover); }
+/* Chữ trắng trên nền xanh: dùng tông 700/800 để đạt tương phản AA */
+.chatbox-fab { min-width: 58px; height: 58px; padding: 0 1.1rem; display: flex; align-items: center; gap: .55rem; border: 0; border-radius: var(--radius-pill); background: var(--color-primary-700); color: #fff; font: inherit; font-weight: 700; cursor: pointer; box-shadow: var(--shadow-primary); transition: transform .2s ease, box-shadow .2s ease; }
+.chatbox-fab:hover { transform: translateY(-2px); background: var(--color-primary-800); }
 .chatbox-root--open .chatbox-fab { visibility: hidden; }
 .chatbox-panel { position: fixed; z-index: var(--z-dropdown); top: 0; right: 0; width: min(460px, 92vw); height: 100dvh; display: flex; flex-direction: column; background: var(--color-surface); box-shadow: -18px 0 48px rgba(15,23,42,.2); animation: chatbox-slide-in .24s ease-out; }
 .chatbox-header { min-height: 76px; padding: 0 1.25rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text); }
@@ -15,13 +16,13 @@
 .chatbox-empty > svg { color: var(--color-primary); }
 .chatbox-empty strong { color: var(--color-text); font-size: 1rem; }
 .chatbox-empty p { margin: 0; font-size: .86rem; line-height: 1.55; }
-.chatbox-bubble { max-width: 88%; padding: .72rem .9rem; border-radius: 14px; font-size: .9rem; line-height: 1.55; overflow-wrap: anywhere; }
+.chatbox-bubble { max-width: 88%; padding: .72rem .9rem; border-radius: var(--radius-md); font-size: .9rem; line-height: 1.55; overflow-wrap: anywhere; }
 .chatbox-bubble > :first-child { margin-top: 0; }
 .chatbox-bubble > :last-child { margin-bottom: 0; }
 .chatbox-bubble p { margin: 0 0 .55rem; }
 .chatbox-bubble ul, .chatbox-bubble ol { margin: .4rem 0 .65rem; padding-left: 1.25rem; }
 .chatbox-bubble li + li { margin-top: .22rem; }
-.chatbox-bubble--user { align-self: flex-end; color: #fff; background: var(--color-primary); border-bottom-right-radius: 4px; white-space: pre-wrap; }
+.chatbox-bubble--user { align-self: flex-end; color: #fff; background: var(--color-primary-700); border-bottom-right-radius: 4px; white-space: pre-wrap; }
 .chatbox-bubble--assistant { align-self: flex-start; width: fit-content; background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border); border-bottom-left-radius: 4px; box-shadow: var(--shadow-sm); }
 .chatbox-bubble code { padding: .12rem .32rem; border-radius: 5px; background: var(--color-surface-3); color: var(--color-error); font-family: "Cascadia Code", Consolas, monospace; font-size: .84em; }
 .chatbox-bubble pre { max-width: 100%; margin: .65rem 0; padding: .85rem; overflow-x: auto; border-radius: 10px; background: #111827; color: #e5e7eb; line-height: 1.5; tab-size: 2; }
@@ -33,16 +34,21 @@
 .chatbox-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-text-subtle); animation: chatbox-blink 1.2s infinite ease-in-out; }
 .chatbox-dot:nth-child(2) { animation-delay: .2s; }.chatbox-dot:nth-child(3) { animation-delay: .4s; }
 .chatbox-sources { margin-top: .55rem; display: flex; flex-wrap: wrap; gap: .35rem; }
-.chatbox-source-chip { padding: .18rem .48rem; border-radius: var(--radius-pill); background: var(--color-primary-soft); color: var(--color-primary-700); font-size: .7rem; cursor: help; }
-.chatbox-error { padding: .6rem .75rem; border-radius: 9px; background: var(--color-error-soft); color: var(--color-error); font-size: .82rem; }
-.chatbox-bubble .chatbox-note { margin: .55rem 0 0; padding: .4rem .6rem; border-radius: 9px; background: var(--color-warning-soft); color: var(--color-text-muted); font-size: .76rem; line-height: 1.45; }
+/* Chip nguồn là button để mở trích dẫn được bằng bàn phím và cảm ứng */
+.chatbox-source-chip { padding: .18rem .48rem; border: 0; border-radius: var(--radius-pill); background: var(--color-primary-soft); color: var(--color-primary-700); font-family: inherit; font-size: var(--fs-xs); font-weight: 600; cursor: pointer; }
+.chatbox-source-chip:hover, .chatbox-source-chip.is-open { background: var(--color-primary-100); }
+.chatbox-bubble .chatbox-source-snippet { margin: .45rem 0 0; padding-left: .55rem; border-left: 2px solid var(--color-border-strong); color: var(--color-text-muted); font-size: var(--fs-xs); line-height: 1.5; }
+.chatbox-error { padding: .6rem .75rem; border-radius: var(--radius-sm); background: var(--color-error-soft); color: var(--color-error); font-size: .82rem; }
+.chatbox-bubble .chatbox-note { margin: .55rem 0 0; padding: .4rem .6rem; border-radius: var(--radius-sm); background: var(--color-warning-soft); color: var(--color-text-muted); font-size: .76rem; line-height: 1.45; }
 .chatbox-input-row { position: relative; padding: .9rem 1rem 1.55rem; display: flex; gap: .6rem; align-items: flex-end; border-top: 1px solid var(--color-border); background: var(--color-surface); }
-.chatbox-input-row textarea { flex: 1; min-height: 44px; max-height: 130px; resize: vertical; padding: .68rem .8rem; border: 1px solid var(--color-border-strong); border-radius: 11px; font: inherit; font-size: .88rem; line-height: 1.4; outline: none; }
-.chatbox-input-row textarea:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-100); }
-.chatbox-input-row > button { width: 44px; height: 44px; flex: 0 0 44px; display: grid; place-items: center; border: 0; border-radius: 11px; background: var(--color-primary); color: #fff; cursor: pointer; }
-.chatbox-input-row > button:hover:not(:disabled) { background: var(--color-primary-hover); }
+.chatbox-input-row textarea { flex: 1; min-height: 44px; max-height: 130px; resize: vertical; padding: .68rem .8rem; border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); font: inherit; font-size: .88rem; line-height: 1.4; outline: none; }
+/* Focus thấy được thay cho outline mặc định, cùng pattern với .ui-input */
+.chatbox-input-row textarea:focus,
+.chatbox-input-row textarea:focus-visible { border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-100); }
+.chatbox-input-row > button { width: 44px; height: 44px; flex: 0 0 44px; display: grid; place-items: center; border: 0; border-radius: var(--radius-md); background: var(--color-primary-700); color: #fff; cursor: pointer; }
+.chatbox-input-row > button:hover:not(:disabled) { background: var(--color-primary-800); }
 .chatbox-input-row > button:disabled { opacity: .45; cursor: not-allowed; }
-.chatbox-input-row small { position: absolute; left: 1rem; bottom: .25rem; color: var(--color-text-subtle); font-size: .66rem; }
+.chatbox-input-row small { position: absolute; left: 1rem; bottom: .25rem; color: var(--color-text-muted); font-size: var(--fs-xs); }
 @keyframes chatbox-blink { 0%,80%,100% { opacity:.25; transform:translateY(0); } 40% { opacity:1; transform:translateY(-2px); } }
 @keyframes chatbox-slide-in { from { transform:translateX(100%); } to { transform:translateX(0); } }
 /* Mobile: panel mở gần như toàn màn hình, chừa safe-area của iOS */

@@ -14,7 +14,7 @@ import { useChatSession } from "../../../../components/ChatBox/useChatSession";
 import ChatMessages from "../../../../components/ChatBox/ChatMessages";
 import ChatComposer from "../../../../components/ChatBox/ChatComposer";
 import TheoryContent from "../../components/TheoryContent";
-import { getTheoryDisplayTitle } from "../../utils/theoryDisplay.js";
+import { getTheoryDisplayTitle, stripLeadingTitleBlock } from "../../utils/theoryDisplay.js";
 import "./TheoryPage.css";
 
 export default function TheoryPage() {
@@ -76,8 +76,11 @@ export default function TheoryPage() {
   }, [subjectId, theoryId]);
 
   const chapterId = chapter?.chapterId || chapter?.chapter_id || null;
+  // Một phiên chat duy nhất cho cả dock desktop lẫn FAB mobile — đổi kích
+  // thước cửa sổ qua mốc 1023px không làm mất hội thoại.
+  const chatSession = useChatSession({ subjectId, chapterId });
   const { messages, draft, setDraft, loading: chatLoading, error: chatError, listRef, handleSend } =
-    useChatSession({ subjectId, chapterId });
+    chatSession;
 
   if (loading) {
     return (
@@ -125,6 +128,12 @@ export default function TheoryPage() {
     theory,
     activeIndexInChapter >= 0 ? activeIndexInChapter : 0
   );
+  // Block đầu của nội dung hay lặp lại đúng tên bài đã hiển thị ở h1 phía trên.
+  const contentForDisplay = stripLeadingTitleBlock(
+    theory?.content,
+    theory?.contentFormat,
+    displayTitle
+  );
   const courseCode = subject?.courseCode || subject?.course_code || "";
 
   return (
@@ -171,7 +180,7 @@ export default function TheoryPage() {
             {courseCode && <Badge variant="primary">{courseCode}</Badge>}
             <h1>{displayTitle}</h1>
           </div>
-          <TheoryContent content={theory?.content} contentFormat={theory?.contentFormat} />
+          <TheoryContent content={contentForDisplay} contentFormat={theory?.contentFormat} />
         </Card>
       </div>
 
@@ -207,7 +216,7 @@ export default function TheoryPage() {
       </aside>
 
       <div className="theory-page__chat-mobile-fab">
-        <ChatBox subjectId={subjectId} chapterId={chapterId} />
+        <ChatBox subjectId={subjectId} chapterId={chapterId} session={chatSession} />
       </div>
     </div>
   );

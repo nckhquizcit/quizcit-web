@@ -1,6 +1,6 @@
 import { Minus, TrendingDown, TrendingUp } from "lucide-react";
 
-export const MISSING_SKILL_NAME = "Kỹ năng chưa đặt tên";
+export const MISSING_SKILL_NAME = "Kỹ năng chưa có tên";
 export const TREND_ICON = { up: TrendingUp, down: TrendingDown, flat: Minus };
 export const TREND_BADGE_VARIANT = { up: "success", down: "error", flat: "neutral" };
 

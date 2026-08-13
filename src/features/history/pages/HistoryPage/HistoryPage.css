@@ -22,12 +22,12 @@
   flex-direction: column;
   gap: var(--space-4);
 }
-.history-section__label {
-  font-size: var(--fs-sm);
+/* Tiêu đề mục theo chuẩn h2 của ProgressPage (fs-xl, đậm). */
+.history-section__title {
+  font-size: var(--fs-xl);
   font-weight: 700;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
 }
 
 .history-list {
@@ -43,6 +43,9 @@
   }
   .history-title {
     font-size: var(--fs-xl);
+  }
+  .history-section__title {
+    font-size: var(--fs-lg);
   }
   .history-page-wrapper .ui-btn {
     min-height: 44px;

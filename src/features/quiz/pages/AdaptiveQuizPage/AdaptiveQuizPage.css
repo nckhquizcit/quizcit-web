@@ -14,6 +14,21 @@
   overflow-wrap: break-word;
 }
 
+.adaptive-header__status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+}
+/* Số câu đã trả lời trong nhóm — desktop hiển thị ở header,
+   mobile đã có ở thanh đáy nên ẩn đi (xem media query dưới) */
+.adaptive-header__count {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-primary-700);
+  white-space: nowrap;
+}
 .adaptive-header__chip {
   display: inline-flex;
   align-items: center;
@@ -36,7 +51,7 @@
   color: var(--color-text);
 }
 .adaptive-subline__muted {
-  color: var(--color-text-subtle);
+  color: var(--color-text-muted);
   font-size: var(--fs-xs);
 }
 
@@ -58,8 +73,9 @@
 
 .adaptive-rail {
   position: sticky;
-  /* +96px để nằm dưới .quiz-header cũng đang sticky */
-  top: calc(var(--sticky-top) + 96px);
+  /* Nằm dưới .quiz-header sticky — biến khai báo trong QuizTakingPage.css
+     (.quiz-taking-page), trang này dùng chung layout nên kế thừa được */
+  top: calc(var(--sticky-top) + var(--quiz-header-offset));
 }
 .adaptive-rail__card {
   display: flex;
@@ -76,7 +92,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--color-text-subtle);
+  color: var(--color-text-muted);
 }
 .adaptive-rail__text {
   font-size: var(--fs-sm);
@@ -86,6 +102,11 @@
 
 @media (max-width: 1023px) {
   .adaptive-rail {
+    display: none;
+  }
+
+  /* Thanh đáy đã hiển thị số câu trong nhóm — tránh lặp ở header */
+  .adaptive-header__count {
     display: none;
   }
 

@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { Bot } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -19,6 +20,38 @@ function AssistantMessage({ text }) {
   );
 }
 
+/** Chip nguồn bấm được (bàn phím/chạm): mở trích dẫn đầy đủ ngay trong bong bóng. */
+function SourceChips({ sources }) {
+  const [expandedIndex, setExpandedIndex] = useState(-1);
+  const expanded = expandedIndex >= 0 ? sources[expandedIndex] : null;
+
+  return (
+    <>
+      <div className="chatbox-sources">
+        {sources.map((source, index) => (
+          <button
+            key={index}
+            type="button"
+            className={`chatbox-source-chip ${expandedIndex === index ? "is-open" : ""}`}
+            aria-expanded={expandedIndex === index}
+            aria-label={`Nguồn ${index + 1}, xem trích dẫn`}
+            onClick={() =>
+              setExpandedIndex((current) => (current === index ? -1 : index))
+            }
+          >
+            Nguồn {index + 1}
+          </button>
+        ))}
+      </div>
+      {expanded && (
+        <p className="chatbox-source-snippet">
+          {expanded.snippet || "Nguồn này không có trích dẫn."}
+        </p>
+      )}
+    </>
+  );
+}
+
 /** Vùng hiển thị hội thoại dùng chung giữa FAB nổi và panel neo. */
 export default function ChatMessages({
   messages,
@@ -28,8 +61,21 @@ export default function ChatMessages({
   emptyTitle,
   emptyDescription,
 }) {
+  // Tự cuộn tại chỗ bằng ref cục bộ: khi hai danh sách cùng chia sẻ một phiên
+  // chat (dock + FAB), mỗi danh sách vẫn tự cuộn đúng phần tử của mình.
+  const localRef = useRef(null);
+  const attachList = (element) => {
+    localRef.current = element;
+    if (listRef) listRef.current = element;
+  };
+
+  useEffect(() => {
+    const element = localRef.current;
+    if (element) element.scrollTop = element.scrollHeight;
+  }, [messages, loading]);
+
   return (
-    <div className="chatbox-messages" ref={listRef}>
+    <div className="chatbox-messages" ref={attachList} aria-live="polite">
       {messages.length === 0 && (
         <div className="chatbox-empty">
           <Bot size={30} />
@@ -51,15 +97,7 @@ export default function ChatMessages({
               thể còn thiếu. Hãy học phần lý thuyết trước rồi hỏi lại nhé.
             </p>
           )}
-          {message.sources?.length > 0 && (
-            <div className="chatbox-sources">
-              {message.sources.map((source, sourceIndex) => (
-                <span key={sourceIndex} className="chatbox-source-chip" title={source.snippet}>
-                  Nguồn {sourceIndex + 1}
-                </span>
-              ))}
-            </div>
-          )}
+          {message.sources?.length > 0 && <SourceChips sources={message.sources} />}
         </div>
       ))}
 

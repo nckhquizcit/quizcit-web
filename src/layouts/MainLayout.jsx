@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Outlet, ScrollRestoration, useLocation, useNavigate } from "react-router-dom";
+import { Link, Outlet, ScrollRestoration, useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, Menu } from "lucide-react";
 import Sidebar from "../components/Sidebar/Sidebar";
 import { ToastProvider } from "../components/ui/Toast/Toast";
@@ -16,7 +16,7 @@ const TITLE_MAP = [
   { match: (p) => p.startsWith("/app/subjects"), title: "Môn học" },
   { match: (p) => p.startsWith("/app/quiz/result"), title: "Kết quả" },
   { match: (p) => p.startsWith("/app/quiz"), title: "Làm bài" },
-  { match: (p) => p.startsWith("/app/adaptive"), title: "Làm bài" },
+  { match: (p) => p.startsWith("/app/adaptive"), title: "Bài kiểm tra thích ứng" },
   { match: (p) => p.startsWith("/app/history"), title: "Lịch sử" },
   { match: (p) => /^\/app\/progress\/skills\/.+/.test(p), title: "Chi tiết kỹ năng" },
   { match: (p) => p.startsWith("/app/progress/skills"), title: "Tất cả kỹ năng" },
@@ -29,10 +29,6 @@ function resolveTitle(pathname) {
   return found ? found.title : "QuizCIT";
 }
 
-function resolveBreadcrumb(pathname) {
-  if (pathname === "/app") return "Không gian học";
-  return `Không gian học / ${resolveTitle(pathname)}`;
-}
 
 function getFirstName(displayName) {
   const trimmed = (displayName || "").trim();
@@ -104,12 +100,19 @@ export default function MainLayout() {
                 <Menu size={22} />
               </button>
               <div className="app-topbar__titles">
-                <p className="app-topbar__breadcrumb">
-                  {resolveBreadcrumb(location.pathname)}
-                </p>
-                <h1 className="app-topbar__title">
+                {/* Breadcrumb thật: gốc là link về /app, đoạn trang hiện tại là chữ thường. */}
+                <nav className="app-topbar__breadcrumb" aria-label="Đường dẫn">
+                  <Link to="/app" className="app-topbar__breadcrumb-link">
+                    Không gian học
+                  </Link>
+                  {location.pathname !== "/app" && (
+                    <span> / {resolveTitle(location.pathname)}</span>
+                  )}
+                </nav>
+                {/* Không dùng h1 ở topbar: mỗi trang tự sở hữu h1 riêng. */}
+                <p className="app-topbar__title">
                   {resolveTitle(location.pathname)}
-                </h1>
+                </p>
               </div>
             </div>
 

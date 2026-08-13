@@ -11,22 +11,23 @@
   color: var(--color-text-muted);
 }
 
+/* Link quay lại dạng pill (cùng look với back-link của trang Kỹ năng) */
 .subject-detail-back {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
   align-self: flex-start;
-  border: none;
-  background: transparent;
+  padding: var(--space-2) var(--space-3);
+  margin-left: calc(var(--space-3) * -1);
+  border-radius: var(--radius-sm);
   color: var(--color-text-muted);
-  font-family: inherit;
-  font-weight: 600;
   font-size: var(--fs-sm);
-  cursor: pointer;
-  padding: var(--space-1) 0;
+  font-weight: 600;
+  text-decoration: none;
 }
 .subject-detail-back:hover {
-  color: var(--color-primary);
+  color: var(--color-primary-700);
+  background: var(--color-primary-soft);
 }
 
 /* Header */
@@ -90,39 +91,16 @@
   margin-top: var(--space-1);
 }
 
-/* Stats strip */
+/* Stats strip: hàng StatTile dùng chung, tự xuống hàng ở màn hẹp */
 .subject-detail-stats {
-  display: flex;
-  align-items: center;
-  padding: var(--space-5) var(--space-6);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-4);
+}
+.subject-detail-stats .ui-stat-tile {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
-}
-.subject-detail-stats__cell {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-.subject-detail-stats__value {
-  font-size: var(--fs-xl);
-  font-weight: 800;
-  color: var(--color-text);
-}
-.subject-detail-stats__label {
-  font-size: var(--fs-xs);
-  color: var(--color-text-muted);
-  font-weight: 600;
-}
-.subject-detail-stats__divider {
-  width: 1px;
-  height: 36px;
-  background: var(--color-border);
-  margin: 0 var(--space-5);
-  flex-shrink: 0;
 }
 
 /* Body layout */
@@ -190,7 +168,7 @@
   flex-shrink: 0;
 }
 .chapter-nav__item.active .chapter-nav__index {
-  background: var(--color-primary);
+  background: var(--color-primary-700);
   color: #fff;
 }
 .chapter-nav__name {
@@ -252,10 +230,18 @@
   color: var(--color-text-subtle);
   margin-bottom: var(--space-4);
 }
+/* Hàng "chưa có nội dung" đồng nhất cho cả khối lý thuyết và bài kiểm tra */
 .content-block__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
   font-size: var(--fs-sm);
   color: var(--color-text-muted);
-  font-style: italic;
+  text-align: center;
 }
 
 /* Theory rows */
@@ -355,8 +341,10 @@
   .chapter-nav__title {
     width: 100%;
   }
+  /* Chip co giãn theo bề ngang còn lại; tên dài tự cắt thay vì tràn */
   .chapter-nav__item {
     width: auto;
+    max-width: 100%;
   }
 }
 
@@ -381,18 +369,7 @@
     font-size: var(--fs-sm);
   }
   .subject-detail-stats {
-    flex-wrap: wrap;
-    gap: var(--space-4);
-    padding: var(--space-4);
-  }
-  .subject-detail-stats__divider {
-    display: none;
-  }
-  .subject-detail-stats__cell {
-    flex: 1 1 40%;
-  }
-  .subject-detail-stats__value {
-    font-size: var(--fs-lg);
+    gap: var(--space-3);
   }
   .chapter-nav {
     padding: var(--space-3);
@@ -400,9 +377,9 @@
   .chapter-nav__item {
     min-height: 44px;
   }
-  /* Tên chương dài cắt bớt để chip không đẩy tràn ngang */
+  /* Tên chương dài cắt theo bề ngang còn lại thay vì mốc px cố định */
   .chapter-nav__name {
-    max-width: 180px;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -426,46 +403,23 @@
     min-height: 44px;
   }
 }
-.adaptive-dialog-backdrop {
-  position: fixed; inset: 0; z-index: var(--z-modal); display: grid; place-items: center;
-  background: var(--color-overlay); padding: var(--space-5);
+/* Form trong modal "Bài kiểm tra thích ứng" (khung/dialog do Modal dùng chung lo) */
+.adaptive-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
-.adaptive-dialog {
-  width: min(420px, 100%); background: var(--color-surface, #fff);
-  border-radius: var(--radius-lg);
-  padding: var(--space-6); box-shadow: var(--shadow-lg);
+.adaptive-form__desc {
+  color: var(--color-text-muted);
+  font-size: var(--fs-sm);
 }
-.adaptive-dialog h2 { margin: 0 0 8px; }
-.adaptive-dialog__error { color: var(--color-error); }
-.adaptive-dialog input {
-  width: 100%; box-sizing: border-box; margin: 12px 0 20px; padding: 10px 12px;
-  border: 1px solid var(--color-border, #d7dce5); border-radius: 8px;
+.adaptive-form__error {
+  color: var(--color-error);
+  font-size: var(--fs-sm);
 }
-.adaptive-dialog__actions { display: flex; justify-content: flex-end; gap: 8px; }
 
 @media (max-width: 640px) {
   .subject-detail-page {
     padding: var(--space-3);
-  }
-  .adaptive-dialog-backdrop {
-    padding: var(--space-4);
-  }
-  .adaptive-dialog {
-    width: 100%;
-    max-height: calc(100vh - var(--space-8));
-    overflow-y: auto;
-    padding: var(--space-5);
-  }
-  /* 16px để iOS không phóng to trang khi focus vào ô số câu */
-  .adaptive-dialog input {
-    min-height: 44px;
-    font-size: var(--fs-base);
-  }
-  .adaptive-dialog__actions {
-    flex-direction: column;
-  }
-  .adaptive-dialog__actions .ui-btn {
-    width: 100%;
-    min-height: 44px;
   }
 }

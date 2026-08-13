@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { BookOpen, GraduationCap, Layers3, Library, Search } from "lucide-react";
+import { BookOpen, GraduationCap, Layers3, Library, Search, X } from "lucide-react";
 import {
   getAllChapters,
   getSubjects,
@@ -14,7 +14,9 @@ import {
   Button,
   EmptyState,
   ErrorState,
+  Modal,
   SkeletonCard,
+  StatTile,
   useToast,
 } from "../../../../components/ui";
 import { getErrorMessage } from "../../../../services/apiClient";
@@ -44,8 +46,11 @@ export default function SubjectsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+  const [unenrollTarget, setUnenrollTarget] = useState(null);
+  const [unenrolling, setUnenrolling] = useState(false);
   const toast = useToast();
   const aliveRef = useRef(true);
+  const tabRefs = useRef({});
 
   const loadData = useCallback(async ({ silent = false } = {}) => {
     try {
@@ -107,16 +112,41 @@ export default function SubjectsPage() {
     await refreshAfterChange("Đã đăng ký môn học.");
   };
 
-  const handleUnenroll = async (subject) => {
-    if (!window.confirm("Hủy đăng ký môn này?")) return;
-    const targetId = subject.subjectId || subject.subject_id;
+  // Mở modal xác nhận thay cho window.confirm; thao tác hủy thật nằm ở confirmUnenroll.
+  const handleUnenroll = (subject) => {
+    setUnenrollTarget(subject);
+  };
+
+  const confirmUnenroll = async () => {
+    if (!unenrollTarget || unenrolling) return;
+    const targetId = unenrollTarget.subjectId || unenrollTarget.subject_id;
     try {
+      setUnenrolling(true);
       await unenrollCourse(targetId);
     } catch (unenrollError) {
       toast.error(getErrorMessage(unenrollError, "Không thể hủy đăng ký môn học."));
       return;
+    } finally {
+      setUnenrolling(false);
     }
+    setUnenrollTarget(null);
     await refreshAfterChange("Đã hủy đăng ký môn học.");
+  };
+
+  const switchTab = (nextTab, { focus = false } = {}) => {
+    setActiveTab(nextTab);
+    if (focus) tabRefs.current[nextTab]?.focus();
+  };
+
+  // role=tablist: mũi tên Trái/Phải chuyển tab (roving tabindex).
+  const handleTablistKeyDown = (event) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    event.preventDefault();
+    const order = ["all", "mine"];
+    const direction = event.key === "ArrowRight" ? 1 : -1;
+    const currentIndex = order.indexOf(activeTab);
+    const nextTab = order[(currentIndex + direction + order.length) % order.length];
+    switchTab(nextTab, { focus: true });
   };
 
   const enrolledIds = useMemo(
@@ -151,48 +181,57 @@ export default function SubjectsPage() {
           <p className="subjects-page__eyebrow">Không gian học tập</p>
           <h1>Danh sách môn học</h1>
           <p className="subjects-page__description">
-            Đăng ký môn học để mở khóa lý thuyết theo từng chương và quiz ôn tập.
+            Đăng ký môn học để mở khóa lý thuyết theo từng chương và bài kiểm tra ôn tập.
           </p>
         </div>
         <div className="subjects-page__stats">
-          <div className="subjects-stat">
-            <span className="subjects-stat__icon">
-              <BookOpen size={18} />
-            </span>
-            <div>
-              <strong>{subjectCollection.length}</strong>
-              <p>Môn học</p>
-            </div>
-          </div>
-          <div className="subjects-stat">
-            <span className="subjects-stat__icon">
-              <Layers3 size={18} />
-            </span>
-            <div>
-              <strong>{totalChapters}</strong>
-              <p>Chương đã đăng ký</p>
-            </div>
-          </div>
+          <StatTile
+            value={subjectCollection.length}
+            label="Môn học"
+            icon={<BookOpen size={18} />}
+          />
+          <StatTile
+            value={totalChapters}
+            label="Chương khả dụng"
+            icon={<Layers3 size={18} />}
+          />
         </div>
       </header>
 
-      <div className="subjects-tabs" role="tablist" aria-label="Bộ lọc môn học">
+      <div
+        className="subjects-tabs"
+        role="tablist"
+        aria-label="Bộ lọc môn học"
+        onKeyDown={handleTablistKeyDown}
+      >
         <button
+          ref={(element) => {
+            tabRefs.current.all = element;
+          }}
           type="button"
           role="tab"
+          id="subjects-tab-all"
+          aria-controls="subjects-panel-all"
           aria-selected={activeTab === "all"}
+          tabIndex={activeTab === "all" ? 0 : -1}
           className={`subjects-tab ${activeTab === "all" ? "is-active" : ""}`}
-          onClick={() => setActiveTab("all")}
+          onClick={() => switchTab("all")}
         >
           <Library size={16} />
           Toàn bộ môn học
         </button>
         <button
+          ref={(element) => {
+            tabRefs.current.mine = element;
+          }}
           type="button"
           role="tab"
+          id="subjects-tab-mine"
+          aria-controls="subjects-panel-mine"
           aria-selected={activeTab === "mine"}
+          tabIndex={activeTab === "mine" ? 0 : -1}
           className={`subjects-tab ${activeTab === "mine" ? "is-active" : ""}`}
-          onClick={() => setActiveTab("mine")}
+          onClick={() => switchTab("mine")}
         >
           <GraduationCap size={16} />
           Môn của tôi
@@ -203,7 +242,7 @@ export default function SubjectsPage() {
       </div>
 
       {activeTab === "all" && (
-        <>
+        <div role="tabpanel" id="subjects-panel-all" aria-labelledby="subjects-tab-all" className="subjects-panel">
           <div className="subjects-toolbar">
             <div className="subjects-toolbar__search">
               <Search size={18} />
@@ -212,7 +251,18 @@ export default function SubjectsPage() {
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Tìm theo tên môn hoặc mã môn"
+                aria-label="Tìm môn học"
               />
+              {searchTerm && (
+                <button
+                  type="button"
+                  className="subjects-toolbar__clear"
+                  onClick={() => setSearchTerm("")}
+                  aria-label="Xóa từ khóa tìm kiếm"
+                >
+                  <X size={16} />
+                </button>
+              )}
             </div>
           </div>
 
@@ -253,11 +303,11 @@ export default function SubjectsPage() {
               ))}
             </section>
           )}
-        </>
+        </div>
       )}
 
       {activeTab === "mine" && (
-        <>
+        <div role="tabpanel" id="subjects-panel-mine" aria-labelledby="subjects-tab-mine" className="subjects-panel">
           {loading ? (
             <div className="subjects-page__grid">
               <SkeletonCard lines={4} />
@@ -292,8 +342,37 @@ export default function SubjectsPage() {
               ))}
             </section>
           )}
-        </>
+        </div>
       )}
+
+      <Modal
+        open={Boolean(unenrollTarget)}
+        onClose={() => {
+          if (!unenrolling) setUnenrollTarget(null);
+        }}
+        title="Hủy đăng ký môn học"
+        size="sm"
+        footer={
+          <>
+            <Button
+              variant="ghost"
+              disabled={unenrolling}
+              onClick={() => setUnenrollTarget(null)}
+            >
+              Giữ nguyên
+            </Button>
+            <Button variant="danger" loading={unenrolling} onClick={confirmUnenroll}>
+              Hủy đăng ký
+            </Button>
+          </>
+        }
+      >
+        <p>
+          Bạn sắp hủy đăng ký môn{" "}
+          <strong>{unenrollTarget?.name || "này"}</strong>. Bạn sẽ không xem được
+          lý thuyết và bài kiểm tra của môn cho đến khi đăng ký lại.
+        </p>
+      </Modal>
     </section>
   );
 }

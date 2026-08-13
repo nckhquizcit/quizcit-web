@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, BookOpen, Layers3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -8,6 +8,7 @@ import {
   EmptyState,
   ErrorState,
   SkeletonCard,
+  StatTile,
 } from "../../../../components/ui";
 import ProgressBar from "../../components/ProgressBar";
 import { getAllChapters } from "../../../../services/chapterService";
@@ -48,56 +49,59 @@ export default function HomePage() {
   const [error, setError] = useState("");
   const user = useMemo(() => getStoredUser(), []);
   const navigate = useNavigate();
+  const loadIdRef = useRef(0);
+
+  // Tách phần tải dữ liệu thành hàm gọi lại được: effect ban đầu và nút "Thử lại" dùng chung.
+  const loadData = useCallback(async () => {
+    const loadId = ++loadIdRef.current;
+    const isCurrent = () => loadIdRef.current === loadId;
+
+    try {
+      setLoading(true);
+      setError("");
+      // Enrollment loi thi degrade ve rong, khong lam chet trang chu.
+      const [subjectData = [], chaptersData = [], enrolledData = []] = await Promise.all([
+        getSubjects(), getAllChapters(), getMyEnrollments().catch(() => []),
+      ]);
+
+      if (!isCurrent()) return;
+      setSubjects(subjectData);
+      setChapters(chaptersData.filter(Boolean));
+      setEnrolledIds(
+        new Set(enrolledData.map((subject) => String(subject.subjectId || subject.subject_id))),
+      );
+
+      if (user?.userId) {
+        const [abilitiesResult, averageResult] = await Promise.allSettled([
+          getUserSkillAbilities(user.userId),
+          getAverageAbility(user.userId),
+        ]);
+        if (!isCurrent()) return;
+        const abilities =
+          abilitiesResult.status === "fulfilled" ? abilitiesResult.value : [];
+        setSkillCount(abilities.length);
+        setAverageTheta(
+          averageResult.status === "fulfilled" && abilities.length > 0
+            ? averageResult.value
+            : null
+        );
+      }
+    } catch (loadError) {
+      if (isCurrent())
+        setError(
+          getErrorMessage(loadError, "Không thể tải dữ liệu trang chủ.")
+        );
+    } finally {
+      if (isCurrent()) setLoading(false);
+    }
+  }, [user?.userId]);
 
   useEffect(() => {
-    let alive = true;
-
-    async function loadData() {
-      try {
-        setLoading(true);
-        setError("");
-        // Enrollment loi thi degrade ve rong, khong lam chet trang chu.
-        const [subjectData = [], chaptersData = [], enrolledData = []] = await Promise.all([
-          getSubjects(), getAllChapters(), getMyEnrollments().catch(() => []),
-        ]);
-
-        if (!alive) return;
-        setSubjects(subjectData);
-        setChapters(chaptersData.filter(Boolean));
-        setEnrolledIds(
-          new Set(enrolledData.map((subject) => String(subject.subjectId || subject.subject_id))),
-        );
-
-        if (user?.userId) {
-          const [abilitiesResult, averageResult] = await Promise.allSettled([
-            getUserSkillAbilities(user.userId),
-            getAverageAbility(user.userId),
-          ]);
-          if (!alive) return;
-          const abilities =
-            abilitiesResult.status === "fulfilled" ? abilitiesResult.value : [];
-          setSkillCount(abilities.length);
-          setAverageTheta(
-            averageResult.status === "fulfilled" && abilities.length > 0
-              ? averageResult.value
-              : null
-          );
-        }
-      } catch (loadError) {
-        if (alive)
-          setError(
-            getErrorMessage(loadError, "Không thể tải dữ liệu trang chủ.")
-          );
-      } finally {
-        if (alive) setLoading(false);
-      }
-    }
-
     loadData();
     return () => {
-      alive = false;
+      loadIdRef.current += 1;
     };
-  }, [user?.userId]);
+  }, [loadData]);
 
   const firstName = getFirstName(user?.displayName || user?.username);
   const greetingPeriod = getGreetingPeriod(new Date().getHours());
@@ -136,10 +140,7 @@ export default function HomePage() {
   if (error) {
     return (
       <div className="home-page">
-        <ErrorState
-          description={error}
-          onRetry={() => window.location.reload()}
-        />
+        <ErrorState description={error} onRetry={loadData} />
       </div>
     );
   }
@@ -163,18 +164,15 @@ export default function HomePage() {
               <p className="home-ability-card__label">Năng lực ước tính</p>
             </>
           ) : (
-            <div className="home-ability-card__empty">
-              <p className="home-ability-card__empty-title">
-                Chưa có dữ liệu năng lực
-              </p>
-              <p className="home-ability-card__empty-hint">
-                Làm một bài kiểm tra để hệ thống ước tính năng lực của bạn.
-              </p>
-            </div>
+            <EmptyState
+              className="home-ability-card__empty"
+              title="Chưa có dữ liệu năng lực"
+              description="Làm một bài kiểm tra để hệ thống ước tính năng lực của bạn."
+            />
           )}
 
           <div className="home-ability-card__chips">
-            <span className="home-chip">{skillCount} kỹ năng đã có theta</span>
+            <span className="home-chip">{skillCount} kỹ năng đã có dữ liệu</span>
             {abilityLevel && (
               <span className="home-chip">Mức {abilityLevel.label}</span>
             )}
@@ -204,16 +202,12 @@ export default function HomePage() {
           <p className="home-content-card__sub">Dữ liệu từ hệ thống</p>
 
           <div className="home-content-card__stats">
-            <div className="home-stat-tile">
-              <BookOpen size={18} />
-              <strong>{subjects.length}</strong>
-              <span>Môn học</span>
-            </div>
-            <div className="home-stat-tile">
-              <Layers3 size={18} />
-              <strong>{chapters.length}</strong>
-              <span>Chương đã mở khóa</span>
-            </div>
+            <StatTile icon={<BookOpen size={18} />} value={subjects.length} label="Môn học" />
+            <StatTile
+              icon={<Layers3 size={18} />}
+              value={chapters.length}
+              label="Chương khả dụng"
+            />
           </div>
 
           <Button
@@ -229,7 +223,7 @@ export default function HomePage() {
       <section className="home-subjects-section">
         <div className="home-subjects-section__header">
           <div>
-            <h2>Môn học của hệ thống</h2>
+            <h2>Danh sách môn học</h2>
             <p className="home-subjects-section__helper">
               Chọn môn để xem chương, lý thuyết và bài kiểm tra.
             </p>
