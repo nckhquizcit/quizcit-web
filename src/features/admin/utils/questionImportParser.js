@@ -72,7 +72,7 @@ const normalizeOptionList = (options = []) => {
     (options || [])
       .map((option, index) => ({
         key: String(option?.key || IMPORT_OPTION_KEYS[index] || "").toUpperCase(),
-        content: normalizeText(option?.content),
+        content: option?.contentFormat === "blocknote" ? String(option?.content || "") : normalizeText(option?.content),
       }))
       .filter((option) => IMPORT_OPTION_KEYS.includes(option.key))
       .map((option) => [option.key, option]),
@@ -226,10 +226,11 @@ export function createQuestionImportRow(partial = {}, index = 0) {
   const difficultyB = normalizeImportDifficultyB(partial.difficulty, DEFAULT_DIFFICULTY_B);
   const row = {
     id: partial.id || `import-question-${Date.now()}-${index}`,
-    content: normalizeText(partial.content),
-    options: normalizeOptionList(partial.options),
+    content: partial.contentFormat === "blocknote" ? String(partial.content || "") : normalizeText(partial.content),
+    contentFormat: partial.contentFormat === "blocknote" ? "blocknote" : "plain",
+    options: normalizeOptionList((partial.options || []).map((option) => ({ ...option, contentFormat: partial.contentFormat }))),
     correctKey: correctResult.correctKey,
-    explanation: normalizeText(partial.explanation),
+    explanation: partial.contentFormat === "blocknote" ? String(partial.explanation || "") : normalizeText(partial.explanation),
     difficulty: matchDifficultyPresetKey(difficultyB),
     difficultyB,
     subjectId: importedSubjectId,

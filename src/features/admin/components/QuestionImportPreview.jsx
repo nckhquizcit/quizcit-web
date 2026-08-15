@@ -2,6 +2,8 @@ import { useState } from "react";
 import { AlertCircle, CheckCircle2, Search, Trash2 } from "lucide-react";
 
 import { IMPORT_OPTION_KEYS } from "../utils/questionImportParser";
+import RichTextView from "../../../components/richtext/RichTextView";
+import { toPreviewText } from "../../../components/richtext/richTextUtils";
 import {
   filterImportSkills,
   getImportSkillsForChapter,
@@ -64,7 +66,7 @@ export default function QuestionImportPreview({
     return (
       <div className="question-import-empty">
         <strong>Chưa có câu hỏi để xem trước</strong>
-        <span>Dán nội dung hoặc tải file .txt/.csv rồi bấm Phân tích nội dung.</span>
+        <span>Dán nội dung hoặc tải file .txt/.csv/.xml rồi bấm Phân tích nội dung.</span>
       </div>
     );
   }
@@ -153,7 +155,11 @@ export default function QuestionImportPreview({
             <summary className="question-import-card__summary">
               <span className="bank-question-index">{String(index + 1).padStart(2, "0")}</span>
               <div>
-                <strong>{row.content || `Dòng ${row.sourceLine || index + 1} chưa có nội dung`}</strong>
+                <strong>
+                  {row.contentFormat === "blocknote"
+                    ? toPreviewText(row.content, "blocknote")
+                    : row.content || `Dòng ${row.sourceLine || index + 1} chưa có nội dung`}
+                </strong>
                 <span>
                   Đáp án {row.correctKey || "?"} · {subjectName} · {chapterName}
                 </span>
@@ -180,7 +186,9 @@ export default function QuestionImportPreview({
                 </button>
               </div>
 
-            <label className="form-field full">
+            {row.contentFormat === "blocknote" ? (
+              <div className="form-field full"><span>Nội dung câu hỏi *</span><RichTextView content={row.content} contentFormat="blocknote" /></div>
+            ) : <label className="form-field full">
               <span>Nội dung câu hỏi *</span>
               <textarea
                 value={row.content}
@@ -188,7 +196,7 @@ export default function QuestionImportPreview({
                 disabled={disabled}
                 className={!row.content?.trim() ? "invalid" : ""}
               />
-            </label>
+            </label>}
 
             <div className="question-import-options">
               {IMPORT_OPTION_KEYS.map((key) => {
@@ -201,7 +209,7 @@ export default function QuestionImportPreview({
                     key={`${row.id}-${key}`}
                   >
                     <span>{key}</span>
-                    <input
+                    {row.contentFormat === "blocknote" ? <RichTextView content={option.content} contentFormat="blocknote" variant="inline" /> : <input
                       value={option.content}
                       placeholder={`Đáp án ${key}`}
                       onChange={(event) =>
@@ -212,7 +220,7 @@ export default function QuestionImportPreview({
                         })
                       }
                       disabled={disabled}
-                    />
+                    />}
                     <input
                       type="radio"
                       name={`correct-${row.id}`}
@@ -265,7 +273,7 @@ export default function QuestionImportPreview({
                 </>
               )}
 
-              <label className="form-field">
+              {row.contentFormat === "blocknote" ? <div className="form-field"><span>Giải thích</span>{row.explanation ? <RichTextView content={row.explanation} contentFormat="blocknote" /> : <em>Không có</em>}</div> : <label className="form-field">
                 <span>Độ khó</span>
                 <select
                   value={row.difficulty}
@@ -304,7 +312,7 @@ export default function QuestionImportPreview({
                     aria-label="Độ khó tùy chỉnh"
                   />
                 )}
-              </label>
+              </label>}
 
               <label className="form-field">
                 <span>Giải thích</span>
@@ -318,6 +326,8 @@ export default function QuestionImportPreview({
             </div>
 
             <div className="question-import-meta">
+              {row.moodleType && <span><b>Moodle</b>{row.moodleName || row.moodleType}</span>}
+              {row.moodleCategory && <span><b>Category</b>{row.moodleCategory}</span>}
               <span>
                 <b>Môn</b>
                 {subjectName}

@@ -12,6 +12,7 @@ import {
   parseQuestionImport,
   validateQuestionImportRow,
 } from "../../utils/questionImportParser";
+import { detectMoodleXml, parseQuestionsFromMoodleXml } from "../../utils/moodleXmlParser";
 import {
   isImportReferenceDataReady,
   selectImportValue,
@@ -26,7 +27,7 @@ import {
   resolveDifficultyB,
 } from "../../utils/difficultyLevels";
 
-const SUPPORTED_FILE_EXTENSIONS = [".txt", ".csv"];
+const SUPPORTED_FILE_EXTENSIONS = [".txt", ".csv", ".xml"];
 
 const normalizeId = (value) => (value === undefined || value === null ? "" : String(value));
 
@@ -101,6 +102,7 @@ const toImportPayload = (row) => ({
   chapterId: row.chapterId,
   content: row.content.trim(),
   explanation: row.explanation?.trim() || "",
+  contentFormat: row.contentFormat || "plain",
   difficultyB: Number.isFinite(Number(row.difficultyB))
     ? Number(row.difficultyB)
     : resolveDifficultyB(row.difficulty, DEFAULT_DIFFICULTY_B),
@@ -162,7 +164,7 @@ export default function ImportQuestionsModal({
   }, [availableChapters, normalizedInitialChapters]);
 
   const resolveImportedRow = useCallback((row) => {
-    const mappingErrors = [];
+    const mappingErrors = [...(row.sourceErrors || [])];
     const subjectRef = selectImportValue({
       mode: placementMode,
       importedValue: row.importedSubjectId,
@@ -273,7 +275,7 @@ export default function ImportQuestionsModal({
       return {
         ...row,
         errors: row.serverError ? [...validation.errors, row.serverError] : validation.errors,
-        warnings: validation.warnings,
+        warnings: [...new Set([...(row.sourceWarnings || []), ...validation.warnings])],
       };
     }), []);
 
@@ -394,8 +396,20 @@ export default function ImportQuestionsModal({
       return;
     }
 
-    const effectiveSourceType = sourceType === "auto" ? (detectCsvImport(text) ? "csv" : "text") : sourceType;
-    const parsedRows = parseQuestionImport(text, sourceType);
+    const effectiveSourceType = sourceType === "auto"
+      ? (detectMoodleXml(text) ? "moodle" : detectCsvImport(text) ? "csv" : "text")
+      : sourceType;
+    let parsedRows;
+    try {
+      parsedRows = effectiveSourceType === "moodle"
+        ? parseQuestionsFromMoodleXml(text)
+        : parseQuestionImport(text, effectiveSourceType);
+    } catch (error) {
+      setRows([]);
+      setParseMessage("");
+      setFormError(error.message || "Không thể đọc file Moodle XML.");
+      return;
+    }
     const rowsWithDefaults = parsedRows.map((row) => resolveImportedRow(row));
 
     setRows(validateRows(rowsWithDefaults));
@@ -420,7 +434,7 @@ export default function ImportQuestionsModal({
       setSourceName(file.name);
       setRows([]);
       setParseMessage("");
-      setFormError("Hiện chỉ hỗ trợ file .txt và .csv. XLSX, DOCX, PDF/OCR chưa hỗ trợ trong lượt này.");
+      setFormError("Hiện chỉ hỗ trợ file .txt, .csv và Moodle XML (.xml). XLSX, DOCX, PDF/OCR chưa hỗ trợ.");
       event.target.value = "";
       return;
     }
@@ -428,7 +442,7 @@ export default function ImportQuestionsModal({
     const reader = new FileReader();
     setFileLoading(true);
     setSourceName(file.name);
-    setSourceType(extension === ".csv" ? "csv" : "text");
+    setSourceType(extension === ".xml" ? "moodle" : extension === ".csv" ? "csv" : "text");
 
     reader.onload = () => {
       setSourceText(String(reader.result || ""));
@@ -585,7 +599,7 @@ export default function ImportQuestionsModal({
           </div>
           <div className="question-import-header__meta" aria-label="Định dạng hỗ trợ">
             <span>.txt</span>
-            <span>.csv</span>
+            <span>.csv</span><span>.xml</span>
           </div>
         </div>}
 
@@ -606,7 +620,7 @@ export default function ImportQuestionsModal({
                 onClick={() => setActiveTab("file")}
               >
                 <FileUp size={16} />
-                Upload .txt / .csv
+                Upload file
               </button>
             </div>
             <div className="question-import-template-links">
@@ -637,9 +651,10 @@ export default function ImportQuestionsModal({
                   <label className="form-field">
                     <span>Kiểu nội dung</span>
                     <select value={sourceType} onChange={(event) => setSourceType(event.target.value)}>
-                      <option value="auto">Tự nhận diện TXT/CSV</option>
+                      <option value="auto">Tự nhận diện TXT/CSV/Moodle XML</option>
                       <option value="text">Dán văn bản thường</option>
                       <option value="csv">Dán CSV</option>
+                      <option value="moodle">Dán Moodle XML</option>
                     </select>
                   </label>
                   <label className="form-field full">
@@ -661,11 +676,11 @@ export default function ImportQuestionsModal({
                 <div className="quiz-import-zone question-import-file-zone">
                   <Upload size={38} />
                   <strong>Upload file câu hỏi</strong>
-                  <span>Hỗ trợ .txt và .csv. XLSX, DOCX, PDF/OCR chưa hỗ trợ.</span>
+                  <span>Hỗ trợ .txt, .csv và Moodle XML (.xml). XLSX, DOCX, PDF/OCR chưa hỗ trợ.</span>
                   <label>
                     <FileUp size={18} />
                     Chọn file
-                    <input type="file" accept=".txt,.csv" onChange={handleFileChange} />
+                    <input type="file" accept=".txt,.csv,.xml" onChange={handleFileChange} />
                   </label>
                   {sourceName && <em>File đã chọn: {sourceName}</em>}
                   {fileLoading && <em>Đang đọc file...</em>}

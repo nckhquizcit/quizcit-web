@@ -5,7 +5,7 @@ import ErrorState from "../../../components/ui/ErrorState/ErrorState";
 import { useToast } from "../../../components/ui/Toast/Toast";
 import { getErrorMessage } from "../../../services/apiClient";
 import { getAllChapters, getSubjects } from "../../../services/contentService";
-import { createQuestion } from "../../../services/quizService";
+import { createQuestionsBulk } from "../../../services/quizService";
 import AdminPageHeader from "../components/AdminPageHeader";
 import ImportQuestionsModal from "../components/modals/ImportQuestionsModal";
 
@@ -65,23 +65,18 @@ export default function AdminQuestionImport() {
   const handleImport = async (items = [], onProgress) => {
     const errors = [];
     let successCount = 0;
-
-    for (let index = 0; index < items.length; index += 1) {
-      const item = items[index];
-      try {
-        await createQuestion(item.payload);
-        successCount += 1;
-      } catch (importError) {
-        errors.push({
-          clientId: item.clientId,
-          index: item.index || index + 1,
-          message: getErrorMessage(importError, "Không thể lưu câu hỏi này."),
-        });
-      }
-
+    for (let offset = 0; offset < items.length; offset += 500) {
+      const batch = items.slice(offset, offset + 500);
+      const result = await createQuestionsBulk(batch);
+      successCount += result?.successCount || 0;
+      (result?.items || []).filter((item) => !item.success).forEach((item) => errors.push({
+        clientId: item.clientId,
+        index: items.findIndex((source) => source.clientId === item.clientId) + 1,
+        message: item.message || "Không thể lưu câu hỏi này.",
+      }));
       onProgress?.({
         total: items.length,
-        completed: index + 1,
+        completed: Math.min(offset + batch.length, items.length),
         success: successCount,
         failed: errors.length,
       });

@@ -3,6 +3,7 @@ import { mapAttempt, mapQuiz, mapQuizResult } from "./mappers";
 import { enrichSkillNames, getSkills } from "./skillService";
 import {
   createQuestion,
+  createQuestionsBulk,
   deleteQuestion,
   getQuestionById,
   getAllQuestions,
@@ -159,4 +160,4 @@ export function clearQuizDraft(quizId, userId) {
   }
 }
 
-export { createQuestion, deleteQuestion, getAllQuestions, getQuestionById, getQuestionsByChapter, getQuestionsByQuiz, updateQuestion };
+export { createQuestion, createQuestionsBulk, deleteQuestion, getAllQuestions, getQuestionById, getQuestionsByChapter, getQuestionsByQuiz, updateQuestion };

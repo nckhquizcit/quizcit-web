@@ -61,6 +61,19 @@ export async function createQuestion(payload) {
   );
 }
 
+export async function createQuestionsBulk(items = []) {
+  return request({
+    method: "POST",
+    url: "/api/questions/bulk",
+    data: {
+      items: items.map((item) => ({
+        clientId: item.clientId,
+        question: mapQuestionPayload(item.payload),
+      })),
+    },
+  });
+}
+
 export async function updateQuestion(questionId, payload) {
   const result = await request({
     method: "PUT",
