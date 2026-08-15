@@ -22,4 +22,10 @@ describe("createQuestionImportTemplate", () => {
     assert.match(csv, /"Lập trình căn bản","Biến và kiểu dữ liệu"/);
     assert.doesNotMatch(csv, /Nhập tên hoặc ID/);
   });
+
+  it("creates samples for Moodle XML, GIFT and Aiken", () => {
+    assert.match(createQuestionImportTemplate("moodle"), /<question type="multichoice">/);
+    assert.match(createQuestionImportTemplate("gift"), /\$CATEGORY:[\s\S]*\{[\s\S]*=/);
+    assert.match(createQuestionImportTemplate("aiken"), /ANSWER: A/);
+  });
 });

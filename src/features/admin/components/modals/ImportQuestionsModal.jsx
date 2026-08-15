@@ -13,6 +13,7 @@ import {
   validateQuestionImportRow,
 } from "../../utils/questionImportParser";
 import { detectMoodleXml, parseQuestionsFromMoodleXml } from "../../utils/moodleXmlParser";
+import { detectAiken, detectGift, parseQuestionsFromAiken, parseQuestionsFromGift } from "../../utils/moodleTextParser";
 import {
   isImportReferenceDataReady,
   selectImportValue,
@@ -27,7 +28,7 @@ import {
   resolveDifficultyB,
 } from "../../utils/difficultyLevels";
 
-const SUPPORTED_FILE_EXTENSIONS = [".txt", ".csv", ".xml"];
+const SUPPORTED_FILE_EXTENSIONS = [".txt", ".csv", ".xml", ".gift", ".aiken"];
 
 const normalizeId = (value) => (value === undefined || value === null ? "" : String(value));
 
@@ -397,12 +398,13 @@ export default function ImportQuestionsModal({
     }
 
     const effectiveSourceType = sourceType === "auto"
-      ? (detectMoodleXml(text) ? "moodle" : detectCsvImport(text) ? "csv" : "text")
+      ? (detectMoodleXml(text) ? "moodle" : detectAiken(text) ? "aiken" : detectGift(text) ? "gift" : detectCsvImport(text) ? "csv" : "text")
       : sourceType;
     let parsedRows;
     try {
-      parsedRows = effectiveSourceType === "moodle"
-        ? parseQuestionsFromMoodleXml(text)
+      parsedRows = effectiveSourceType === "moodle" ? parseQuestionsFromMoodleXml(text)
+        : effectiveSourceType === "gift" ? parseQuestionsFromGift(text)
+        : effectiveSourceType === "aiken" ? parseQuestionsFromAiken(text)
         : parseQuestionImport(text, effectiveSourceType);
     } catch (error) {
       setRows([]);
@@ -434,7 +436,7 @@ export default function ImportQuestionsModal({
       setSourceName(file.name);
       setRows([]);
       setParseMessage("");
-      setFormError("Hiện chỉ hỗ trợ file .txt, .csv và Moodle XML (.xml). XLSX, DOCX, PDF/OCR chưa hỗ trợ.");
+      setFormError("Hiện chỉ hỗ trợ .txt, .csv, Moodle XML, GIFT và Aiken.");
       event.target.value = "";
       return;
     }
@@ -442,7 +444,7 @@ export default function ImportQuestionsModal({
     const reader = new FileReader();
     setFileLoading(true);
     setSourceName(file.name);
-    setSourceType(extension === ".xml" ? "moodle" : extension === ".csv" ? "csv" : "text");
+    setSourceType(extension === ".xml" ? "moodle" : extension === ".gift" ? "gift" : extension === ".aiken" ? "aiken" : extension === ".csv" ? "csv" : "auto");
 
     reader.onload = () => {
       setSourceText(String(reader.result || ""));
@@ -599,7 +601,7 @@ export default function ImportQuestionsModal({
           </div>
           <div className="question-import-header__meta" aria-label="Định dạng hỗ trợ">
             <span>.txt</span>
-            <span>.csv</span><span>.xml</span>
+            <span>.csv</span><span>.xml</span><span>.gift</span><span>.aiken</span>
           </div>
         </div>}
 
@@ -636,6 +638,18 @@ export default function ImportQuestionsModal({
                 <Download size={14} />
                 Tải mẫu CSV
               </button>
+              <button type="button" className="adm2-link-arrow" onClick={() => downloadQuestionImportTemplate("moodle")}>
+                <Download size={14} />
+                Mẫu Moodle XML
+              </button>
+              <button type="button" className="adm2-link-arrow" onClick={() => downloadQuestionImportTemplate("gift")}>
+                <Download size={14} />
+                Mẫu GIFT
+              </button>
+              <button type="button" className="adm2-link-arrow" onClick={() => downloadQuestionImportTemplate("aiken")}>
+                <Download size={14} />
+                Mẫu Aiken
+              </button>
             </div>
           </div>
 
@@ -651,10 +665,12 @@ export default function ImportQuestionsModal({
                   <label className="form-field">
                     <span>Kiểu nội dung</span>
                     <select value={sourceType} onChange={(event) => setSourceType(event.target.value)}>
-                      <option value="auto">Tự nhận diện TXT/CSV/Moodle XML</option>
+                      <option value="auto">Tự nhận diện TXT/CSV/Moodle/GIFT/Aiken</option>
                       <option value="text">Dán văn bản thường</option>
                       <option value="csv">Dán CSV</option>
                       <option value="moodle">Dán Moodle XML</option>
+                      <option value="gift">Dán GIFT</option>
+                      <option value="aiken">Dán Aiken</option>
                     </select>
                   </label>
                   <label className="form-field full">
@@ -676,11 +692,11 @@ export default function ImportQuestionsModal({
                 <div className="quiz-import-zone question-import-file-zone">
                   <Upload size={38} />
                   <strong>Upload file câu hỏi</strong>
-                  <span>Hỗ trợ .txt, .csv và Moodle XML (.xml). XLSX, DOCX, PDF/OCR chưa hỗ trợ.</span>
+                  <span>Hỗ trợ .txt, .csv, Moodle XML, GIFT và Aiken. XLSX, DOCX, PDF/OCR chưa hỗ trợ.</span>
                   <label>
                     <FileUp size={18} />
                     Chọn file
-                    <input type="file" accept=".txt,.csv,.xml" onChange={handleFileChange} />
+                    <input type="file" accept=".txt,.csv,.xml,.gift,.aiken" onChange={handleFileChange} />
                   </label>
                   {sourceName && <em>File đã chọn: {sourceName}</em>}
                   {fileLoading && <em>Đang đọc file...</em>}

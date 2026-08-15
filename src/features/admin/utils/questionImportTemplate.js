@@ -20,8 +20,46 @@ export const QUESTION_IMPORT_CSV_HEADER =
 
 const escapeCsv = (value = "") => `"${String(value).replaceAll('"', '""')}"`;
 
+export const QUESTION_IMPORT_MOODLE_XML_TEMPLATE = `<?xml version="1.0" encoding="UTF-8"?>
+<quiz>
+  <question type="category">
+    <category><text>$course$/top/QuizCIT mẫu</text></category>
+  </question>
+  <question type="multichoice">
+    <name><text>Câu hỏi HTML mẫu</text></name>
+    <questiontext format="html"><text><![CDATA[<p>HTML là viết tắt của gì?</p><pre><code class="language-c">printf("Hello");</code></pre>]]></text></questiontext>
+    <generalfeedback format="html"><text><![CDATA[<p>HTML là ngôn ngữ đánh dấu siêu văn bản.</p>]]></text></generalfeedback>
+    <single>true</single>
+    <answer fraction="100" format="html"><text><![CDATA[<p>Hyper Text Markup Language</p>]]></text></answer>
+    <answer fraction="0" format="html"><text><![CDATA[<p>High Text Machine Language</p>]]></text></answer>
+    <answer fraction="0" format="html"><text><![CDATA[<p>Hyper Tool Multi Language</p>]]></text></answer>
+    <answer fraction="0" format="html"><text><![CDATA[<p>Home Tool Markup Language</p>]]></text></answer>
+  </question>
+</quiz>`;
+
+export const QUESTION_IMPORT_GIFT_TEMPLATE = `// QuizCIT hỗ trợ câu hỏi một đáp án đúng
+$CATEGORY: QuizCIT mẫu
+
+::Câu hỏi HTML mẫu::[html]<p>HTML là viết tắt của gì?</p><pre><code class="language-c">printf("Hello");</code></pre> {
+=<p>Hyper Text Markup Language</p>
+~<p>High Text Machine Language</p>
+~<p>Hyper Tool Multi Language</p>
+~<p>Home Tool Markup Language</p>
+####<p>HTML là ngôn ngữ đánh dấu siêu văn bản.</p>
+}`;
+
+export const QUESTION_IMPORT_AIKEN_TEMPLATE = `HTML là viết tắt của gì?
+A. Hyper Text Markup Language
+B. High Text Machine Language
+C. Hyper Tool Multi Language
+D. Home Tool Markup Language
+ANSWER: A`;
+
 export function createQuestionImportTemplate(type = "csv", context = {}) {
   if (type === "txt") return QUESTION_IMPORT_TXT_TEMPLATE;
+  if (type === "moodle") return QUESTION_IMPORT_MOODLE_XML_TEMPLATE;
+  if (type === "gift") return QUESTION_IMPORT_GIFT_TEMPLATE;
+  if (type === "aiken") return QUESTION_IMPORT_AIKEN_TEMPLATE;
 
   const { subjectName, chapterName } = context;
   if (!subjectName || !chapterName) return QUESTION_IMPORT_CSV_HEADER;
@@ -47,10 +85,15 @@ export function createQuestionImportTemplate(type = "csv", context = {}) {
 }
 
 export function downloadQuestionImportTemplate(type = "csv", context = {}) {
-  const isTextTemplate = type === "txt";
   const content = createQuestionImportTemplate(type, context);
-  const filename = isTextTemplate ? "quizcit-mau-import-cau-hoi.txt" : "quizcit-mau-import-cau-hoi.csv";
-  const mimeType = isTextTemplate ? "text/plain;charset=utf-8" : "text/csv;charset=utf-8";
+  const files = {
+    txt: ["quizcit-mau-import-cau-hoi.txt", "text/plain;charset=utf-8"],
+    csv: ["quizcit-mau-import-cau-hoi.csv", "text/csv;charset=utf-8"],
+    moodle: ["quizcit-mau-moodle.xml", "application/xml;charset=utf-8"],
+    gift: ["quizcit-mau-gift.gift", "text/plain;charset=utf-8"],
+    aiken: ["quizcit-mau-aiken.aiken", "text/plain;charset=utf-8"],
+  };
+  const [filename, mimeType] = files[type] || files.csv;
   const blob = new Blob(["\ufeff", content], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");

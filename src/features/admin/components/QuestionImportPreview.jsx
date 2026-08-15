@@ -326,7 +326,7 @@ export default function QuestionImportPreview({
             </div>
 
             <div className="question-import-meta">
-              {row.moodleType && <span><b>Moodle</b>{row.moodleName || row.moodleType}</span>}
+              {row.moodleType && <span><b>Định dạng</b>{row.moodleName || row.moodleType}</span>}
               {row.moodleCategory && <span><b>Category</b>{row.moodleCategory}</span>}
               <span>
                 <b>Môn</b>
