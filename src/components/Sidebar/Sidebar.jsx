@@ -1,14 +1,33 @@
-import { useState } from "react";
-import { LogOut, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { LogOut, MoreHorizontal, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { ADMIN_SIDEBAR, USER_SIDEBAR } from "../../constants/menuConfig";
 import { logout } from "../../services/authService";
+import { getStoredUser } from "../../services/apiClient";
 import "./Sidebar.css";
 
-export default function Sidebar({ type = "USER", mobileOpen = false, onClose }) {
-  const sidebarItems = type === "ADMIN" ? ADMIN_SIDEBAR : USER_SIDEBAR;
+function getInitials(name) {
+  const trimmed = (name || "").trim();
+  if (!trimmed) return "?";
+  const parts = trimmed.split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+}
+
+export default function Sidebar({ type = "USER", mobileOpen = false, onClose, user: userProp = null }) {
+  const isAdmin = type === "ADMIN";
+  const sidebarItems = isAdmin ? ADMIN_SIDEBAR : USER_SIDEBAR;
   const [isMinimized, setIsMinimized] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const accountRef = useRef(null);
+  const user = userProp ?? getStoredUser();
+
+  const displayName =
+    user?.displayName || user?.username || (isAdmin ? "Quản trị viên" : "Học viên");
+  const roleLabel = isAdmin ? "Administrator" : "Học viên";
+  const sectionLabel = isAdmin ? "QUẢN TRỊ" : "KHÔNG GIAN HỌC";
+  const brandSubtitle = isAdmin ? "ADMIN CONSOLE" : "Ôn tập trực tuyến";
 
   const handleLogout = () => {
     logout();
@@ -19,7 +38,27 @@ export default function Sidebar({ type = "USER", mobileOpen = false, onClose }) 
     if (onClose) onClose();
   };
 
-  const variant = type === "ADMIN" ? "sidebar-wrapper--admin" : "sidebar-wrapper--user";
+  useEffect(() => {
+    if (!accountMenuOpen) return undefined;
+
+    const closeIfOutside = (event) => {
+      if (accountRef.current && !accountRef.current.contains(event.target)) {
+        setAccountMenuOpen(false);
+      }
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setAccountMenuOpen(false);
+    };
+
+    document.addEventListener("mousedown", closeIfOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeIfOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [accountMenuOpen]);
+
+  const variant = isAdmin ? "sidebar-wrapper--admin" : "sidebar-wrapper--user";
 
   return (
     <aside
@@ -28,22 +67,24 @@ export default function Sidebar({ type = "USER", mobileOpen = false, onClose }) 
       }`}
     >
       {isMinimized && (
-        <div className="open-sidebar-container">
-          <PanelLeftOpen
-            size="28"
-            className="open-sidebar-icon"
-            onClick={() => setIsMinimized(false)}
-          />
-        </div>
+        <button
+          type="button"
+          className="open-sidebar-container"
+          onClick={() => setIsMinimized(false)}
+          title="Mở rộng"
+          aria-label="Mở thanh điều hướng"
+        >
+          <PanelLeftOpen size={28} className="open-sidebar-icon" />
+        </button>
       )}
 
-      <div className={`sidebar-content ${isMinimized ? "hidden" : ""}`}>
+      <div className="sidebar-content">
         <div className="sidebar-title">
           <div className="sidebar-brand">
             <span className="sidebar-brand__mark">Q</span>
             <div className="title-text">
               <h2>QuizCIT</h2>
-              <p>{type === "USER" ? "Ôn tập trực tuyến" : "Quản trị viên"}</p>
+              <p>{brandSubtitle}</p>
             </div>
           </div>
           <button
@@ -65,6 +106,8 @@ export default function Sidebar({ type = "USER", mobileOpen = false, onClose }) 
           </button>
         </div>
 
+        <p className="sidebar-section-label">{sectionLabel}</p>
+
         <nav className="sidebar-menu">
           {sidebarItems.map((item) => (
             <NavLink
@@ -82,15 +125,39 @@ export default function Sidebar({ type = "USER", mobileOpen = false, onClose }) 
           ))}
         </nav>
 
-        <button
-          type="button"
-          className="sidebar-logout"
-          onClick={handleLogout}
-          title="Đăng xuất"
-        >
-          <LogOut size={20} />
-          <p>Đăng xuất</p>
-        </button>
+        <div className="sidebar-footer">
+          <div className="sidebar-user" ref={accountRef}>
+            <span className="sidebar-user__avatar">{getInitials(displayName)}</span>
+            <div className="sidebar-user__info">
+              <p className="sidebar-user__name">{displayName}</p>
+              <p className="sidebar-user__role">{roleLabel}</p>
+            </div>
+            <button
+              type="button"
+              className="sidebar-user__more"
+              onClick={() => setAccountMenuOpen((current) => !current)}
+              aria-haspopup="menu"
+              aria-expanded={accountMenuOpen}
+              aria-label="Tùy chọn tài khoản"
+            >
+              <MoreHorizontal size={18} />
+            </button>
+
+            {accountMenuOpen && (
+              <div className="sidebar-user__menu" role="menu">
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="sidebar-user__menu-item"
+                  onClick={handleLogout}
+                >
+                  <LogOut size={16} />
+                  <span>Đăng xuất</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </aside>
   );

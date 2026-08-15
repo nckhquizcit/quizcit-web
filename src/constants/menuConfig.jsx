@@ -63,12 +63,6 @@ export const ADMIN_SIDEBAR = [
     icon: <Database size={20} />,
   },
   {
-    id: "admin_user",
-    label: "Quản lý người dùng",
-    path: "/admin/users",
-    icon: <User size={20} />,
-  },
-  {
     id: "admin_quiz",
     label: "Quản lý đề thi",
     path: "/admin/quizzes",
@@ -79,5 +73,11 @@ export const ADMIN_SIDEBAR = [
     label: "Quản lý kỹ năng",
     path: "/admin/skills",
     icon: <Brain size={20} />,
+  },
+  {
+    id: "admin_user",
+    label: "Quản lý người dùng",
+    path: "/admin/users",
+    icon: <User size={20} />,
   },
 ];

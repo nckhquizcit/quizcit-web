@@ -1,15 +1,25 @@
-import React from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import "./modal.css";
 
 export default function AuthorizationModal({ isOpen, onClose, user, onSave }) {
-  const [role, setRole] = React.useState("USER");
+  const [role, setRole] = useState("USER");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (user) {
       setRole(user.role);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!isOpen || isSubmitting) return undefined;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, isSubmitting, onClose]);
 
   if (!isOpen || !user) return null;
 
@@ -17,17 +27,31 @@ export default function AuthorizationModal({ isOpen, onClose, user, onSave }) {
   const displayName =
     rawDisplayName && rawDisplayName !== user.username ? rawDisplayName : "Chưa có tên hiển thị";
 
-  const handleSave = () => {
-    onSave(role);
-    onClose();
+  const handleClose = () => {
+    if (!isSubmitting) onClose();
+  };
+
+  const handleOverlayClick = (event) => {
+    if (event.target === event.currentTarget) handleClose();
+  };
+
+  const handleSave = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await onSave(role);
+      onClose();
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <div className="modal-overlay">
+    <div className="modal-overlay" onClick={handleOverlayClick}>
       <div className="modal-container">
         <div className="modal-header">
           <h3>Cấp quyền</h3>
-          <button className="close-btn" onClick={onClose} type="button" aria-label="Đóng">
+          <button className="close-btn" onClick={handleClose} type="button" aria-label="Đóng" disabled={isSubmitting}>
             <X size={18} />
           </button>
         </div>
@@ -38,11 +62,12 @@ export default function AuthorizationModal({ isOpen, onClose, user, onSave }) {
           <p><strong>Tên hiển thị:</strong> {displayName}</p>
 
           <div style={{ marginTop: "12px" }}>
-            <label style={{ display: "block", marginBottom: "6px" }}>
+            <label htmlFor="authorization-role-select" style={{ display: "block", marginBottom: "6px" }}>
               Vai trò
             </label>
 
             <select
+              id="authorization-role-select"
               value={role}
               onChange={(e) => setRole(e.target.value)}
             >
@@ -53,10 +78,10 @@ export default function AuthorizationModal({ isOpen, onClose, user, onSave }) {
         </div>
 
         <div className="modal-footer">
-          <button className="modal-btn primary" onClick={handleSave}>
+          <button className="modal-btn primary" onClick={handleSave} disabled={isSubmitting}>
             Lưu
           </button>
-          <button className="modal-btn secondary" onClick={onClose}>
+          <button className="modal-btn secondary" onClick={handleClose} disabled={isSubmitting}>
             Hủy
           </button>
         </div>

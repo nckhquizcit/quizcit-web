@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-  BookOpen,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -47,6 +46,19 @@ import {
 } from "../utils/difficultyLevels";
 
 const QUESTION_PAGE_SIZE = 8;
+
+const getPaginationRange = (current, total) => {
+  const delta = 1;
+  const range = [];
+  for (let i = 1; i <= total; i += 1) {
+    if (i === 1 || i === total || (i >= current - delta && i <= current + delta)) {
+      range.push(i);
+    } else if (range[range.length - 1] !== "…") {
+      range.push("…");
+    }
+  }
+  return range;
+};
 
 const getSkillId = (skill) =>
   skill?.skillId ?? skill?.id ?? skill?.skill?.skillId ?? skill?.skill?.id;
@@ -114,9 +126,9 @@ const enrichQuestion = (question, chapterMap, subjectMap) => {
 const loadQuestionsFromChapters = (chapterList, allQuestions, selectedSubjectId, selectedChapterId) => {
   const normalizedChapters = (chapterList || []).map(normalizeChapter);
   const chaptersToLoad = selectedChapterId
-    ? normalizedChapters.filter((chapter) => chapter.chapterId === selectedChapterId)
+    ? normalizedChapters.filter((chapter) => String(chapter.chapterId) === String(selectedChapterId))
     : selectedSubjectId
-      ? normalizedChapters.filter((chapter) => chapter.subjectId === selectedSubjectId)
+      ? normalizedChapters.filter((chapter) => String(chapter.subjectId) === String(selectedSubjectId))
       : normalizedChapters;
 
   if (!chaptersToLoad.length) {
@@ -238,7 +250,7 @@ export default function AdminQuestions() {
       setSubjects(normalizedSubjects);
       setChapters(
         subjectId
-          ? normalizedChapters.filter((chapter) => chapter.subjectId === subjectId)
+          ? normalizedChapters.filter((chapter) => String(chapter.subjectId) === String(subjectId))
           : normalizedChapters,
       );
       setQuestionRows(questions.map((question) => enrichQuestion(question, chapterMap, subjectMap)));
@@ -441,7 +453,6 @@ export default function AdminQuestions() {
         breadcrumb={["Tổng quan", "Ngân hàng câu hỏi"]}
         title="Ngân hàng câu hỏi"
         subtitle="Quản lý tập trung tất cả câu hỏi trong hệ thống"
-        icon={<Database size={22} />}
         action={
           <div className="question-bank-actions">
             <button
@@ -450,11 +461,11 @@ export default function AdminQuestions() {
               type="button"
             >
               <Upload size={18} />
-              Import câu hỏi
+              Import
             </button>
             <button className="add-btn" onClick={() => navigate(createQuestionPath)} type="button">
               <Plus size={18} />
-              Thêm câu hỏi
+              Thêm câu
             </button>
           </div>
         }
@@ -502,7 +513,7 @@ export default function AdminQuestions() {
                   type="search"
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="Tìm nội dung, môn học, chương..."
+                  placeholder="Tìm nội dung, môn, chương..."
                 />
               </label>
 
@@ -517,7 +528,7 @@ export default function AdminQuestions() {
                   onChange={(event) => setSubjectFilter(event.target.value)}
                   aria-label="Lọc theo môn học"
                 >
-                  <option value="ALL">Tất cả môn học</option>
+                  <option value="ALL">Tất cả môn</option>
                   {subjects.map((subject) => (
                     <option key={subject.subjectId} value={subject.subjectId}>
                       {subject.name}
@@ -556,7 +567,7 @@ export default function AdminQuestions() {
 
             <div className="question-bank-active-line">
               <span>
-                Hiển thị <strong>{questionStats.matched}</strong> / {questionStats.total} câu hỏi
+                <strong>{questionStats.matched}</strong> / {questionStats.total} câu hỏi
               </span>
               {hasActiveFilters && (
                 <button type="button" onClick={resetQuestionFilters}>
@@ -617,10 +628,8 @@ export default function AdminQuestions() {
                                 <strong>{toPreviewText(row.content, row.contentFormat)}</strong>
                                 <div className="question-bank-meta">
                                   <span>
-                                    <BookOpen size={13} />
-                                    {row.subject?.name || "Chưa có môn"}
+                                    {row.subject?.name || "Chưa có môn"} · {row.chapter?.name || "Chưa có chương"}
                                   </span>
-                                  <span>{row.chapter?.name || "Chưa có chương"}</span>
                                 </div>
                               </div>
                             </div>
@@ -642,16 +651,17 @@ export default function AdminQuestions() {
                           </td>
                           <td data-label="Thao tác" className="question-bank-row-actions">
                             <RowActions
+                              labelled
                               items={[
                                 {
-                                  label: "Chỉnh sửa",
-                                  icon: <Pencil size={16} />,
+                                  label: "Sửa",
+                                  icon: <Pencil size={14} />,
                                   disabled: Boolean(loadingEditQuestionId),
                                   onClick: () => handleStartEditQuestion(row),
                                 },
                                 {
                                   label: "Xóa",
-                                  icon: <Trash2 size={16} />,
+                                  icon: <Trash2 size={14} />,
                                   danger: true,
                                   onClick: () => setDeletingQuestion(row),
                                 },
@@ -678,7 +688,7 @@ export default function AdminQuestions() {
             {!loading && sortedQuestions.length > QUESTION_PAGE_SIZE && (
               <div className="question-bank-pagination">
                 <span>
-                  {(safePage - 1) * QUESTION_PAGE_SIZE + 1}-
+                  {(safePage - 1) * QUESTION_PAGE_SIZE + 1}–
                   {Math.min(safePage * QUESTION_PAGE_SIZE, sortedQuestions.length)} /{" "}
                   {sortedQuestions.length}
                 </span>
@@ -691,9 +701,23 @@ export default function AdminQuestions() {
                   >
                     <ChevronLeft size={16} />
                   </button>
-                  <strong>
-                    Trang {safePage} / {totalPages}
-                  </strong>
+                  {getPaginationRange(safePage, totalPages).map((entry, entryIndex) =>
+                    entry === "…" ? (
+                      <span key={`ellipsis-${entryIndex}`} className="adm2-page-ellipsis">
+                        …
+                      </span>
+                    ) : (
+                      <button
+                        key={entry}
+                        type="button"
+                        className={entry === safePage ? "is-active" : ""}
+                        aria-current={entry === safePage ? "page" : undefined}
+                        onClick={() => setPage(entry)}
+                      >
+                        {entry}
+                      </button>
+                    ),
+                  )}
                   <button
                     type="button"
                     disabled={safePage >= totalPages}

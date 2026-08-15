@@ -51,7 +51,10 @@
   border-radius: 8px;
   background: #0f172a;
   color: #e2e8f0;
+  /* Khối code tự cuộn ngang thay vì kéo giãn cả trang */
+  max-width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .rich-text__pre code {
@@ -102,6 +105,12 @@
   margin: 0;
 }
 
+/* Lưới an toàn: mọi ảnh trong nội dung không được vượt quá bề ngang khung đọc */
+.rich-text img {
+  max-width: 100%;
+  height: auto;
+}
+
 .rich-text__figure img {
   display: block;
   max-width: 100%;
@@ -117,7 +126,9 @@
 }
 
 .rich-text__table-wrap {
+  max-width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .rich-text__table {
@@ -129,6 +140,79 @@
   padding: 0.4em 0.6em;
   border: 1px solid rgba(100, 116, 139, 0.35);
   vertical-align: top;
+}
+
+/* Nội dung legacy plain render qua react-markdown: thẻ trần (pre, ul, table...)
+   không mang class BEM nên map lại về đúng look của rich text ở đây. */
+.rich-text--markdown code {
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  background: rgba(100, 116, 139, 0.16);
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.92em;
+}
+
+.rich-text--markdown pre {
+  margin: 0;
+  padding: 0.75em 0.9em;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #e2e8f0;
+  /* Dòng code dài cuộn ngang thay vì kéo giãn cả trang (nhất là màn 390px) */
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.rich-text--markdown pre code {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 0.88em;
+  line-height: 1.55;
+  white-space: pre;
+}
+
+.rich-text--markdown ul,
+.rich-text--markdown ol {
+  margin: 0;
+  padding-left: 1.4em;
+}
+
+.rich-text--markdown li + li {
+  margin-top: 0.3em;
+}
+
+.rich-text--markdown blockquote {
+  margin: 0;
+  padding-left: 0.9em;
+  border-left: 3px solid rgba(100, 116, 139, 0.4);
+  color: inherit;
+  font-style: italic;
+}
+
+.rich-text--markdown hr {
+  margin: 0;
+  border: 0;
+  border-top: 1px solid rgba(100, 116, 139, 0.35);
+}
+
+/* Bảng GFM: tự cuộn ngang vì không có wrapper riêng như bản BlockNote */
+.rich-text--markdown table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-collapse: collapse;
+}
+
+.rich-text--markdown th,
+.rich-text--markdown td {
+  padding: 0.4em 0.6em;
+  border: 1px solid rgba(100, 116, 139, 0.35);
+  vertical-align: top;
+  text-align: left;
 }
 
 .rich-text--inline {
@@ -144,6 +228,26 @@
   max-height: 8em;
   vertical-align: middle;
   border-radius: 6px;
+}
+
+/* Bài lý thuyết: dùng chung cho trang quản trị và trang học */
+.theory-rich-text {
+  max-width: 78ch;
+  overflow-wrap: anywhere;
+}
+
+.theory-rich-text p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.theory-rich-text p + p {
+  margin-top: 14px;
+}
+
+.theory-rich-text.is-collapsed {
+  max-height: 13rem;
+  overflow: hidden;
 }
 
 .rich-text-editor .bn-container {
@@ -167,4 +271,39 @@
 
 .rich-text-editor--inline .bn-container {
   border-radius: 6px;
+}
+
+/* Điện thoại: giữ nội dung bài học / câu hỏi đọc được và không tràn ngang */
+@media (max-width: 767px) {
+  /* Sàn cỡ chữ cho khối nội dung; bản inline giữ nguyên vì hay nằm trong nhãn/chip */
+  .rich-text:not(.rich-text--inline) {
+    font-size: max(var(--fs-sm), 1em);
+  }
+
+  .rich-text__pre,
+  .rich-text--markdown pre {
+    padding: 0.7em 0.75em;
+  }
+
+  .rich-text__list,
+  .rich-text--markdown ul,
+  .rich-text--markdown ol {
+    padding-left: 1.2em;
+  }
+
+  .rich-text__children {
+    padding-left: 0.75em;
+  }
+
+  /* Cột hẹp hơn ngưỡng này thì bảng cuộn ngang thay vì bị bóp nát chữ */
+  .rich-text__table td,
+  .rich-text--markdown td {
+    min-width: 7rem;
+  }
+
+  /* Compound selector để thắng rule sàn cỡ chữ ở trên */
+  .rich-text.theory-rich-text {
+    font-size: var(--fs-base);
+    line-height: 1.65;
+  }
 }

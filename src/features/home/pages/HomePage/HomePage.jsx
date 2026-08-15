@@ -1,16 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, BookOpen, Brain, Sparkles, TrendingUp } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowRight, BookOpen, Layers3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
+  Badge,
   Button,
   Card,
-  Badge,
-  ProgressRing,
   EmptyState,
   ErrorState,
   SkeletonCard,
+  StatTile,
 } from "../../../../components/ui";
+import ProgressBar from "../../components/ProgressBar";
 import { getAllChapters } from "../../../../services/chapterService";
+import { getMyEnrollments } from "../../../../services/enrollmentService";
 import { getSubjects } from "../../../../services/subjectService";
 import {
   getAverageAbility,
@@ -24,87 +26,113 @@ import {
 } from "../../../../services/mappers";
 import "./HomePage.css";
 
+function getGreetingPeriod(hour) {
+  if (hour < 11) return "sáng";
+  if (hour < 18) return "chiều";
+  return "tối";
+}
+
+function getFirstName(displayName) {
+  const trimmed = (displayName || "").trim();
+  if (!trimmed) return "bạn";
+  const parts = trimmed.split(/\s+/);
+  return parts[parts.length - 1];
+}
+
 export default function HomePage() {
   const [subjects, setSubjects] = useState([]);
   const [chapters, setChapters] = useState([]);
+  const [enrolledIds, setEnrolledIds] = useState(() => new Set());
   const [skillCount, setSkillCount] = useState(0);
-  const [averageTheta, setAverageTheta] = useState(0);
+  const [averageTheta, setAverageTheta] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const user = useMemo(() => getStoredUser(), []);
   const navigate = useNavigate();
+  const loadIdRef = useRef(0);
 
-  useEffect(() => {
-    let alive = true;
+  // Tách phần tải dữ liệu thành hàm gọi lại được: effect ban đầu và nút "Thử lại" dùng chung.
+  const loadData = useCallback(async () => {
+    const loadId = ++loadIdRef.current;
+    const isCurrent = () => loadIdRef.current === loadId;
 
-    async function loadData() {
-      try {
-        setLoading(true);
-        setError("");
-        const [subjectData = [], chaptersData = []] = await Promise.all([
-          getSubjects(), getAllChapters(),
+    try {
+      setLoading(true);
+      setError("");
+      // Enrollment loi thi degrade ve rong, khong lam chet trang chu.
+      const [subjectData = [], chaptersData = [], enrolledData = []] = await Promise.all([
+        getSubjects(), getAllChapters(), getMyEnrollments().catch(() => []),
+      ]);
+
+      if (!isCurrent()) return;
+      setSubjects(subjectData);
+      setChapters(chaptersData.filter(Boolean));
+      setEnrolledIds(
+        new Set(enrolledData.map((subject) => String(subject.subjectId || subject.subject_id))),
+      );
+
+      if (user?.userId) {
+        const [abilitiesResult, averageResult] = await Promise.allSettled([
+          getUserSkillAbilities(user.userId),
+          getAverageAbility(user.userId),
         ]);
-
-        if (!alive) return;
-        setSubjects(subjectData);
-        setChapters(chaptersData.filter(Boolean));
-
-        if (user?.userId) {
-          const [abilitiesResult, averageResult] = await Promise.allSettled([
-            getUserSkillAbilities(user.userId),
-            getAverageAbility(user.userId),
-          ]);
-          if (!alive) return;
-          setSkillCount(
-            abilitiesResult.status === "fulfilled"
-              ? abilitiesResult.value.length
-              : 0
-          );
-          setAverageTheta(
-            averageResult.status === "fulfilled" ? averageResult.value : 0
-          );
-        }
-      } catch (loadError) {
-        if (alive)
-          setError(
-            getErrorMessage(loadError, "Không thể tải dữ liệu trang chủ.")
-          );
-      } finally {
-        if (alive) setLoading(false);
+        if (!isCurrent()) return;
+        const abilities =
+          abilitiesResult.status === "fulfilled" ? abilitiesResult.value : [];
+        setSkillCount(abilities.length);
+        setAverageTheta(
+          averageResult.status === "fulfilled" && abilities.length > 0
+            ? averageResult.value
+            : null
+        );
       }
+    } catch (loadError) {
+      if (isCurrent())
+        setError(
+          getErrorMessage(loadError, "Không thể tải dữ liệu trang chủ.")
+        );
+    } finally {
+      if (isCurrent()) setLoading(false);
     }
-
-    loadData();
-    return () => {
-      alive = false;
-    };
   }, [user?.userId]);
 
-  const overallProgress = skillCount > 0 ? thetaRawToPercent(averageTheta) : 0;
-  const averageLevel = getAbilityLevel(averageTheta);
-  const recommendations = subjects.slice(0, 2).map((subject) => {
-    const subjectChapters = chapters.filter(
-      (chapter) => chapter.subjectId === subject.subjectId
-    );
-    return {
-      subject,
-      chapter: subjectChapters[0] || null,
-      reason:
-        skillCount > 0
-          ? "Tiếp tục luyện tập để cải thiện năng lực theo kỹ năng."
-          : "Hoàn thành quiz đầu tiên để hệ thống bắt đầu ước tính năng lực.",
+  useEffect(() => {
+    loadData();
+    return () => {
+      loadIdRef.current += 1;
     };
-  });
+  }, [loadData]);
+
+  const firstName = getFirstName(user?.displayName || user?.username);
+  const greetingPeriod = getGreetingPeriod(new Date().getHours());
+  const hasAbilityData = averageTheta !== null;
+  const abilityLevel = hasAbilityData ? getAbilityLevel(averageTheta) : null;
+  const abilityProgress = hasAbilityData ? thetaRawToPercent(averageTheta) : 0;
+
+  const subjectsWithChapterCount = useMemo(
+    () =>
+      subjects.map((subject) => ({
+        ...subject,
+        enrolled: enrolledIds.has(String(subject.subjectId)),
+        chapterCount: chapters.filter(
+          (chapter) => chapter.subjectId === subject.subjectId
+        ).length,
+      })),
+    [subjects, chapters, enrolledIds]
+  );
 
   if (loading) {
     return (
       <div className="home-page">
-        <div className="home-summary-grid">
-          <SkeletonCard lines={2} />
-          <SkeletonCard lines={2} />
-          <SkeletonCard lines={2} />
+        <div className="home-overview-row">
+          <SkeletonCard lines={4} />
+          <SkeletonCard lines={3} />
         </div>
-        <SkeletonCard lines={3} />
+        <div className="home-subjects-grid">
+          <SkeletonCard lines={3} />
+          <SkeletonCard lines={3} />
+          <SkeletonCard lines={3} />
+        </div>
       </div>
     );
   }
@@ -112,127 +140,92 @@ export default function HomePage() {
   if (error) {
     return (
       <div className="home-page">
-        <ErrorState
-          description={error}
-          onRetry={() => window.location.reload()}
-        />
+        <ErrorState description={error} onRetry={loadData} />
       </div>
     );
   }
 
   return (
     <div className="home-page">
-      <section className="home-hero">
-        <div className="home-hero__text">
-          <p className="home-hero__eyebrow">Học viên QuizCIT</p>
-          <h1>Chào, {user?.displayName || user?.username || "bạn"} 👋</h1>
-          <p className="home-hero__description">
-            Chọn môn học, làm quiz và theo dõi năng lực theo kỹ năng sau mỗi lần
-            nộp bài.
+      <section className="home-greeting">
+        <h1>Chào buổi {greetingPeriod}, {firstName}</h1>
+        <p>Hôm nay bạn muốn tiến thêm một chút ở đâu?</p>
+      </section>
+
+      <section className="home-overview-row">
+        <Card padding="lg" className="home-ability-card">
+          <span className="home-kicker-chip">NĂNG LỰC TỔNG QUAN</span>
+          {hasAbilityData ? (
+            <>
+              <div className="home-ability-card__value">
+                {formatScaledThetaValue(averageTheta)}
+                <span> / 4</span>
+              </div>
+              <p className="home-ability-card__label">Năng lực ước tính</p>
+            </>
+          ) : (
+            <EmptyState
+              className="home-ability-card__empty"
+              title="Chưa có dữ liệu năng lực"
+              description="Làm một bài kiểm tra để hệ thống ước tính năng lực của bạn."
+            />
+          )}
+
+          <div className="home-ability-card__chips">
+            <span className="home-chip">{skillCount} kỹ năng đã có dữ liệu</span>
+            {abilityLevel && (
+              <span className="home-chip">Mức {abilityLevel.label}</span>
+            )}
+          </div>
+
+          {hasAbilityData && (
+            <div className="home-ability-card__progress">
+              <div className="home-ability-card__progress-labels">
+                <span>Thang năng lực</span>
+                <span>0 – 4</span>
+              </div>
+              <ProgressBar value={abilityProgress} />
+            </div>
+          )}
+
+          <Button variant="primary" onClick={() => navigate("/app/progress")}>
+            Xem tiến độ
+          </Button>
+
+          <p className="home-ability-card__note">
+            Cập nhật sau bài kiểm tra và nhóm 5 câu thích ứng
           </p>
+        </Card>
+
+        <Card padding="lg" className="home-content-card">
+          <h2>Nội dung khả dụng</h2>
+          <p className="home-content-card__sub">Dữ liệu từ hệ thống</p>
+
+          <div className="home-content-card__stats">
+            <StatTile icon={<BookOpen size={18} />} value={subjects.length} label="Môn học" />
+            <StatTile
+              icon={<Layers3 size={18} />}
+              value={chapters.length}
+              label="Chương khả dụng"
+            />
+          </div>
+
           <Button
-            variant="primary"
-            size="lg"
-            iconRight={<ArrowRight size={18} />}
+            variant="secondary"
+            fullWidth
             onClick={() => navigate("/app/subjects")}
           >
-            Học tiếp
+            Xem danh sách môn học
           </Button>
-        </div>
-        <div className="home-hero__ring">
-          <ProgressRing
-            value={overallProgress}
-            size={150}
-            stroke={12}
-            label={skillCount > 0 ? formatScaledThetaValue(averageTheta) : "—"}
-            sublabel="trên 4"
-          />
-        </div>
-      </section>
-
-      <section className="home-summary-grid">
-        <Card className="stat-card">
-          <span className="stat-card__icon stat-card__icon--green">
-            <BookOpen size={22} />
-          </span>
-          <div className="stat-card__body">
-            <h3>{subjects.length}</h3>
-            <p>Môn học</p>
-          </div>
-        </Card>
-        <Card className="stat-card">
-          <span className="stat-card__icon stat-card__icon--blue">
-            <Brain size={22} />
-          </span>
-          <div className="stat-card__body">
-            <h3>{skillCount}</h3>
-            <p>Kỹ năng đã có theta</p>
-          </div>
-        </Card>
-        <Card className="stat-card">
-          <span className="stat-card__icon stat-card__icon--amber">
-            <TrendingUp size={22} />
-          </span>
-          <div className="stat-card__body">
-            <h3>{skillCount > 0 ? formatScaledThetaValue(averageTheta) : "—"}</h3>
-            <p>{skillCount > 0 ? averageLevel.label : "Mức năng lực ước tính"}</p>
-          </div>
         </Card>
       </section>
 
-      <Card padding="lg" className="ai-card">
-        <div className="ai-card__header">
-          <span className="ai-card__icon">
-            <Sparkles size={20} />
-          </span>
-          <div className="ai-card__heading">
-            <div className="ai-card__title-row">
-              <h2>Gợi ý học tập</h2>
-              {skillCount === 0 && <Badge variant="warning">Cần dữ liệu quiz</Badge>}
-            </div>
-            <p className="ai-card__desc">
-              {skillCount === 0
-                ? "Hãy làm một bài quiz để hệ thống cập nhật năng lực và lịch sử học tập."
-                : `Điểm năng lực: ${formatScaledThetaValue(averageTheta)}/4 · ${averageLevel.label}.`}
-            </p>
-          </div>
-        </div>
-
-        <div className="ai-card__list">
-          {recommendations.map((item) => (
-            <Card
-              key={item.subject.subjectId}
-              padding="md"
-              className="reco-card"
-            >
-              <div className="reco-card__top">
-                <h3>{item.subject.name}</h3>
-                <Badge variant="primary">{item.subject.courseCode}</Badge>
-              </div>
-              <p className="reco-card__reason">{item.reason}</p>
-              {item.chapter && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  iconRight={<ArrowRight size={14} />}
-                  onClick={() =>
-                    navigate(`/app/subjects/${item.subject.subjectId}`)
-                  }
-                >
-                  {item.chapter.name}
-                </Button>
-              )}
-            </Card>
-          ))}
-        </div>
-      </Card>
-
-      <section className="subjects-section">
-        <div className="subjects-section__header">
+      <section className="home-subjects-section">
+        <div className="home-subjects-section__header">
           <div>
-            <h2>Môn học của hệ thống</h2>
-            <p className="subjects-section__helper">
-              Chọn môn học để tiếp tục lộ trình ôn tập của bạn.
+            <h2>Danh sách môn học</h2>
+            <p className="home-subjects-section__helper">
+              Chọn môn để xem chương, lý thuyết và bài kiểm tra.
             </p>
           </div>
           <Button
@@ -251,29 +244,30 @@ export default function HomePage() {
             description="Hệ thống chưa có môn học để hiển thị."
           />
         ) : (
-          <div className="subjects-grid">
-            {subjects.map((subject) => (
+          <div className="home-subjects-grid">
+            {subjectsWithChapterCount.map((subject) => (
               <Card
                 key={subject.subjectId}
+                as="button"
+                type="button"
                 interactive
                 className="home-subject-card"
                 onClick={() =>
                   navigate(`/app/subjects/${subject.subjectId}`)
                 }
               >
-                <div className="home-subject-card__head">
-                  <span className="home-subject-card__icon">
-                    <BookOpen size={20} />
-                  </span>
-                  {subject.courseCode && (
-                    <Badge variant="neutral" size="sm">
-                      {subject.courseCode}
-                    </Badge>
-                  )}
-                </div>
+                {subject.courseCode && (
+                  <Badge variant="primary" size="sm">
+                    {subject.courseCode}
+                  </Badge>
+                )}
                 <h3>{subject.name}</h3>
-                <p className="home-subject-card__desc">
-                  {subject.description || "Chưa có mô tả cho môn học này."}
+                <p className="home-subject-card__meta">
+                  {!subject.enrolled
+                    ? "Đăng ký để xem nội dung"
+                    : subject.chapterCount > 0
+                      ? `${subject.chapterCount} chương · Lý thuyết và bài kiểm tra`
+                      : "Chưa mở khóa chương nào"}
                 </p>
                 <span className="home-subject-card__link">
                   Xem chi tiết <ArrowRight size={14} />

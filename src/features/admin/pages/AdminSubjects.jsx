@@ -97,7 +97,10 @@ export default function AdminSubjects() {
   const handleDeleteSubject = async () => {
     if (!deletingSubject) return;
 
-    await runAction("delete-subject", async () => {
+    // Delete failures are shown inside ConfirmDeleteModal, so skip the
+    // page-level actionError and let the error propagate to the modal.
+    setPendingAction("delete-subject");
+    try {
       await deleteSubject(deletingSubject.subjectId);
       setSubjects((current) =>
         current.filter((s) => s.subjectId !== deletingSubject.subjectId),
@@ -108,7 +111,9 @@ export default function AdminSubjects() {
         return next;
       });
       setDeletingSubject(null);
-    });
+    } finally {
+      setPendingAction("");
+    }
   };
 
   const isMutating = Boolean(pendingAction);
@@ -147,7 +152,7 @@ export default function AdminSubjects() {
       <AdminPageHeader
         breadcrumb={["Tổng quan", "Môn học"]}
         title="Quản lý môn học"
-        subtitle="Quản lý danh sách môn học và chương học"
+        subtitle="Quản lý danh sách môn, thứ tự và cấu trúc chương."
         action={<div className="display-order-actions">
           {isOrdering ? <>
             <button className="cancel-btn" onClick={cancelOrdering} disabled={isMutating}><X size={17} /> Hủy</button>
@@ -155,32 +160,51 @@ export default function AdminSubjects() {
           </> : <button className="cancel-btn" onClick={startOrdering} disabled={loading || isMutating || !subjects.length}><ListOrdered size={17} /> Chỉnh thứ tự</button>}
           <button className="add-btn" onClick={() => setOpenAddSubject(true)} disabled={loading || isMutating || isOrdering}>
             <Plus size={18} />
-            Thêm môn học
+            Thêm môn
           </button>
         </div>}
       />
 
       {/* ===== SEARCH ===== */}
-      <SearchBar placeholder="Tìm kiếm môn học..." onChange={setSearch} />
+      <SearchBar
+        placeholder="Tìm kiếm tên hoặc mã môn..."
+        value={search}
+        onChange={setSearch}
+        right={
+          !loading && !loadError ? (
+            <span className="adm2-count-pill">{filteredSubjects.length} môn</span>
+          ) : null
+        }
+      />
 
       {loading && <div className="admin-page-state">Đang tải danh sách môn học...</div>}
       {loadError && <div className="admin-page-state error">{loadError}</div>}
       {actionError && <div className="admin-page-state error">{actionError}</div>}
       {!loading && !loadError && filteredSubjects.length === 0 && (
-        <EmptyState
-          icon={<BookOpen size={28} />}
-          title="Chưa có môn học"
-          description="Thêm môn học mới để bắt đầu xây dựng nội dung."
-        />
+        subjects.length > 0 ? (
+          <EmptyState
+            icon={<BookOpen size={28} />}
+            title="Không tìm thấy môn học phù hợp"
+            description="Thử từ khóa khác hoặc kiểm tra lại chính tả."
+          />
+        ) : (
+          <EmptyState
+            icon={<BookOpen size={28} />}
+            title="Chưa có môn học"
+            description="Thêm môn học mới để bắt đầu xây dựng nội dung."
+          />
+        )
       )}
 
       {/* ===== SUBJECT GRID ===== */}
       {!loading && !loadError && filteredSubjects.length > 0 && (
       <div className="subject-grid">
-        {filteredSubjects.map((subject) => (
+        {filteredSubjects.map((subject) => {
+          const isVisible = subject.visible !== false;
+          return (
           <div
             key={subject.subjectId}
-            className="subject-card"
+            className="subject-card adm2-card"
             draggable={isOrdering && !isMutating}
             onDragStart={(event) => {
               setDraggedSubjectId(subject.subjectId);
@@ -190,55 +214,80 @@ export default function AdminSubjects() {
             onDrop={(event) => handleSubjectDrop(event, subject.subjectId)}
             onDragEnd={() => setDraggedSubjectId(null)}
             data-dragging={draggedSubjectId === subject.subjectId || undefined}
+            role={isOrdering ? undefined : "button"}
+            tabIndex={isOrdering ? undefined : 0}
             onClick={() => !isOrdering && navigate(`/admin/subjects/${subject.subjectId}/chapters`)}
+            onKeyDown={(event) => {
+              // Only react when the card itself is focused, not inner buttons.
+              if (isOrdering || event.target !== event.currentTarget) return;
+              if (event.key !== "Enter" && event.key !== " ") return;
+              if (event.key === " ") event.preventDefault();
+              navigate(`/admin/subjects/${subject.subjectId}/chapters`);
+            }}
           >
             {isOrdering && <span className="display-order-drag-handle" title="Kéo để đổi thứ tự" aria-label="Kéo để đổi thứ tự"><GripVertical size={17} /></span>}
-            <div className="subject-card-actions">
-              <button
-                className="icon-btn"
-                disabled={isMutating || isOrdering}
-                aria-label={`Chỉnh sửa ${subject.name}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/admin/subjects/${subject.subjectId}/edit`);
-                }}
-              >
-                <Pencil size={16} />
-              </button>
-              <button
-                className="icon-btn danger"
-                disabled={isMutating || isOrdering}
-                aria-label={`Xóa ${subject.name}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setDeletingSubject(subject);
-                }}
-              >
-                <Trash2 size={16} />
-              </button>
+
+            <div className="adm2-subject-card-head">
+              <div className="adm2-icon-square" title={subject.courseCode}>{subject.courseCode}</div>
+              <div className="adm2-subject-card-headtext">
+                <div className="subject-title">{subject.name}</div>
+                <div className="subject-code">{subject.courseCode}</div>
+              </div>
+              <span className={`adm2-badge ${isVisible ? "adm2-badge--emerald" : "adm2-badge--gray"}`}>
+                {isVisible ? "Hiển thị" : "Đang ẩn"}
+              </span>
             </div>
-
-            <div className="header-icon">
-              <BookOpen size={22} />
-            </div>
-
-            <div className="subject-title">{subject.name}</div>
-
-            {subject.visible === false && <span className="subject-hidden-badge">Đang ẩn</span>}
-
-            <div className="subject-code">Mã môn: {subject.courseCode}</div>
 
             <div className="subject-desc">{subject.description}</div>
 
-            <div className="subject-footer">
-              <span>
-                {chapterCountBySubject[subject.subjectId] || 0}{" "}
-                chương
-              </span>
-              <ChevronRight size={16} aria-hidden="true" />
+            <div className="adm2-divider" />
+
+            <div className="adm2-subject-card-meta">
+              {chapterCountBySubject[subject.subjectId] || 0} chương
+            </div>
+
+            <div className="adm2-card-footer">
+              <div className="adm2-card-footer-actions">
+                <button
+                  type="button"
+                  className="adm2-text-btn"
+                  disabled={isMutating || isOrdering}
+                  aria-label={`Chỉnh sửa ${subject.name}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/admin/subjects/${subject.subjectId}/edit`);
+                  }}
+                >
+                  <Pencil size={14} /> Sửa
+                </button>
+                <button
+                  type="button"
+                  className="adm2-text-btn is-danger"
+                  disabled={isMutating || isOrdering}
+                  aria-label={`Xóa ${subject.name}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeletingSubject(subject);
+                  }}
+                >
+                  <Trash2 size={14} /> Xóa
+                </button>
+              </div>
+              <button
+                type="button"
+                className="adm2-link-arrow"
+                disabled={isOrdering}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/admin/subjects/${subject.subjectId}/chapters`);
+                }}
+              >
+                Mở chương <ChevronRight size={14} />
+              </button>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
       )}
 
@@ -254,7 +303,7 @@ export default function AdminSubjects() {
         open={Boolean(deletingSubject)}
         onClose={() => setDeletingSubject(null)}
         title="Xóa môn học"
-        message="Bạn có muốn xóa môn học này không? Tất cả chương, lý thuyết, câu hỏi và đề thi liên quan cũng sẽ bị xóa."
+        message="Bạn có muốn xóa môn học này không? Dữ liệu liên quan (chương, lý thuyết, câu hỏi, đề thi) sẽ không còn truy cập được. Hành động này không thể hoàn tác."
         itemName={deletingSubject?.name}
         onConfirm={handleDeleteSubject}
       />

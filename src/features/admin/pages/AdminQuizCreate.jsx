@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { FileText, LoaderCircle } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import "./AdminQuizzes.css";
@@ -47,29 +47,27 @@ export default function AdminQuizCreate() {
     <>
       <AdminPageHeader
         title="Tạo đề thi"
-        subtitle="Chọn môn học, chương và câu hỏi cho đề thi mới"
-        icon={<FileText size={22} />}
         backHref={returnPath}
+        backLabel="Danh sách đề"
       />
 
-      <div className="admin-section-card admin-form-page quiz-form-page">
-        {loading ? (
-          <div className="quiz-inline-empty">
-            <LoaderCircle size={16} className="spin" /> Đang tải danh sách môn học...
-          </div>
-        ) : error ? (
-          <ErrorState description={error} onRetry={loadSubjects} />
-        ) : (
-          <CreateQuizForm
-            open
-            subjects={subjects}
-            defaultSubjectId={searchParams.get("subjectId") || ""}
-            defaultChapterId={searchParams.get("chapterId") || ""}
-            onCancel={goBack}
-            onCreated={handleCreated}
-          />
-        )}
-      </div>
+      {loading ? (
+        <div className="admin-section-card quiz-inline-empty">
+          <LoaderCircle size={16} className="spin" /> Đang tải danh sách môn học...
+        </div>
+      ) : error ? (
+        <ErrorState description={error} onRetry={loadSubjects} />
+      ) : (
+        <CreateQuizForm
+          open
+          variant="page"
+          subjects={subjects}
+          defaultSubjectId={searchParams.get("subjectId") || ""}
+          defaultChapterId={searchParams.get("chapterId") || ""}
+          onCancel={goBack}
+          onCreated={handleCreated}
+        />
+      )}
     </>
   );
 }

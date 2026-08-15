@@ -1,9 +1,13 @@
 .quiz-taking-page {
+  /* Chiều cao xấp xỉ của .quiz-header sticky (2 dòng chữ + đệm dọc 2×20px +
+     viền). Các phần tử sticky khác (sidebar, rail) cộng thêm giá trị này để
+     không chui xuống dưới header. Đổi padding/nội dung header thì cập nhật. */
+  --quiz-header-offset: 96px;
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
   padding: var(--space-8);
-  max-width: 1180px;
+  max-width: var(--content-wide);
   margin: 0 auto;
 }
 
@@ -20,7 +24,7 @@
 /* Header */
 .quiz-header {
   position: sticky;
-  top: var(--space-4);
+  top: var(--sticky-top);
   z-index: 5;
   display: flex;
   align-items: center;
@@ -52,26 +56,42 @@
 }
 
 .quiz-timer {
-  display: inline-flex;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--space-2);
-  padding: 0.6rem 1rem;
+  gap: 2px;
+  padding: 0.5rem 1.1rem;
   border-radius: var(--radius-md);
   background: var(--color-primary-soft);
   color: var(--color-primary-700);
+  flex-shrink: 0;
+}
+.quiz-timer__label {
+  /* Chữ xanh nhỏ hơn 1rem trên nền sáng phải dùng primary-700 (quy tắc tương phản) */
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-primary-700);
+}
+.quiz-timer__value {
+  font-family: ui-monospace, monospace;
   font-weight: 800;
   font-size: var(--fs-md);
   font-variant-numeric: tabular-nums;
-  flex-shrink: 0;
 }
-.quiz-timer--unlimited {
+.quiz-timer--unlimited .quiz-timer__value {
+  font-family: inherit;
   font-size: var(--fs-sm);
   font-weight: 600;
 }
 .quiz-timer.time-warning {
   background: var(--color-error-soft);
-  color: #dc2626;
+  color: var(--color-error-strong);
   animation: quiz-pulse 1s ease-in-out infinite;
+}
+.quiz-timer.time-warning .quiz-timer__label {
+  color: var(--color-error-strong);
 }
 @keyframes quiz-pulse {
   50% {
@@ -86,9 +106,35 @@
   padding: 0.75rem 1rem;
   border-radius: var(--radius-md);
   background: var(--color-error-soft);
-  color: #b91c1c;
+  color: var(--color-error-strong);
   font-size: var(--fs-sm);
-  border: 1px solid #fecaca;
+  border: 1px solid var(--color-error);
+}
+
+/* Info banner */
+.quiz-info-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-primary-100);
+  border-radius: var(--radius-md);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-700);
+  font-size: var(--fs-sm);
+}
+.quiz-info-banner__icon {
+  font-size: var(--fs-md);
+  line-height: 1;
+  flex-shrink: 0;
+}
+/* Gợi ý phím tắt chỉ hữu ích khi có bàn phím — ẩn ở layout cảm ứng (≤1023px) */
+.quiz-info-banner__hint {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--color-primary-700);
 }
 
 /* Progress bar */
@@ -195,7 +241,7 @@
 }
 .flag-btn--active {
   background: var(--color-warning-soft);
-  color: #b45309;
+  color: var(--color-warning-strong);
   border-color: var(--color-warning);
 }
 .skill-btn:disabled {
@@ -254,7 +300,7 @@
   flex-shrink: 0;
 }
 .option-item.is-selected .option-marker {
-  background: var(--color-primary);
+  background: var(--color-primary-700);
   color: #fff;
 }
 .option-text {
@@ -284,7 +330,8 @@
 /* Sidebar */
 .quiz-sidebar {
   position: sticky;
-  top: calc(var(--space-4) + 96px);
+  /* Nằm dưới .quiz-header cũng đang sticky (xem chú thích --quiz-header-offset) */
+  top: calc(var(--sticky-top) + var(--quiz-header-offset));
 }
 .quiz-sidebar__card {
   display: flex;
@@ -296,12 +343,24 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
 }
+.quiz-sidebar__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
 .quiz-sidebar__title {
   font-size: var(--fs-xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--color-text-subtle);
+  color: var(--color-text-muted);
+}
+/* Bottom sheet + bottom bar chỉ dành cho mobile — desktop ẩn hẳn */
+.quiz-sheet-overlay,
+.quiz-sheet-close,
+.quiz-bottombar {
+  display: none;
 }
 .quiz-nav {
   display: grid;
@@ -326,10 +385,15 @@
 .quiz-nav-item:hover {
   border-color: var(--color-primary-200);
 }
+/* Nền mang chữ trắng phải dùng primary-700 (quy tắc tương phản) */
 .quiz-nav-item.answered {
-  background: var(--color-primary);
+  background: var(--color-primary-700);
   color: #fff;
-  border-color: var(--color-primary);
+  border-color: var(--color-primary-700);
+}
+.quiz-nav-item.answered:hover {
+  background: var(--color-primary-800);
+  border-color: var(--color-primary-800);
 }
 .quiz-nav-item.flagged {
   border-color: var(--color-warning);
@@ -371,175 +435,159 @@
   display: inline-block;
 }
 .legend-dot--answered {
-  background: var(--color-primary);
+  background: var(--color-primary-700);
 }
 .legend-dot--flagged {
   border: 1px solid var(--color-warning);
   background: var(--color-warning-soft);
 }
 
-/* Submit confirmation */
-.submit-confirm-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-drawer);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-4);
-  background: var(--color-overlay);
-}
-.submit-confirm-modal {
-  width: 100%;
-  max-width: 460px;
-  overflow: hidden;
-  border-radius: var(--radius-lg);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-lg);
-}
-.submit-confirm-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--color-border);
-}
-.submit-confirm-header h3 {
-  color: var(--color-text);
-  font-size: var(--fs-md);
-}
-.submit-confirm-close {
-  display: inline-flex;
-  padding: 4px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--color-text-subtle);
-  cursor: pointer;
-}
-.submit-confirm-close:hover {
-  background: var(--color-surface-3);
-  color: var(--color-text);
-}
-.submit-confirm-body {
+/* Submit confirmation — khung hộp thoại do Modal dùng chung đảm nhiệm,
+   ở đây chỉ style phần nội dung bên trong */
+.submit-confirm-content {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  padding: var(--space-5);
+}
+.submit-confirm-sub {
   color: var(--color-text-muted);
   font-size: var(--fs-sm);
-  line-height: 1.6;
 }
-.submit-confirm-body strong {
-  color: var(--color-text);
+.submit-confirm-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+.submit-confirm-stats .ui-stat-tile {
+  padding: var(--space-3);
 }
 .submit-confirm-warning {
   padding: var(--space-3);
   border: 1px solid var(--color-warning);
   border-radius: var(--radius-md);
   background: var(--color-warning-soft);
-  color: #92400e;
+  color: var(--color-warning-strong);
+  font-size: var(--fs-sm);
   font-weight: 600;
 }
-.submit-confirm-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-3);
-  padding: 0 var(--space-5) var(--space-5);
-}
-
-/* Skill modal */
-.skill-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: var(--color-overlay);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-4);
-  z-index: var(--z-drawer);
-}
-.skill-modal {
-  width: 100%;
-  max-width: 440px;
-  background: var(--color-surface);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  overflow: hidden;
-}
-.skill-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--color-border);
-}
-.skill-modal-header h3 {
-  font-size: var(--fs-md);
-  color: var(--color-text);
-}
-.skill-modal-close {
-  display: inline-flex;
-  border: none;
-  background: transparent;
-  color: var(--color-text-subtle);
-  cursor: pointer;
-  padding: 4px;
-  border-radius: var(--radius-sm);
-}
-.skill-modal-close:hover {
-  background: var(--color-surface-3);
-  color: var(--color-text);
-}
-.skill-list {
-  list-style: none;
-  margin: 0;
-  padding: var(--space-4) var(--space-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-.skill-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-  padding: var(--space-3);
+.submit-confirm-note {
+  padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
   background: var(--color-surface-2);
-}
-.skill-item__name {
-  font-weight: 600;
-  color: var(--color-text);
-}
-.skill-primary-badge {
-  font-size: var(--fs-xs);
-  font-weight: 700;
-  padding: 0.15rem 0.5rem;
-  border-radius: var(--radius-pill);
-  background: var(--color-primary-soft);
-  color: var(--color-primary-700);
-}
-.skill-weight {
-  margin-left: auto;
-  font-size: var(--fs-xs);
   color: var(--color-text-muted);
+  font-size: var(--fs-xs);
 }
-.skill-empty {
-  color: var(--color-text-muted);
-  font-style: italic;
-  justify-content: center;
+.submit-confirm-footer {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  width: 100%;
 }
 
 @media (max-width: 1023px) {
   .quiz-layout {
     grid-template-columns: 1fr;
   }
-  .quiz-sidebar {
-    position: static;
-    order: -1;
+
+  /* Máy cảm ứng thường không có bàn phím — ẩn gợi ý phím tắt */
+  .quiz-info-banner__hint {
+    display: none;
   }
+
+  /* Phiếu trả lời trở thành bottom sheet trượt từ đáy màn hình */
+  .quiz-sidebar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    z-index: var(--z-drawer);
+    transform: translateY(105%);
+    transition: transform 0.28s ease;
+  }
+  .quiz-sidebar.is-open {
+    transform: translateY(0);
+  }
+  .quiz-sidebar__card {
+    max-height: min(72vh, 560px);
+    overflow-y: auto;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    border-bottom: none;
+    box-shadow: var(--shadow-lg);
+    padding-bottom: calc(var(--space-5) + env(safe-area-inset-bottom));
+  }
+  .quiz-sheet-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: var(--color-overlay);
+    z-index: var(--z-overlay);
+  }
+  .quiz-sheet-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border: none;
+    background: var(--color-surface-3);
+    color: var(--color-text-muted);
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+  }
+
+  /* Thanh thao tác cố định đáy: timer + tiến độ + phiếu trả lời + nộp bài */
+  .quiz-bottombar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: var(--z-topbar);
+    padding: var(--space-3) var(--space-4)
+      calc(var(--space-3) + env(safe-area-inset-bottom));
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+    box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.08);
+  }
+  .quiz-bottombar__status {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    margin-right: auto;
+  }
+  .quiz-bottombar__timer {
+    font-family: ui-monospace, monospace;
+    font-weight: 800;
+    font-size: var(--fs-md);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    color: var(--color-primary-700);
+  }
+  .quiz-bottombar__timer.time-warning {
+    color: var(--color-error-strong);
+    animation: quiz-pulse 1s ease-in-out infinite;
+  }
+  .quiz-bottombar__count {
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+  }
+  .quiz-bottombar .ui-btn {
+    min-height: 44px;
+  }
+
+  /* Chừa chỗ để bottom bar không che nội dung cuối trang */
+  .quiz-taking-page {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+
   .quiz-nav {
     grid-template-columns: repeat(8, 1fr);
   }
@@ -547,21 +595,66 @@
 
 @media (max-width: 767px) {
   .quiz-taking-page {
-    padding: var(--space-5);
+    padding: var(--space-4) var(--space-3)
+      calc(96px + env(safe-area-inset-bottom));
+    gap: var(--space-4);
   }
+  /* Header gọn 1 hàng, thôi sticky vì timer luôn hiện ở bottom bar */
   .quiz-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-3);
-    top: 0;
+    position: static;
+    padding: var(--space-4);
+  }
+  .quiz-header__info h1 {
+    font-size: var(--fs-base);
+    line-height: 1.35;
+  }
+  .quiz-header .quiz-timer {
+    display: none;
+  }
+  .quiz-question-card {
+    padding: var(--space-4);
+    scroll-margin-top: calc(var(--topbar-h) + var(--space-4));
+  }
+  /* Đáp án dễ bấm, chữ to dễ đọc trên màn nhỏ */
+  .option-item {
+    min-height: 48px;
+    padding: 0.8rem 0.85rem;
+  }
+  .option-text {
+    font-size: var(--fs-base);
+  }
+  .flag-btn,
+  .skill-btn {
+    min-height: 36px;
+    padding: 0.4rem 0.75rem;
   }
   .quiz-nav {
     grid-template-columns: repeat(6, 1fr);
   }
-  .submit-confirm-actions {
+  .quiz-nav-item {
+    min-height: 44px;
+  }
+  .submit-confirm-footer {
     flex-direction: column-reverse;
   }
-  .submit-confirm-actions .ui-btn {
+  .submit-confirm-footer .ui-btn {
     width: 100%;
+  }
+  /* 3 ô thống kê xếp dọc cho vừa modal trên màn hẹp */
+  .submit-confirm-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Màn rất hẹp: thu nút trong bottom bar để đủ 1 hàng */
+@media (max-width: 400px) {
+  .quiz-bottombar {
+    gap: var(--space-2);
+    padding-left: var(--space-3);
+    padding-right: var(--space-3);
+  }
+  .quiz-bottombar .ui-btn {
+    padding: 0.6rem 0.75rem;
+    font-size: var(--fs-sm);
   }
 }

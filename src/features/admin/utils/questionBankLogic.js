@@ -12,7 +12,7 @@ export function filterQuestionBankQuestions(
   const query = String(search).trim().toLowerCase();
 
   return questions.filter((question) => {
-    const matchesSubject = subjectId === "ALL" || question.subjectId === subjectId;
+    const matchesSubject = subjectId === "ALL" || String(question.subjectId) === String(subjectId);
     const matchesDifficulty =
       difficulty === "ALL" ||
       matchDifficultyPresetKey(question.difficultyB ?? 0) === difficulty;

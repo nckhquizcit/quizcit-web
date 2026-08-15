@@ -1,10 +1,20 @@
 .profile-page-wrapper {
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--space-5);
   padding: var(--space-8);
-  max-width: 1080px;
+  max-width: var(--content-narrow);
   margin: 0 auto;
+}
+
+.profile-page-header h1 {
+  font-size: var(--fs-2xl);
+  color: var(--color-text);
+}
+.profile-page-header__sub {
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--fs-sm);
 }
 
 .profile-inline-loading {
@@ -14,121 +24,315 @@
   color: var(--color-text-muted);
   font-size: var(--fs-sm);
 }
+.profile-inline-error {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-md);
+  background: var(--color-error-soft);
+  color: #b91c1c;
+  font-size: var(--fs-sm);
+}
 
-.achievements-section {
+/* Header card */
+.profile-header-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+}
+.profile-header-card__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 104px;
+  height: 104px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: var(--fs-3xl);
+  font-weight: 800;
+}
+.profile-header-card__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.profile-header-card__top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.profile-header-card__top h2 {
+  font-size: var(--fs-xl);
+  font-weight: 800;
+  color: var(--color-text);
+}
+.profile-header-card__handle {
+  color: var(--color-text-muted);
+  font-size: var(--fs-sm);
+}
+.profile-header-card__email {
+  color: var(--color-text-muted);
+  font-size: var(--fs-sm);
+  overflow-wrap: anywhere;
+}
+.profile-header-card__edit {
+  flex-shrink: 0;
+}
+
+/* Two-card row — stretch để hai card cao bằng nhau, đáy thẳng hàng. */
+.profile-cards-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-5);
+  align-items: stretch;
+}
+.profile-info-card,
+.profile-security-card {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
 }
-.section-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--space-4);
-}
-.section-title {
-  font-size: var(--fs-xl);
-  color: var(--color-text);
-}
-.section-subtitle {
-  margin-top: var(--space-1);
-  font-size: var(--fs-sm);
-  color: var(--color-text-muted);
-}
-.profile-stats-inline-state {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--color-text-muted);
-  font-size: var(--fs-sm);
-}
-.profile-stats-inline-error {
-  margin: 0;
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--color-warning);
-  border-radius: var(--radius-md);
-  background: var(--color-warning-soft);
-  color: var(--color-text);
-  font-size: var(--fs-sm);
-}
-.achievements-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-5);
-}
-
-/* Modal */
-.profile-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: var(--color-overlay);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-4);
-  z-index: var(--z-drawer);
-}
-.profile-modal-card {
-  width: 100%;
-  max-width: 440px;
-  background: var(--color-surface);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  overflow: hidden;
-}
-.profile-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--color-border);
-}
-.profile-modal-header h3 {
+.profile-info-card h3,
+.profile-security-card h3 {
   font-size: var(--fs-md);
   color: var(--color-text);
 }
-.profile-modal-close {
+.profile-info-list {
+  display: flex;
+  flex-direction: column;
+}
+.profile-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.profile-info-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.profile-info-row__label {
+  font-size: var(--fs-sm);
+  color: var(--color-text-muted);
+}
+.profile-info-row__value {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.profile-security-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.profile-security-row__label {
+  font-size: var(--fs-sm);
+  color: var(--color-text-muted);
+}
+.profile-security-row__value {
+  font-size: var(--fs-md);
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: 0.1em;
+}
+.profile-security-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.profile-security-divider {
+  height: 1px;
+  background: var(--color-border);
+}
+.profile-logout-link {
   display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
   border: none;
   background: transparent;
-  color: var(--color-text-subtle);
+  padding: 0;
+  color: var(--color-text-muted);
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
   cursor: pointer;
-  padding: 4px;
-  border-radius: var(--radius-sm);
+  align-self: flex-start;
 }
-.profile-modal-close:hover {
-  background: var(--color-surface-3);
-  color: var(--color-text);
+.profile-logout-link:hover {
+  color: #b91c1c;
 }
+
+/* Modal: khung dùng Modal dùng chung, ở đây chỉ style phần nội dung form. */
 .profile-modal-content {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  padding: var(--space-5);
 }
+.profile-modal-sub {
+  color: var(--color-text-muted);
+  font-size: var(--fs-sm);
+}
+/* email hien tai (chi doc) + nut mo luong doi email */
+.profile-email-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.profile-email-row .ui-input {
+  flex: 1;
+  min-width: 0;
+}
+.profile-email-row .ui-btn {
+  flex-shrink: 0;
+}
+.profile-email-loading {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--fs-sm);
+}
+.profile-otp-input {
+  letter-spacing: 0.35em;
+  font-weight: 600;
+}
+
+/* password field with reveal toggle */
+.profile-pwd {
+  position: relative;
+}
+.profile-pwd .ui-input {
+  padding-right: 2.75rem;
+}
+.profile-pwd-toggle {
+  position: absolute;
+  right: 0.6rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-subtle);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.profile-pwd-toggle:hover {
+  color: var(--color-primary-700);
+  background: var(--color-primary-50);
+}
+
+.profile-form-error {
+  margin: 0;
+  padding: var(--space-3);
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-md);
+  background: var(--color-error-soft);
+  color: #b91c1c;
+  font-size: var(--fs-sm);
+}
+.profile-info-box {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-primary-100);
+  border-radius: var(--radius-md);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-700);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+}
+/* Hàng nút trong footer của Modal dùng chung. */
 .profile-modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: var(--space-3);
-  margin-top: var(--space-2);
+  width: 100%;
 }
 
 @media (max-width: 900px) {
-  .achievements-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .profile-cards-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767px) {
+  .profile-page-wrapper {
+    padding: var(--space-4);
+  }
+  .profile-page-header h1 {
+    font-size: var(--fs-xl);
+  }
+  .profile-page-wrapper .ui-btn {
+    min-height: 44px;
+  }
+  .profile-header-card {
+    flex-direction: column;
+    text-align: center;
+    align-items: center;
+    gap: var(--space-4);
+  }
+  .profile-header-card__top {
+    justify-content: center;
+  }
+  .profile-header-card__avatar {
+    width: 80px;
+    height: 80px;
+    font-size: var(--fs-2xl);
+  }
+  .profile-header-card__edit {
+    width: 100%;
+  }
+  .profile-pwd-toggle {
+    width: 40px;
+    height: 40px;
+  }
+  .profile-email-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .profile-modal-actions {
+    flex-direction: column-reverse;
+    gap: var(--space-2);
+  }
+  /* Modal render qua portal ngoài .profile-page-wrapper nên đặt min-height tại đây. */
+  .profile-modal-actions .ui-btn {
+    width: 100%;
+    min-height: 44px;
+  }
+  .profile-logout-link {
+    min-height: 44px;
   }
 }
 
 @media (max-width: 640px) {
   .profile-page-wrapper {
-    padding: var(--space-5);
+    padding: var(--space-3);
   }
-  .section-header {
+  .profile-page-wrapper .ui-card--pad-lg {
+    padding: var(--space-4);
+  }
+  /* Nhãn nằm trên, giá trị xuống dòng dưới để email dài không đẩy layout */
+  .profile-info-row {
     flex-direction: column;
     align-items: flex-start;
-    gap: var(--space-2);
+    gap: var(--space-1);
   }
-  .achievements-grid {
-    grid-template-columns: 1fr;
+  .profile-info-row__value {
+    text-align: left;
   }
 }

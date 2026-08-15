@@ -15,6 +15,23 @@ export default function ConfirmDeleteModal({ open, onClose, title, message, item
     }
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape" && !submitting) onClose();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open, onClose, submitting]);
+
   const handleClose = () => {
     if (!submitting) onClose();
   };
@@ -37,8 +54,13 @@ export default function ConfirmDeleteModal({ open, onClose, title, message, item
   if (!open) return null;
 
   return createPortal(
-    <div className="modal-overlay danger" onClick={handleClose}>
-      <div className="modal-content danger-card" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay danger" onClick={handleClose} role="presentation">
+      <div
+        className="modal-content danger-card"
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="danger-icon">
           <Trash2 size={48} color="#dc2626" />
         </div>

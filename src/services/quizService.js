@@ -151,7 +151,12 @@ export function saveQuizDraft(quizId, userId, draft) {
 }
 
 export function clearQuizDraft(quizId, userId) {
-  sessionStorage.removeItem(getQuizDraftKey(quizId, userId));
+  try {
+    sessionStorage.removeItem(getQuizDraftKey(quizId, userId));
+  } catch {
+    // Nuốt lỗi: hàm này chạy giữa lúc nộp bài thành công và điều hướng sang trang
+    // kết quả, ném ra đây sẽ báo "nộp bài thất bại" cho một lượt nộp đã thành công.
+  }
 }
 
 export { createQuestion, deleteQuestion, getAllQuestions, getQuestionById, getQuestionsByChapter, getQuestionsByQuiz, updateQuestion };

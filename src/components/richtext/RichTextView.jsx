@@ -287,13 +287,14 @@ export default function RichTextView({
   const format = resolveContentFormat(content, contentFormat);
   const inline = variant === "inline";
 
-  const blocks =
-    format === FORMAT_BLOCKNOTE
-      ? parseRichTextContent(content)
-      : splitPlainParagraphs(content).map((paragraph) => ({
-          type: "paragraph",
-          content: paragraph,
-        }));
+  // Nội dung blocknote hỏng vẫn phải đọc được: rơi về plain text thay vì để trống.
+  const parsedBlocks = format === FORMAT_BLOCKNOTE ? parseRichTextContent(content) : [];
+  const blocks = parsedBlocks.length
+    ? parsedBlocks
+    : splitPlainParagraphs(content).map((paragraph) => ({
+        type: "paragraph",
+        content: paragraph,
+      }));
 
   if (!blocks.length) return null;
 

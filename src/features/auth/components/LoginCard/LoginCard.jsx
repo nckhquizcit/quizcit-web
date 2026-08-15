@@ -1,34 +1,20 @@
-import { BookOpen, Brain, TrendingUp } from "lucide-react";
+import "../../styles/authShared.css";
 import "./LoginCard.css";
 
 export default function LoginCard() {
   return (
     <div className="auth-brand-panel">
-      <span className="auth-brand-panel__mark">Q</span>
-      <h1>QuizCIT</h1>
-      <p>Hệ thống ôn tập trắc nghiệm trực tuyến thông minh.</p>
-      <div className="auth-brand-panel__features">
-        <div className="auth-brand-panel__feature">
-          <span>
-            <BookOpen size={16} />
-          </span>
-          Lý thuyết và quiz theo từng chương
-        </div>
-        <div className="auth-brand-panel__feature">
-          <span>
-            <Brain size={16} />
-          </span>
-          Đo năng lực theo kỹ năng
-        </div>
-        <div className="auth-brand-panel__feature">
-          <span>
-            <TrendingUp size={16} />
-          </span>
-          Theo dõi tiến độ sau mỗi bài làm
-        </div>
+      <div className="auth-brand-panel__brand">
+        <span className="auth-brand-panel__mark">Q</span>
+        <span className="auth-brand-panel__brand-name">QuizCIT</span>
       </div>
+      <h1>Học đúng phần cần học.</h1>
+      <p>
+        Luyện thích ứng theo năng lực. Thi có giới hạn thời gian. Kết quả và
+        theta theo kỹ năng.
+      </p>
       <p className="auth-brand-panel__footnote">
-        Hơn 10.000 câu hỏi luyện tập theo từng môn học.
+        Học có định hướng · Tiến bộ có bằng chứng
       </p>
     </div>
   );

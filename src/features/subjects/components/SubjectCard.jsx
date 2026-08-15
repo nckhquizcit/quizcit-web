@@ -1,21 +1,44 @@
-import { ArrowRight, BookOpen, Layers3, Plus } from "lucide-react";
+import { useState } from "react";
+import { ArrowRight, BookOpen, Layers3, Lock, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Badge, Button, Card } from "../../../components/ui";
 import "./SubjectCard.css";
 
-export default function SubjectCard({ subject }) {
+export default function SubjectCard({ subject, enrolled = false, onEnroll, onUnenroll }) {
   const navigate = useNavigate();
+  const [busy, setBusy] = useState(false);
   const chapterPreview = subject.chapterPreview || [];
   const targetId = subject.subjectId || subject.subject_id;
+  const chapterCount = subject.chapterCount || 0;
+  const contentLocked = !enrolled && chapterCount === 0;
+
+  const runAction = async (action) => {
+    if (!action || busy) return;
+    try {
+      setBusy(true);
+      await action(subject);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <Card className="subject-card" padding="lg">
       <div className="subject-card__header">
         <div className="subject-card__heading">
-          {subject.course_code && (
-            <Badge variant="primary" size="sm">
-              {subject.course_code}
-            </Badge>
+          {(subject.course_code || enrolled) && (
+            <div className="subject-card__badges">
+              {subject.course_code && (
+                <Badge variant="primary" size="sm">
+                  {subject.course_code}
+                </Badge>
+              )}
+              {enrolled && (
+                <Badge variant="success" size="sm">
+                  Đã đăng ký
+                </Badge>
+              )}
+            </div>
           )}
           <h3>{subject.name}</h3>
         </div>
@@ -30,8 +53,17 @@ export default function SubjectCard({ subject }) {
 
       <div className="subject-card__meta">
         <span className="subject-card__meta-pill">
-          <Layers3 size={15} />
-          {subject.chapterCount} chương
+          {contentLocked ? (
+            <>
+              <Lock size={15} />
+              Đăng ký để xem nội dung
+            </>
+          ) : (
+            <>
+              <Layers3 size={15} />
+              {chapterCount} chương
+            </>
+          )}
         </span>
       </div>
 
@@ -44,34 +76,59 @@ export default function SubjectCard({ subject }) {
               <span>{chapter.name}</span>
             </div>
           ))}
-          {subject.chapterCount > chapterPreview.length && (
+          {chapterCount > chapterPreview.length && (
             <p className="subject-card__chapters-more">
-              + {subject.chapterCount - chapterPreview.length} chương khác
+              + {chapterCount - chapterPreview.length} chương khác
             </p>
           )}
         </div>
       )}
 
       <div className="subject-card__actions">
-        <Button
-          variant="primary"
-          fullWidth
-          iconRight={<ArrowRight size={16} />}
-          onClick={() => navigate(`/app/subjects/${targetId}`)}
-          className="subject-card__cta"
-        >
-          Vào học
-        </Button>
-        <Button
-          variant="secondary"
-          fullWidth
-          disabled
-          iconLeft={<Plus size={16} />}
-          className="subject-card__enroll"
-          title="Tính năng đăng ký môn học sắp ra mắt"
-        >
-          Đăng ký
-        </Button>
+        {/* Mỗi trạng thái chỉ có một hành động primary; hủy đăng ký là link chữ nhỏ */}
+        {enrolled ? (
+          <>
+            <Button
+              variant="primary"
+              fullWidth
+              iconRight={<ArrowRight size={16} />}
+              onClick={() => navigate(`/app/subjects/${targetId}`)}
+              className="subject-card__cta"
+            >
+              Vào học
+            </Button>
+            <button
+              type="button"
+              className="subject-card__unenroll"
+              disabled={busy}
+              onClick={() => runAction(onUnenroll)}
+            >
+              Hủy đăng ký
+            </button>
+          </>
+        ) : (
+          <>
+            <Button
+              variant="primary"
+              fullWidth
+              loading={busy}
+              iconLeft={<Plus size={16} />}
+              onClick={() => runAction(onEnroll)}
+              className="subject-card__enroll"
+            >
+              Đăng ký
+            </Button>
+            <Button
+              variant="ghost"
+              fullWidth
+              iconRight={<ArrowRight size={16} />}
+              onClick={() => navigate(`/app/subjects/${targetId}`)}
+              className="subject-card__cta"
+            >
+              Vào học
+            </Button>
+          </>
+        )}
       </div>
     </Card>
   );

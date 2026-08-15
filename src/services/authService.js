@@ -1,5 +1,4 @@
-import { request } from "./apiClient";
-import { clearAuthSession } from "./apiClient";
+import { clearAuthSession, request } from "./apiClient";
 import { mapUser } from "./mappers";
 
 function mapAuthResponse(auth) {
@@ -9,6 +8,8 @@ function mapAuthResponse(auth) {
     accessToken: auth.accessToken,
     tokenType: auth.tokenType || "Bearer",
     expiresAt: auth.expiresAt,
+    refreshToken: auth.refreshToken,
+    refreshTokenExpiresAt: auth.refreshTokenExpiresAt,
   };
 }
 
@@ -47,7 +48,16 @@ export async function resendOtp(email) {
 }
 
 export function logout() {
+  const refreshToken = localStorage.getItem("refreshToken");
   clearAuthSession();
+  if (refreshToken) {
+    // Thu hoi refresh token phia server, that bai cung khong chan logout local.
+    request({
+      method: "POST",
+      url: "/api/auth/logout",
+      data: { refreshToken },
+    }).catch(() => {});
+  }
 }
 
 export async function forgotPassword(email) {

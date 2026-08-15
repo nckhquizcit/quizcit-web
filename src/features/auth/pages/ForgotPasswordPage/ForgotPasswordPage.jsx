@@ -1,5 +1,5 @@
+import LoginCard from "../../components/LoginCard/LoginCard";
 import ChangeForgotPasswordForm from "../../components/ChangeForgotPasswordForm/ChangForgotPasswordForm";
-import ForgotPasswordCard from "../../components/ForgotPasswordCard/ForgotPasswordCard";
 import ForgotPasswordForm from "../../components/ForgotPasswordForm/ForgotPasswordForm";
 import VerifyForgotPasswordForm from "../../components/VerifyForgotPasswordForm/VerifyForgotPasswordForm";
 import "./ForgotPasswordPage.css";
@@ -7,16 +7,15 @@ import { useForgotPassword } from "../../../../stores/contexts/ForgotPasswordCon
 
 export default function ForgotPasswordPage() {
   const { currentState } = useForgotPassword();
+
   return (
-    <div className="forgot-password-page-container">
-      <ForgotPasswordCard></ForgotPasswordCard>
-      {currentState == 1 && <ForgotPasswordForm></ForgotPasswordForm>}
-      {currentState == 2 && (
-        <VerifyForgotPasswordForm></VerifyForgotPasswordForm>
-      )}
-      {currentState == 3 && (
-        <ChangeForgotPasswordForm></ChangeForgotPasswordForm>
-      )}
+    <div className="auth-split">
+      <LoginCard />
+      <div className="auth-form-panel">
+        {currentState === 1 && <ForgotPasswordForm />}
+        {currentState === 2 && <VerifyForgotPasswordForm />}
+        {currentState === 3 && <ChangeForgotPasswordForm />}
+      </div>
     </div>
   );
 }

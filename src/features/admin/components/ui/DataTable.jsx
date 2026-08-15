@@ -36,6 +36,15 @@ export default function DataTable({
   const [sort, setSort] = useState(initialSort);
   const [page, setPage] = useState(1);
 
+  // External rows changed (e.g. a filter in toolbarExtra swapped the rows prop):
+  // go back to page 1. Adjust state during render per React docs — sort-order
+  // changes keep the same length and are unaffected.
+  const [prevRowsLength, setPrevRowsLength] = useState(rows.length);
+  if (rows.length !== prevRowsLength) {
+    setPrevRowsLength(rows.length);
+    setPage(1);
+  }
+
   const filtered = useMemo(() => {
     if (!searchable || !query.trim()) return rows;
     const q = query.trim().toLowerCase();
@@ -113,12 +122,25 @@ export default function DataTable({
             <tr>
               {columns.map((col) => {
                 const active = sort?.key === col.key;
+                const ariaSort = active ? (sort.dir === "asc" ? "ascending" : "descending") : "none";
                 return (
                   <th
                     key={col.key}
                     style={{ width: col.width, textAlign: col.align || "left" }}
                     className={col.sortable ? "is-sortable" : ""}
                     onClick={col.sortable ? () => toggleSort(col.key) : undefined}
+                    tabIndex={col.sortable ? 0 : undefined}
+                    role={col.sortable ? "button" : undefined}
+                    aria-sort={col.sortable ? ariaSort : undefined}
+                    onKeyDown={
+                      col.sortable
+                        ? (event) => {
+                            if (event.key !== "Enter" && event.key !== " ") return;
+                            if (event.key === " ") event.preventDefault();
+                            toggleSort(col.key);
+                          }
+                        : undefined
+                    }
                   >
                     <span className="th-inner">
                       {col.label}

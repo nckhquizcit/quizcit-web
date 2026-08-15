@@ -25,3 +25,8 @@
   box-shadow: var(--shadow-md);
   border-color: var(--color-primary-200);
 }
+/* Card tương tác render dưới dạng <button>: cần focus rõ ràng như baseline toàn app. */
+.ui-card--interactive:focus-visible {
+  outline: 2px solid var(--color-primary-600);
+  outline-offset: 2px;
+}

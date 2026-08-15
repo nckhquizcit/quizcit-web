@@ -1,0 +1,135 @@
+/*
+ * Shared building blocks reused across auth pages (login/register/verify/forgot).
+ * Base split-shell + brand-panel + form styles already live in AuthLayout.css;
+ * this file only adds the smaller pieces that layout doesn't define.
+ */
+
+/* Brand row: "Q" mark + "QuizCIT" wordmark, used at the top of the shared panel */
+.auth-brand-panel__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.auth-brand-panel__brand-name {
+  font-size: var(--fs-lg);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+/* Divider with a small muted note under it (e.g. login role-redirect hint) */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-text-subtle);
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+.auth-mini-note {
+  margin-top: calc(var(--space-2) * -1);
+  text-align: center;
+  font-size: var(--fs-xs);
+  color: var(--color-text-subtle);
+}
+
+/* Bordered chip showing the target email, used on verify + forgot-password screens */
+.auth-email-chip {
+  display: inline-flex;
+  align-self: center;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+/* 6-digit OTP boxes */
+.auth-otp {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-3);
+}
+.auth-otp input {
+  width: 48px;
+  height: 56px;
+  text-align: center;
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  color: var(--color-text);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  outline: none;
+}
+.auth-otp input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-100);
+}
+
+/* Resend-code row */
+.auth-resend {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  color: var(--color-text-muted);
+}
+.auth-resend__btn {
+  border: none;
+  background: transparent;
+  color: var(--color-primary-700);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.auth-resend__btn:hover:not(:disabled) {
+  text-decoration: underline;
+}
+.auth-resend__btn:disabled {
+  color: var(--color-text-subtle);
+  cursor: not-allowed;
+}
+
+/* Back-to-login link with leading arrow */
+.auth-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+.auth-back-link:hover {
+  color: var(--color-primary-700);
+}
+
+/* Soft informational box (validity window, security reminders, ...) */
+.auth-info-box {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-primary-100);
+  border-radius: var(--radius-md);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-700);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+}
+
+@media (max-width: 480px) {
+  .auth-otp {
+    gap: var(--space-2);
+  }
+  .auth-otp input {
+    width: 40px;
+    height: 48px;
+    font-size: var(--fs-lg);
+  }
+}

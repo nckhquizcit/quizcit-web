@@ -1,5 +1,5 @@
 import { useLocation } from "react-router-dom";
-import VerifyCard from "../../components/VerifyCard/VerifyCard";
+import LoginCard from "../../components/LoginCard/LoginCard";
 import VerifyForm from "../../components/VerifyForm/VerifyForm";
 import "./VerifyPage.css";
 
@@ -8,7 +8,7 @@ export default function VerifyPage() {
 
   return (
     <div className="auth-split">
-      <VerifyCard />
+      <LoginCard />
       <div className="auth-form-panel">
         <VerifyForm
           email={state?.email}

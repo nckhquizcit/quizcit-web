@@ -3,11 +3,11 @@
   flex-direction: column;
   gap: var(--space-6);
   padding: var(--space-8);
-  max-width: 920px;
+  max-width: var(--content-narrow);
   margin: 0 auto;
 }
 
-.history-page-header h1 {
+.history-title {
   font-size: var(--fs-2xl);
   color: var(--color-text);
 }
@@ -17,17 +17,43 @@
   font-size: var(--fs-sm);
 }
 
-.history-list {
+.history-section {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
 }
+/* Tiêu đề mục theo chuẩn h2 của ProgressPage (fs-xl, đậm). */
+.history-section__title {
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
 
 @media (max-width: 767px) {
   .history-page-wrapper {
-    padding: var(--space-5);
+    gap: var(--space-5);
+    padding: var(--space-4);
   }
-  .history-page-header h1 {
+  .history-title {
     font-size: var(--fs-xl);
+  }
+  .history-section__title {
+    font-size: var(--fs-lg);
+  }
+  .history-page-wrapper .ui-btn {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 640px) {
+  .history-page-wrapper {
+    padding: var(--space-3);
   }
 }

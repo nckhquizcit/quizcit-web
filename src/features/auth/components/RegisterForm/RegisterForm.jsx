@@ -1,10 +1,14 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { AtSign, LockKeyhole, User } from "lucide-react";
-import { getErrorMessage } from "../../../../services/apiClient";
+import { AtSign, Eye, EyeOff, LockKeyhole, User } from "lucide-react";
+import { getErrorMessage, isRateLimited } from "../../../../services/apiClient";
 import { register } from "../../../../services/authService";
 import { Button, Field, Input } from "../../../../components/ui";
+import useCountdown from "../../hooks/useCountdown";
 import "./RegisterForm.css";
+
+// BE gioi han REGISTER 5 lan / 900s.
+const RATE_LIMIT_COOLDOWN_SECONDS = 900;
 
 export default function RegisterForm() {
   const navigate = useNavigate();
@@ -14,8 +18,12 @@ export default function RegisterForm() {
     password: "",
     confirmPassword: "",
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
+  const [confirmError, setConfirmError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [cooldown, startCooldown] = useCountdown();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -24,8 +32,10 @@ export default function RegisterForm() {
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    if (cooldown > 0) return;
+    setConfirmError("");
     if (formData.password !== formData.confirmPassword) {
-      setError("Mật khẩu nhập lại không khớp.");
+      setConfirmError("Mật khẩu nhập lại không khớp.");
       return;
     }
     try {
@@ -37,11 +47,19 @@ export default function RegisterForm() {
         email: formData.email,
         displayName: formData.username,
       });
+      if (!res?.verificationToken) {
+        throw new Error("Không nhận được mã xác minh. Vui lòng thử lại.");
+      }
       navigate("/verify", {
         state: { email: res.email, verificationToken: res.verificationToken },
       });
     } catch (apiError) {
-      setError(getErrorMessage(apiError, "Đăng ký thất bại."));
+      if (isRateLimited(apiError)) {
+        setError("Bạn đã thử quá nhiều lần. Vui lòng thử lại sau khoảng 15 phút.");
+        startCooldown(RATE_LIMIT_COOLDOWN_SECONDS);
+      } else {
+        setError(getErrorMessage(apiError, "Đăng ký thất bại."));
+      }
     } finally {
       setLoading(false);
     }
@@ -50,8 +68,8 @@ export default function RegisterForm() {
   return (
     <form className="auth-form" onSubmit={handleRegister}>
       <div className="auth-form__head">
-        <h1>Đăng ký</h1>
-        <p>Tạo tài khoản mới để bắt đầu ôn tập</p>
+        <h1>Tạo tài khoản</h1>
+        <p>Bắt đầu ôn tập cùng QuizCIT.</p>
       </div>
 
       {error && <div className="auth-form__error">{error}</div>}
@@ -65,6 +83,8 @@ export default function RegisterForm() {
           value={formData.username}
           onChange={handleChange}
           iconLeft={<User size={18} />}
+          autoComplete="username"
+          maxLength={50}
           required
         />
       </Field>
@@ -78,38 +98,81 @@ export default function RegisterForm() {
           value={formData.email}
           onChange={handleChange}
           iconLeft={<AtSign size={18} />}
+          autoComplete="email"
+          maxLength={100}
           required
         />
       </Field>
 
       <Field label="Mật khẩu" htmlFor="password">
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          placeholder="Nhập mật khẩu"
-          value={formData.password}
-          onChange={handleChange}
-          iconLeft={<LockKeyhole size={18} />}
-          required
-        />
+        <div className="auth-form__pwd">
+          <Input
+            id="password"
+            name="password"
+            type={showPassword ? "text" : "password"}
+            placeholder="Nhập mật khẩu"
+            value={formData.password}
+            onChange={handleChange}
+            iconLeft={<LockKeyhole size={18} />}
+            autoComplete="new-password"
+            minLength={6}
+            maxLength={255}
+            required
+          />
+          <button
+            type="button"
+            className="auth-form__pwd-toggle"
+            onClick={() => setShowPassword((v) => !v)}
+            aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
       </Field>
 
-      <Field label="Nhập lại mật khẩu" htmlFor="confirmPassword">
-        <Input
-          id="confirmPassword"
-          name="confirmPassword"
-          type="password"
-          placeholder="Xác nhận lại mật khẩu"
-          value={formData.confirmPassword}
-          onChange={handleChange}
-          iconLeft={<LockKeyhole size={18} />}
-          required
-        />
+      <Field
+        label="Nhập lại mật khẩu"
+        htmlFor="confirmPassword"
+        error={confirmError}
+      >
+        <div className="auth-form__pwd">
+          <Input
+            id="confirmPassword"
+            name="confirmPassword"
+            type={showConfirmPassword ? "text" : "password"}
+            placeholder="Xác nhận lại mật khẩu"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            iconLeft={<LockKeyhole size={18} />}
+            autoComplete="new-password"
+            minLength={6}
+            maxLength={255}
+            invalid={Boolean(confirmError)}
+            required
+          />
+          <button
+            type="button"
+            className="auth-form__pwd-toggle"
+            onClick={() => setShowConfirmPassword((v) => !v)}
+            aria-label={
+              showConfirmPassword
+                ? "Ẩn mật khẩu nhập lại"
+                : "Hiện mật khẩu nhập lại"
+            }
+          >
+            {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
       </Field>
 
-      <Button type="submit" variant="primary" fullWidth loading={loading}>
-        Đăng ký
+      <Button
+        type="submit"
+        variant="primary"
+        fullWidth
+        loading={loading}
+        disabled={cooldown > 0}
+      >
+        {cooldown > 0 ? `Thử lại sau ${cooldown}s` : "Đăng ký"}
       </Button>
 
       <p className="auth-form__switch">

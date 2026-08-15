@@ -1,5 +1,7 @@
 .progress-bar-track {
   width: 100%;
+  min-width: 0;
+  flex-shrink: 0;
   height: 10px;
   background: var(--color-surface-3);
   border-radius: var(--radius-pill);

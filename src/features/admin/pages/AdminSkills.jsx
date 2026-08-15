@@ -95,7 +95,12 @@ export default function AdminSkills() {
       key: "name",
       label: "Tên kỹ năng",
       sortable: true,
-      render: (skill) => <strong>{skill.name}</strong>,
+      render: (skill, index) => (
+        <div className="bank-question-cell">
+          <span className="bank-question-index">{String(index + 1).padStart(2, "0")}</span>
+          <strong>{skill.name}</strong>
+        </div>
+      ),
     },
     {
       key: "description",
@@ -105,19 +110,20 @@ export default function AdminSkills() {
     {
       key: "actions",
       label: "",
-      width: 60,
+      width: 150,
       align: "right",
       render: (skill) => (
         <RowActions
+          labelled
           items={[
             {
               label: "Sửa",
-              icon: <Pencil size={16} />,
+              icon: <Pencil size={14} />,
               onClick: () => setEditingSkill(skill),
             },
             {
               label: "Xóa",
-              icon: <Trash2 size={16} />,
+              icon: <Trash2 size={14} />,
               danger: true,
               onClick: () => setDeletingSkill(skill),
             },
@@ -131,8 +137,7 @@ export default function AdminSkills() {
     <>
       <AdminPageHeader
         title="Quản lý kỹ năng"
-        subtitle="Thêm, chỉnh sửa và xóa các skill dùng trong hệ thống tiến độ học tập"
-        icon={<Brain size={22} />}
+        subtitle="Kỹ năng dùng để gắn câu hỏi và cập nhật theta."
         action={
           <button className="add-btn" onClick={() => setIsCreateOpen(true)}>
             <Plus size={18} />
@@ -149,8 +154,9 @@ export default function AdminSkills() {
           rows={skills}
           getRowKey={getSkillId}
           loading={isLoading}
-          searchPlaceholder="Tìm theo tên hoặc mô tả kỹ năng..."
+          searchPlaceholder="Tìm tên hoặc mô tả kỹ năng..."
           searchKeys={["name", "description"]}
+          toolbarSummary={<span className="adm2-count-pill">{skills.length} kỹ năng</span>}
           emptyState={
             <EmptyState
               icon={<Brain size={28} />}

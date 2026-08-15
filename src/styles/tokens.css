@@ -9,6 +9,7 @@
   --color-primary-500: #10b981; /* primary */
   --color-primary-600: #059669;
   --color-primary-700: #047857;
+  --color-primary-800: #065f46;
   --color-primary: var(--color-primary-500);
   --color-primary-hover: var(--color-primary-600);
   --color-primary-soft: var(--color-primary-50);
@@ -28,10 +29,13 @@
   /* Semantic */
   --color-success: #10b981;
   --color-success-soft: #ecfdf5;
+  --color-success-strong: #047857;
   --color-warning: #f59e0b;
   --color-warning-soft: #fffbeb;
+  --color-warning-strong: #b45309;
   --color-error: #ef4444;
   --color-error-soft: #fef2f2;
+  --color-error-strong: #b91c1c;
   --color-info: #3b82f6;
   --color-info-soft: #eff6ff;
 
@@ -72,12 +76,17 @@
   /* Layout */
   --sidebar-w: 264px;
   --topbar-h: 64px;
+  /* Chỉ hai bề rộng nội dung: wide cho trang dạng bảng/lưới, narrow cho trang đọc và biểu mẫu */
+  --content-wide: 1280px;
+  --content-narrow: 960px;
 
   /* Z-index */
   --z-drawer: 40;
   --z-overlay: 35;
   --z-topbar: 30;
-  --z-toast: 60;
+  --z-dropdown: 90;
+  --z-modal: 100;
+  --z-toast: 110; /* toast phải nổi trên modal */
 
   /* Breakpoints (reference): sm 640, md 768, lg 1024, xl 1280 */
 }

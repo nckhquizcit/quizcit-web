@@ -34,3 +34,87 @@
   background: var(--color-error-soft);
   color: var(--color-error);
 }
+
+.row-actions--labelled {
+  gap: 6px;
+}
+
+.row-actions__btn--labelled {
+  width: auto;
+  height: 32px;
+  padding: 0 10px;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+/* ---- Dropdown menu variant (e.g. AdminUsers row actions) ---- */
+.row-actions--menu {
+  position: relative;
+  display: inline-flex;
+  justify-content: flex-end;
+}
+
+.row-actions__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+.row-actions__trigger:hover,
+.row-actions__trigger[aria-expanded="true"] {
+  background: var(--color-surface-3);
+  color: var(--color-text);
+}
+
+.row-actions__menu {
+  /* Toạ độ do RowActions.jsx set inline (portal + fixed) để không bị bảng cắt. */
+  position: fixed;
+  z-index: var(--z-dropdown, 90); /* dưới modal (100) để không nổi lên trên hộp thoại */
+  min-width: 190px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+.row-actions__menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.14s ease;
+}
+.row-actions__menu-item:hover {
+  background: var(--color-surface-3);
+}
+.row-actions__menu-item.is-danger {
+  color: var(--color-error);
+}
+.row-actions__menu-item.is-danger:hover {
+  background: var(--color-error-soft);
+}
+.row-actions__menu-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}

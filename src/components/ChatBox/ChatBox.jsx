@@ -1,83 +1,79 @@
 import { useEffect, useRef, useState } from "react";
-import { Bot, Send, Sparkles, X } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { askChatbot } from "../../services/chatbotService";
+import { Bot, X } from "lucide-react";
+import { useChatSession } from "./useChatSession";
+import ChatMessages from "./ChatMessages";
+import ChatComposer from "./ChatComposer";
 import "./ChatBox.css";
 
-function AssistantMessage({ text }) {
-  return (
-    <ReactMarkdown
-      remarkPlugins={[remarkGfm]}
-      components={{
-        a: ({ children, ...props }) => (
-          <a {...props} target="_blank" rel="noreferrer">
-            {children}
-          </a>
-        ),
-      }}
-    >
-      {text}
-    </ReactMarkdown>
-  );
-}
+const FOCUSABLE_SELECTOR = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  '[tabindex]:not([tabindex="-1"])',
+].join(", ");
 
-/** Trợ giảng RAG chỉ được mount trong vùng đọc lý thuyết. */
-export default function ChatBox({ subjectId, chapterId }) {
+/**
+ * Trợ giảng RAG chỉ được mount trong vùng đọc lý thuyết. Phạm vi trả lời do
+ * môn học quyết định, chương chỉ là ngữ cảnh nên có thể không có.
+ *
+ * `session` (tùy chọn): trang cha có thể truyền một phiên `useChatSession`
+ * dùng chung (ví dụ TheoryPage chia sẻ hội thoại giữa dock desktop và FAB
+ * mobile). Không truyền thì ChatBox tự quản lý phiên riêng như trước.
+ */
+export default function ChatBox({ subjectId, chapterId, session = null }) {
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState([]);
-  const [draft, setDraft] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const listRef = useRef(null);
   const inputRef = useRef(null);
-
-  useEffect(() => {
-    if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
-  }, [messages, loading]);
+  const fabRef = useRef(null);
+  const panelRef = useRef(null);
+  const internalSession = useChatSession({ subjectId, chapterId });
+  const { messages, draft, setDraft, loading, error, listRef, handleSend } =
+    session ?? internalSession;
 
   useEffect(() => {
     if (!open) return undefined;
+    const fabElement = fabRef.current;
     inputRef.current?.focus();
-    const closeOnEscape = (event) => {
-      if (event.key === "Escape") setOpen(false);
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+      // Trên mobile panel chiếm toàn màn hình như một dialog: giữ focus bên trong.
+      if (!window.matchMedia("(max-width: 767px)").matches) return;
+      const panel = panelRef.current;
+      if (!panel) return;
+      const focusables = panel.querySelectorAll(FOCUSABLE_SELECTOR);
+      if (!focusables.length) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+      if (event.shiftKey) {
+        if (active === first || !panel.contains(active)) {
+          event.preventDefault();
+          last.focus();
+        }
+      } else if (active === last || !panel.contains(active)) {
+        event.preventDefault();
+        first.focus();
+      }
     };
-    window.addEventListener("keydown", closeOnEscape);
+    window.addEventListener("keydown", handleKeyDown);
     return () => {
-      window.removeEventListener("keydown", closeOnEscape);
+      window.removeEventListener("keydown", handleKeyDown);
+      // Trả focus về nút FAB khi đóng để người dùng bàn phím không bị mất vị trí.
+      if (fabElement?.isConnected) fabElement.focus();
     };
   }, [open]);
 
-  async function handleSend(event) {
-    event.preventDefault();
-    const message = draft.trim();
-    if (!message || loading || !subjectId) return;
-
-    const nextMessages = [...messages, { role: "user", text: message }];
-    setMessages(nextMessages);
-    setDraft("");
-    setError(null);
-    setLoading(true);
-
-    try {
-      const history = nextMessages.slice(-6).map(({ role, text }) => ({ role, text }));
-      const result = await askChatbot({ subjectId, chapterId, message, history });
-      setMessages((current) => [
-        ...current,
-        { role: "assistant", text: result.answer, sources: result.sources },
-      ]);
-    } catch {
-      setError("Không gửi được câu hỏi. Bạn thử lại nhé.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  if (!subjectId || !chapterId) return null;
+  if (!subjectId) return null;
 
   return (
     <div className={`chatbox-root ${open ? "chatbox-root--open" : ""}`}>
       <button
+        ref={fabRef}
         type="button"
         className="chatbox-fab"
         onClick={() => setOpen(true)}
@@ -89,67 +85,46 @@ export default function ChatBox({ subjectId, chapterId }) {
       </button>
 
       {open && (
-          <aside className="chatbox-panel" role="complementary" aria-label="Trợ giảng AI">
-            <header className="chatbox-header">
-              <div className="chatbox-title">
-                <span className="chatbox-title__icon"><Sparkles size={19} /></span>
-                <span><strong>Trợ giảng AI</strong><small>Hỗ trợ nội dung đã mở khóa</small></span>
-              </div>
-              <button type="button" className="chatbox-close" onClick={() => setOpen(false)} aria-label="Đóng">
-                <X size={22} />
-              </button>
-            </header>
-
-            <div className="chatbox-messages" ref={listRef}>
-              {messages.length === 0 && (
-                <div className="chatbox-empty">
-                  <Bot size={30} />
-                  <strong>Bạn cần làm rõ phần nào?</strong>
-                  <p>Mình giải thích ngắn gọn dựa trên lý thuyết bạn đã mở khóa và không cung cấp đáp án bài kiểm tra.</p>
-                </div>
-              )}
-
-              {messages.map((message, index) => (
-                <div key={index} className={`chatbox-bubble chatbox-bubble--${message.role}`}>
-                  {message.role === "assistant" ? <AssistantMessage text={message.text} /> : <p>{message.text}</p>}
-                  {message.sources?.length > 0 && (
-                    <div className="chatbox-sources">
-                      {message.sources.map((source, sourceIndex) => (
-                        <span key={sourceIndex} className="chatbox-source-chip" title={source.snippet}>
-                          Nguồn {sourceIndex + 1}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-
-              {loading && (
-                <div className="chatbox-bubble chatbox-bubble--assistant chatbox-bubble--loading" aria-label="AI đang trả lời">
-                  <span className="chatbox-dot" /><span className="chatbox-dot" /><span className="chatbox-dot" />
-                </div>
-              )}
-              {error && <div className="chatbox-error">{error}</div>}
+        <aside
+          ref={panelRef}
+          className="chatbox-panel"
+          role="complementary"
+          aria-label="Trợ giảng AI"
+        >
+          <header className="chatbox-header">
+            <div className="chatbox-title">
+              <span className="chatbox-title__icon">
+                <Bot size={19} />
+              </span>
+              <span>
+                <strong>Trợ giảng AI</strong>
+                <small>Hỗ trợ nội dung đã mở khóa</small>
+              </span>
             </div>
+            <button type="button" className="chatbox-close" onClick={() => setOpen(false)} aria-label="Đóng">
+              <X size={22} />
+            </button>
+          </header>
 
-            <form className="chatbox-input-row" onSubmit={handleSend}>
-              <textarea
-                ref={inputRef}
-                rows="1"
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && !event.shiftKey) handleSend(event);
-                }}
-                placeholder="Hỏi về nội dung lý thuyết..."
-                disabled={loading}
-              />
-              <button type="submit" disabled={loading || !draft.trim()} aria-label="Gửi câu hỏi">
-                <Send size={19} />
-              </button>
-              <small>Enter để gửi · Shift + Enter để xuống dòng</small>
-            </form>
-          </aside>
+          <ChatMessages
+            messages={messages}
+            loading={loading}
+            error={error}
+            listRef={listRef}
+            emptyTitle="Bạn cần làm rõ phần nào?"
+            emptyDescription="Mình giải thích ngắn gọn dựa trên lý thuyết bạn đã mở khóa và không cung cấp đáp án bài kiểm tra."
+          />
+
+          <ChatComposer
+            draft={draft}
+            setDraft={setDraft}
+            loading={loading}
+            onSend={handleSend}
+            inputRef={inputRef}
+            placeholder="Hỏi về nội dung lý thuyết..."
+            hint="Enter để gửi · Shift + Enter để xuống dòng"
+          />
+        </aside>
       )}
     </div>
   );

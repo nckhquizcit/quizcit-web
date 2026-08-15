@@ -1,0 +1,181 @@
+/* Adaptive-only styles; base layout (.quiz-header, .quiz-progress, .quiz-layout,
+   .quiz-questions, .quiz-question-card, .options-list) come from
+   ../QuizTakingPage/QuizTakingPage.css. */
+
+/* Tên môn dài không được đẩy tràn header trên màn hẹp */
+.adaptive-quiz-page .quiz-header__info {
+  min-width: 0;
+}
+
+.adaptive-header__subject {
+  margin-top: var(--space-1);
+  font-size: var(--fs-sm);
+  color: var(--color-text-muted);
+  overflow-wrap: break-word;
+}
+
+.adaptive-header__status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+}
+/* Số câu đã trả lời trong nhóm — desktop hiển thị ở header,
+   mobile đã có ở thanh đáy nên ẩn đi (xem media query dưới) */
+.adaptive-header__count {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-primary-700);
+  white-space: nowrap;
+}
+.adaptive-header__chip {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 0.4rem 0.9rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-700);
+  font-weight: 700;
+  font-size: var(--fs-sm);
+}
+
+.adaptive-subline {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  font-size: var(--fs-sm);
+  color: var(--color-text);
+}
+.adaptive-subline__muted {
+  color: var(--color-text-muted);
+  font-size: var(--fs-xs);
+}
+
+.adaptive-submit-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+.adaptive-submit-row__hint {
+  font-size: var(--fs-sm);
+  color: var(--color-text-muted);
+}
+
+/* Thanh nộp bài cố định đáy chỉ dành cho mobile — desktop ẩn hẳn */
+.adaptive-bottombar {
+  display: none;
+}
+
+.adaptive-rail {
+  position: sticky;
+  /* Nằm dưới .quiz-header sticky — biến khai báo trong QuizTakingPage.css
+     (.quiz-taking-page), trang này dùng chung layout nên kế thừa được */
+  top: calc(var(--sticky-top) + var(--quiz-header-offset));
+}
+.adaptive-rail__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.adaptive-rail__title {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+}
+.adaptive-rail__text {
+  font-size: var(--fs-sm);
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+@media (max-width: 1023px) {
+  .adaptive-rail {
+    display: none;
+  }
+
+  /* Thanh đáy đã hiển thị số câu trong nhóm — tránh lặp ở header */
+  .adaptive-header__count {
+    display: none;
+  }
+
+  /* Nút nộp nhóm câu chuyển hẳn xuống thanh cố định đáy để luôn trong tầm tay */
+  .adaptive-submit-row {
+    display: none;
+  }
+  .adaptive-bottombar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: var(--z-topbar);
+    padding: var(--space-3) var(--space-4)
+      calc(var(--space-3) + env(safe-area-inset-bottom));
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+    box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.08);
+  }
+  .adaptive-bottombar__status {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    margin-right: auto;
+  }
+  .adaptive-bottombar__count {
+    font-weight: 800;
+    font-size: var(--fs-md);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    color: var(--color-primary-700);
+  }
+  .adaptive-bottombar__group {
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+  }
+  .adaptive-bottombar .ui-btn {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 767px) {
+  .adaptive-subline {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-1);
+  }
+  /* Header gọn lại: chip nhóm nhỏ hơn để tiêu đề còn chỗ xuống dòng */
+  .adaptive-header__chip {
+    padding: 0.3rem 0.7rem;
+    font-size: var(--fs-xs);
+  }
+}
+
+/* Màn rất hẹp: thu nút trong thanh đáy để đủ 1 hàng */
+@media (max-width: 400px) {
+  .adaptive-bottombar {
+    gap: var(--space-2);
+    padding-left: var(--space-3);
+    padding-right: var(--space-3);
+  }
+  .adaptive-bottombar .ui-btn {
+    padding: 0.6rem 0.75rem;
+    font-size: var(--fs-sm);
+  }
+}

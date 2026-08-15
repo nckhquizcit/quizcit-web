@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, ClipboardList, HelpCircle, Lock, Mail, Pencil, Shield, Users } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { BookOpen, ClipboardList, Eye, HelpCircle, LogOut, Shield, Users } from "lucide-react";
 import AdminPageHeader from "../components/AdminPageHeader";
 import { adminProfileService } from "../services/profileService.js";
+import { getStoredUser } from "../../../services/apiClient";
+import { enterUserPreview } from "../../../services/userPreviewMode";
+import { logout } from "../../../services/authService";
 import "./AdminProfile.css";
 
 const emptyStats = {
@@ -11,20 +15,10 @@ const emptyStats = {
   totalAttempts: 0,
 };
 
+const PERMISSION_ITEMS = ["Quản lý nội dung", "Quản lý đánh giá", "Quản lý người dùng"];
+
 function IconShield({ className }) {
   return <Shield className={className} aria-hidden="true" strokeWidth={1.8} />;
-}
-
-function IconPencil({ className }) {
-  return <Pencil className={className} aria-hidden="true" strokeWidth={1.8} />;
-}
-
-function IconMail({ className }) {
-  return <Mail className={className} aria-hidden="true" strokeWidth={1.8} />;
-}
-
-function IconLock({ className }) {
-  return <Lock className={className} aria-hidden="true" strokeWidth={1.8} />;
 }
 
 function IconUsers({ className }) {
@@ -43,7 +37,16 @@ function IconAttempt({ className }) {
   return <ClipboardList className={className} aria-hidden="true" strokeWidth={1.8} />;
 }
 
+function getInitials(name) {
+  const trimmed = (name || "").trim();
+  if (!trimmed) return "?";
+  const parts = trimmed.split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+}
+
 export default function AdminProfile() {
+  const navigate = useNavigate();
   const [admin, setAdmin] = useState(null);
   const [stats, setStats] = useState(emptyStats);
   const [loading, setLoading] = useState(true);
@@ -90,12 +93,27 @@ export default function AdminProfile() {
     };
   }, []);
 
-  const displayName = admin?.displayName || admin?.display_name || admin?.username || 'Admin';
-  const username = admin?.username || 'admin';
-  const email = admin?.email || 'admin@quizcit.vn';
-  const roleCode = admin?.role || 'ADMINISTRATOR';
-  const roleLabel = roleCode === 'ADMINISTRATOR' ? 'Quản trị viên' : 'Người dùng';
+  const storedUser = useMemo(() => getStoredUser(), []);
+  const displayName =
+    admin?.displayName ||
+    admin?.display_name ||
+    admin?.username ||
+    storedUser?.displayName ||
+    storedUser?.username ||
+    "Quản trị viên";
+  const username = admin?.username || storedUser?.username || "—";
+  const email = admin?.email || storedUser?.email || "—";
   const formatStat = (value) => (loading ? "..." : numberFormatter.format(value ?? 0));
+
+  const handlePreviewAsUser = () => {
+    enterUserPreview("/admin/profile");
+    navigate("/app");
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
 
   return (
     <div className="admin-profile-page">
@@ -103,85 +121,25 @@ export default function AdminProfile() {
         breadcrumb={["Tổng quan", "Hồ sơ"]}
         title="Hồ sơ quản trị"
         subtitle="Thông tin tài khoản, quyền hạn và thống kê quản trị"
-        icon={<Shield size={22} />}
       />
       {error && <p className="admin-profile-error">{error}</p>}
 
-      <div className="admin-profile-top">
-        <section className="admin-card admin-card--primary">
-          <header className="admin-card__header">
-            <div className="admin-card__headerLeft">
-              <span className="admin-card__headerDot" aria-hidden="true" />
-              <span className="admin-card__headerTitle">Thông tin cá nhân</span>
-            </div>
-            <button type="button" className="admin-card__editBtn" disabled title="Chức năng này đang phát triển.">
-              <IconPencil className="admin-icon admin-icon--sm" />
-              <span>Chỉnh sửa</span>
-            </button>
-          </header>
-
-          <div className="admin-profile-main">
-            <div className="admin-avatar">
-              <IconShield className="admin-icon admin-icon--shield" />
-            </div>
-
-            <div className="admin-fields">
-              <div className="admin-field">
-                <div className="admin-field__label">Tên hiển thị</div>
-                <div className="admin-field__value">{displayName}</div>
-              </div>
-              <div className="admin-field">
-                <div className="admin-field__label">Tên đăng nhập</div>
-                <div className="admin-field__value">{username}</div>
-              </div>
-              <div className="admin-field">
-                <div className="admin-field__label">Email</div>
-                <div className="admin-field__value">{email}</div>
-              </div>
-              <div className="admin-field">
-                <div className="admin-field__label">Vai trò</div>
-                <div className="admin-field__value">
-                  <span className="admin-rolePill">{roleLabel}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="admin-divider" />
-
-          <div className="admin-actions">
-            <button type="button" className="admin-actionBtn admin-actionBtn--outline admin-actionBtn--blue" disabled>
-              <IconMail className="admin-icon admin-icon--sm" />
-              <span>Đổi email</span>
-            </button>
-            <button type="button" className="admin-actionBtn admin-actionBtn--outline admin-actionBtn--orange" disabled>
-              <IconLock className="admin-icon admin-icon--sm" />
-              <span>Đổi mật khẩu</span>
-            </button>
-          </div>
-          <p className="admin-profile-note">Chức năng này đang phát triển.</p>
-        </section>
-
-        <section className="admin-card admin-card--permission">
-          <header className="admin-card__header admin-card__header--noBorder">
-            <span className="admin-card__headerTitle admin-card__headerTitle--accent">Quyền hạn</span>
-          </header>
-
-          <div className="admin-permissionBody">
-            <div className="admin-permissionBadge" aria-hidden="true">
-              <IconShield className="admin-icon admin-icon--shieldWhite" />
-            </div>
-            <div className="admin-permissionTitle">Quản trị viên hệ thống</div>
-            <div className="admin-permissionSub">Toàn quyền quản lý hệ thống QuizCIT</div>
-          </div>
-        </section>
-      </div>
+      <section className="admin-card adm2-profile-hero">
+        <div className="adm2-profile-hero__avatar">{getInitials(displayName)}</div>
+        <div className="adm2-profile-hero__body">
+          <h2 className="adm2-profile-hero__name">{displayName}</h2>
+          <p className="adm2-profile-hero__meta">
+            {username} · {email}
+          </p>
+          <span className="adm2-badge adm2-badge--dark">ADMINISTRATOR</span>
+        </div>
+        <button type="button" className="cancel-btn" onClick={handlePreviewAsUser}>
+          <Eye size={16} />
+          Xem như người dùng
+        </button>
+      </section>
 
       <section className="admin-stats">
-        <header className="admin-stats__header">
-          <span className="admin-stats__title">Thống kê hệ thống</span>
-        </header>
-
         <div className="admin-stats__row">
           <div className="admin-stat">
             <div className="admin-stat__icon admin-stat__icon--green">
@@ -219,11 +177,75 @@ export default function AdminProfile() {
             </div>
             <div className="admin-stat__meta">
               <div className="admin-stat__value">{formatStat(stats.totalAttempts)}</div>
-              <div className="admin-stat__label">Lượt thi</div>
+              <div className="admin-stat__label">Lượt làm bài</div>
             </div>
           </div>
         </div>
       </section>
+
+      <div className="admin-profile-top">
+        <section className="admin-card admin-card--primary">
+          <header className="admin-card__header">
+            <div className="admin-card__headerLeft">
+              <span className="admin-card__headerDot" aria-hidden="true" />
+              <span className="admin-card__headerTitle">Thông tin quản trị viên</span>
+            </div>
+          </header>
+
+          <div className="admin-fields adm2-profile-fields">
+            <div className="admin-field">
+              <div className="admin-field__label">Tên hiển thị</div>
+              <div className="admin-field__value">{displayName}</div>
+            </div>
+            <div className="admin-field">
+              <div className="admin-field__label">Username</div>
+              <div className="admin-field__value">{username}</div>
+            </div>
+            <div className="admin-field">
+              <div className="admin-field__label">Email</div>
+              <div className="admin-field__value">{email}</div>
+            </div>
+            <div className="admin-field">
+              <div className="admin-field__label">Vai trò</div>
+              <div className="admin-field__value">Quản trị viên hệ thống</div>
+            </div>
+          </div>
+
+          <div className="admin-divider" />
+
+          <div className="adm2-unsupported-row">
+            <span>Chỉnh sửa hồ sơ và đổi mật khẩu</span>
+            <span className="adm2-badge adm2-badge--gray">Chưa hỗ trợ</span>
+          </div>
+        </section>
+
+        <section className="admin-card admin-card--permission">
+          <span className="adm2-chip adm2-chip--emerald">Quyền hệ thống</span>
+
+          <div className="admin-permissionBody">
+            <div className="admin-permissionBadge" aria-hidden="true">
+              <IconShield className="admin-icon admin-icon--shieldWhite" />
+            </div>
+            <div className="admin-permissionTitle">Quản trị viên hệ thống</div>
+            <div className="admin-permissionSub">
+              Toàn quyền quản lý nội dung, câu hỏi, đề thi, kỹ năng và tài khoản user.
+            </div>
+
+            <div className="adm2-divider" />
+
+            <ul className="adm2-check-list">
+              {PERMISSION_ITEMS.map((item) => (
+                <li key={item}>✓ {item}</li>
+              ))}
+            </ul>
+
+            <button type="button" className="adm2-text-btn adm2-profile-logout" onClick={handleLogout}>
+              <LogOut size={15} />
+              Đăng xuất
+            </button>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

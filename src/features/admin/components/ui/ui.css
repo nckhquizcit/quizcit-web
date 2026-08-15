@@ -11,25 +11,23 @@
   align-items: center;
   justify-content: center;
 
-  z-index: 999;
+  z-index: var(--z-modal, 100);
 }
 
 .modal-container {
   background: white;
   border-radius: 16px;
   padding: 24px;
-  width: 600px;
+  width: min(600px, 100%);
+  max-height: calc(100dvh - 40px);
+  overflow: auto;
 
   position: relative;
 
   animation: fadeIn 0.2s ease;
 }
 
-.modal-container.import-questions-modal-shell {
-  width: min(1120px, calc(100vw - 32px));
-  max-height: calc(100vh - 32px);
-  overflow: auto;
-}
+/* .import-questions-modal-shell được style tập trung trong Admin.css */
 
 .modal-close {
   position: absolute;
@@ -64,6 +62,8 @@
 .form-header h2 {
   font-size: 22px;
   font-weight: 600;
+  /* chừa chỗ cho nút đóng (absolute top-right) để tiêu đề dài không chui xuống dưới nút */
+  padding-right: 44px;
 }
 
 .form-sub {

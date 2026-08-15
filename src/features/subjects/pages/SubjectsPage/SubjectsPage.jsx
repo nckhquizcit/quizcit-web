@@ -1,62 +1,163 @@
-import { useEffect, useMemo, useState } from "react";
-import { BookOpen, GraduationCap, Layers3, Library, Search } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { BookOpen, GraduationCap, Layers3, Library, Search, X } from "lucide-react";
 import {
   getAllChapters,
   getSubjects,
 } from "../../../../services/contentService";
 import {
+  enrollCourse,
+  getMyEnrollments,
+  isAlreadyEnrolled,
+  unenrollCourse,
+} from "../../../../services/enrollmentService";
+import {
+  Button,
   EmptyState,
   ErrorState,
+  Modal,
   SkeletonCard,
+  StatTile,
+  useToast,
 } from "../../../../components/ui";
 import { getErrorMessage } from "../../../../services/apiClient";
 import SubjectCard from "../../components/SubjectCard";
 import "./SubjectsPage.css";
 
+function buildSubjectCollection(subjects, allChapters) {
+  return subjects.map((subject) => {
+    const chapters = allChapters.filter((chapter) => chapter.subjectId === subject.subjectId);
+    return {
+      ...subject,
+      subject_id: subject.subjectId,
+      course_code: subject.courseCode,
+      chapterCount: chapters.length,
+      chapterPreview: chapters.slice(0, 3).map((chapter) => ({
+        chapter_id: chapter.chapterId,
+        name: chapter.name,
+      })),
+    };
+  });
+}
+
 export default function SubjectsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [subjectCollection, setSubjectCollection] = useState([]);
+  const [enrollments, setEnrollments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+  const [unenrollTarget, setUnenrollTarget] = useState(null);
+  const [unenrolling, setUnenrolling] = useState(false);
+  const toast = useToast();
+  const aliveRef = useRef(true);
+  const tabRefs = useRef({});
 
-  useEffect(() => {
-    let alive = true;
-
-    const loadSubjects = async () => {
-      try {
+  const loadData = useCallback(async ({ silent = false } = {}) => {
+    try {
+      if (!silent) {
         setLoading(true);
         setError("");
-        const [subjects = [], allChapters = []] = await Promise.all([getSubjects(), getAllChapters()]);
-        const withChapters = subjects.map((subject) => {
-            const chapters = allChapters.filter((chapter) => chapter.subjectId === subject.subjectId);
-            return {
-              ...subject,
-              subject_id: subject.subjectId,
-              course_code: subject.courseCode,
-              chapterCount: chapters.length,
-              chapterPreview: chapters.slice(0, 3).map((chapter) => ({
-                chapter_id: chapter.chapterId,
-                name: chapter.name,
-              })),
-            };
-          });
-        if (alive) setSubjectCollection(withChapters);
-      } catch (loadError) {
-        if (alive)
-          setError(
-            getErrorMessage(loadError, "Không thể tải danh sách môn học.")
-          );
-      } finally {
-        if (alive) setLoading(false);
       }
-    };
-
-    loadSubjects();
-    return () => {
-      alive = false;
-    };
+      // Chi getSubjects fail moi coi la loi ca trang; chapters/enrollments fail
+      // thi degrade ve rong de nut Dang ky van dung duoc.
+      const [subjectsResult, chaptersResult, enrolledResult] = await Promise.allSettled([
+        getSubjects(),
+        getAllChapters(),
+        getMyEnrollments(),
+      ]);
+      if (subjectsResult.status === "rejected") throw subjectsResult.reason;
+      if (!aliveRef.current) return;
+      const subjects = subjectsResult.value || [];
+      const allChapters = chaptersResult.status === "fulfilled" ? chaptersResult.value || [] : [];
+      const enrolled = enrolledResult.status === "fulfilled" ? enrolledResult.value || [] : [];
+      setSubjectCollection(buildSubjectCollection(subjects, allChapters));
+      setEnrollments(enrolled);
+    } catch (loadError) {
+      if (silent) throw loadError;
+      if (aliveRef.current) {
+        setError(getErrorMessage(loadError, "Không thể tải danh sách môn học."));
+      }
+    } finally {
+      if (!silent && aliveRef.current) setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    aliveRef.current = true;
+    loadData();
+    return () => {
+      aliveRef.current = false;
+    };
+  }, [loadData]);
+
+  const refreshAfterChange = async (message) => {
+    toast.success(message);
+    try {
+      await loadData({ silent: true });
+    } catch (refreshError) {
+      toast.error(getErrorMessage(refreshError, "Không tải lại được danh sách môn học."));
+    }
+  };
+
+  const handleEnroll = async (subject) => {
+    const targetId = subject.subjectId || subject.subject_id;
+    try {
+      await enrollCourse(targetId);
+    } catch (enrollError) {
+      if (!isAlreadyEnrolled(enrollError)) {
+        toast.error(getErrorMessage(enrollError, "Không thể đăng ký môn học."));
+        return;
+      }
+    }
+    await refreshAfterChange("Đã đăng ký môn học.");
+  };
+
+  // Mở modal xác nhận thay cho window.confirm; thao tác hủy thật nằm ở confirmUnenroll.
+  const handleUnenroll = (subject) => {
+    setUnenrollTarget(subject);
+  };
+
+  const confirmUnenroll = async () => {
+    if (!unenrollTarget || unenrolling) return;
+    const targetId = unenrollTarget.subjectId || unenrollTarget.subject_id;
+    try {
+      setUnenrolling(true);
+      await unenrollCourse(targetId);
+    } catch (unenrollError) {
+      toast.error(getErrorMessage(unenrollError, "Không thể hủy đăng ký môn học."));
+      return;
+    } finally {
+      setUnenrolling(false);
+    }
+    setUnenrollTarget(null);
+    await refreshAfterChange("Đã hủy đăng ký môn học.");
+  };
+
+  const switchTab = (nextTab, { focus = false } = {}) => {
+    setActiveTab(nextTab);
+    if (focus) tabRefs.current[nextTab]?.focus();
+  };
+
+  // role=tablist: mũi tên Trái/Phải chuyển tab (roving tabindex).
+  const handleTablistKeyDown = (event) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    event.preventDefault();
+    const order = ["all", "mine"];
+    const direction = event.key === "ArrowRight" ? 1 : -1;
+    const currentIndex = order.indexOf(activeTab);
+    const nextTab = order[(currentIndex + direction + order.length) % order.length];
+    switchTab(nextTab, { focus: true });
+  };
+
+  const enrolledIds = useMemo(
+    () => new Set(enrollments.map((item) => item.subjectId)),
+    [enrollments]
+  );
+
+  const mySubjects = useMemo(() => {
+    const byId = new Map(subjectCollection.map((subject) => [subject.subjectId, subject]));
+    return enrollments.map((item) => byId.get(item.subjectId) || item);
+  }, [enrollments, subjectCollection]);
 
   const filteredSubjects = useMemo(() => {
     const normalized = searchTerm.trim().toLowerCase();
@@ -80,56 +181,68 @@ export default function SubjectsPage() {
           <p className="subjects-page__eyebrow">Không gian học tập</p>
           <h1>Danh sách môn học</h1>
           <p className="subjects-page__description">
-            Chọn môn học để xem lý thuyết theo từng chương và làm quiz ôn tập.
+            Đăng ký môn học để mở khóa lý thuyết theo từng chương và bài kiểm tra ôn tập.
           </p>
         </div>
         <div className="subjects-page__stats">
-          <div className="subjects-stat">
-            <span className="subjects-stat__icon">
-              <BookOpen size={18} />
-            </span>
-            <div>
-              <strong>{subjectCollection.length}</strong>
-              <p>Môn học</p>
-            </div>
-          </div>
-          <div className="subjects-stat">
-            <span className="subjects-stat__icon">
-              <Layers3 size={18} />
-            </span>
-            <div>
-              <strong>{totalChapters}</strong>
-              <p>Chương</p>
-            </div>
-          </div>
+          <StatTile
+            value={subjectCollection.length}
+            label="Môn học"
+            icon={<BookOpen size={18} />}
+          />
+          <StatTile
+            value={totalChapters}
+            label="Chương khả dụng"
+            icon={<Layers3 size={18} />}
+          />
         </div>
       </header>
 
-      <div className="subjects-tabs" role="tablist" aria-label="Bộ lọc môn học">
+      <div
+        className="subjects-tabs"
+        role="tablist"
+        aria-label="Bộ lọc môn học"
+        onKeyDown={handleTablistKeyDown}
+      >
         <button
+          ref={(element) => {
+            tabRefs.current.all = element;
+          }}
           type="button"
           role="tab"
+          id="subjects-tab-all"
+          aria-controls="subjects-panel-all"
           aria-selected={activeTab === "all"}
+          tabIndex={activeTab === "all" ? 0 : -1}
           className={`subjects-tab ${activeTab === "all" ? "is-active" : ""}`}
-          onClick={() => setActiveTab("all")}
+          onClick={() => switchTab("all")}
         >
           <Library size={16} />
           Toàn bộ môn học
         </button>
         <button
+          ref={(element) => {
+            tabRefs.current.mine = element;
+          }}
           type="button"
           role="tab"
+          id="subjects-tab-mine"
+          aria-controls="subjects-panel-mine"
           aria-selected={activeTab === "mine"}
+          tabIndex={activeTab === "mine" ? 0 : -1}
           className={`subjects-tab ${activeTab === "mine" ? "is-active" : ""}`}
-          onClick={() => setActiveTab("mine")}
+          onClick={() => switchTab("mine")}
         >
           <GraduationCap size={16} />
           Môn của tôi
+          {enrolledIds.size > 0 && (
+            <span className="subjects-tab__count">{enrolledIds.size}</span>
+          )}
         </button>
       </div>
 
       {activeTab === "all" && (
-        <>
+        <div role="tabpanel" id="subjects-panel-all" aria-labelledby="subjects-tab-all" className="subjects-panel">
           <div className="subjects-toolbar">
             <div className="subjects-toolbar__search">
               <Search size={18} />
@@ -138,7 +251,18 @@ export default function SubjectsPage() {
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Tìm theo tên môn hoặc mã môn"
+                aria-label="Tìm môn học"
               />
+              {searchTerm && (
+                <button
+                  type="button"
+                  className="subjects-toolbar__clear"
+                  onClick={() => setSearchTerm("")}
+                  aria-label="Xóa từ khóa tìm kiếm"
+                >
+                  <X size={16} />
+                </button>
+              )}
             </div>
           </div>
 
@@ -169,19 +293,86 @@ export default function SubjectsPage() {
           ) : (
             <section className="subjects-page__grid">
               {filteredSubjects.map((subject) => (
-                <SubjectCard key={subject.subject_id} subject={subject} />
+                <SubjectCard
+                  key={subject.subject_id}
+                  subject={subject}
+                  enrolled={enrolledIds.has(subject.subjectId)}
+                  onEnroll={handleEnroll}
+                  onUnenroll={handleUnenroll}
+                />
               ))}
             </section>
           )}
-        </>
+        </div>
       )}
 
       {activeTab === "mine" && (
-        <EmptyState
-          title="Tính năng đăng ký môn học đang được phát triển"
-          description="Sắp tới bạn có thể đăng ký môn để theo dõi riêng các môn mình đang học. Hiện tại hãy xem toàn bộ môn học ở tab bên cạnh."
-        />
+        <div role="tabpanel" id="subjects-panel-mine" aria-labelledby="subjects-tab-mine" className="subjects-panel">
+          {loading ? (
+            <div className="subjects-page__grid">
+              <SkeletonCard lines={4} />
+              <SkeletonCard lines={4} />
+              <SkeletonCard lines={4} />
+            </div>
+          ) : error ? (
+            <ErrorState
+              description={error}
+              onRetry={() => window.location.reload()}
+            />
+          ) : mySubjects.length === 0 ? (
+            <EmptyState
+              title="Bạn chưa đăng ký môn nào"
+              description="Hãy sang tab Toàn bộ môn học và bấm Đăng ký để mở khóa lý thuyết cùng bài kiểm tra của môn."
+              action={
+                <Button variant="primary" onClick={() => setActiveTab("all")}>
+                  Xem toàn bộ môn học
+                </Button>
+              }
+            />
+          ) : (
+            <section className="subjects-page__grid">
+              {mySubjects.map((subject) => (
+                <SubjectCard
+                  key={subject.subject_id}
+                  subject={subject}
+                  enrolled
+                  onEnroll={handleEnroll}
+                  onUnenroll={handleUnenroll}
+                />
+              ))}
+            </section>
+          )}
+        </div>
       )}
+
+      <Modal
+        open={Boolean(unenrollTarget)}
+        onClose={() => {
+          if (!unenrolling) setUnenrollTarget(null);
+        }}
+        title="Hủy đăng ký môn học"
+        size="sm"
+        footer={
+          <>
+            <Button
+              variant="ghost"
+              disabled={unenrolling}
+              onClick={() => setUnenrollTarget(null)}
+            >
+              Giữ nguyên
+            </Button>
+            <Button variant="danger" loading={unenrolling} onClick={confirmUnenroll}>
+              Hủy đăng ký
+            </Button>
+          </>
+        }
+      >
+        <p>
+          Bạn sắp hủy đăng ký môn{" "}
+          <strong>{unenrollTarget?.name || "này"}</strong>. Bạn sẽ không xem được
+          lý thuyết và bài kiểm tra của môn cho đến khi đăng ký lại.
+        </p>
+      </Modal>
     </section>
   );
 }

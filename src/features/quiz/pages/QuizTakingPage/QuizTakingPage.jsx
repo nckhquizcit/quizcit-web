@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { AlertCircle, Clock, Flag, X } from "lucide-react";
+import { AlertCircle, Flag, ListChecks, X } from "lucide-react";
 import {
   clearQuizDraft,
   getQuestionsByQuiz,
@@ -11,8 +11,16 @@ import {
   submitAttempt,
 } from "../../../../services/quizService";
 import { getErrorMessage, getStoredUser } from "../../../../services/apiClient";
-import { Button, ErrorState, Spinner } from "../../../../components/ui";
+import {
+  Button,
+  EmptyState,
+  ErrorState,
+  Modal,
+  Spinner,
+  StatTile,
+} from "../../../../components/ui";
 import RichTextView from "../../../../components/richtext/RichTextView";
+import SkillInfoModal from "../../components/SkillInfoModal";
 import {
   clampQuizPage,
   getPageNavigationTarget,
@@ -50,10 +58,13 @@ export default function QuizTakingPage() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
+  // Phiếu trả lời dạng bottom sheet, chỉ dùng trên mobile (bar mở sheet ẩn ở desktop)
+  const [answerSheetOpen, setAnswerSheetOpen] = useState(false);
   const startedRef = useRef(false);
   const submittedRef = useRef(false);
   const timerStartedRef = useRef(false);
   const autoSubmittedRef = useRef(false);
+  const deadlineRef = useRef(0);
   const questionRefs = useRef(new Map());
 
   useEffect(() => {
@@ -69,14 +80,34 @@ export default function QuizTakingPage() {
       try {
         setLoading(true);
         setError("");
-        const [quizData, questionsData, attemptData] = await Promise.all([
+        const draft = loadQuizDraft(quizId, currentUser.userId);
+        const [quizData, questionsData] = await Promise.all([
           getQuizById(quizId),
           getQuestionsByQuiz(quizId),
-          startQuiz(quizId, currentUser.userId),
         ]);
-        const draft = loadQuizDraft(quizId, currentUser.userId);
+
+        if (String(quizData?.type).toUpperCase() === "ADAPTIVE") {
+          setError(
+            "Đây là bài kiểm tra thích ứng, không mở được bằng đường dẫn này. Hãy vào môn học và bắt đầu bài kiểm tra thích ứng từ đó.",
+          );
+          return;
+        }
 
         const durationSeconds = getDurationSeconds(quizData);
+        // Giữ nguyên lượt làm và hạn nộp đã lưu để tải lại trang không tạo lượt mới
+        // và không cấp thêm thời gian.
+        const draftDeadlineAt = Number(draft?.deadlineAt);
+        const canResumeDraft =
+          Boolean(draft?.attemptId) &&
+          (!draft.quizId || draft.quizId === quizId) &&
+          (durationSeconds === 0 ||
+            (Number.isFinite(draftDeadlineAt) && draftDeadlineAt - Date.now() > 0));
+        const attemptData = canResumeDraft
+          ? { attemptId: draft.attemptId }
+          : await startQuiz(quizId, currentUser.userId);
+        const deadlineAt = canResumeDraft && Number.isFinite(draftDeadlineAt)
+          ? draftDeadlineAt
+          : Date.now() + durationSeconds * 1000;
         const loadedQuestions = Array.isArray(questionsData)
           ? questionsData
           : [];
@@ -97,7 +128,12 @@ export default function QuizTakingPage() {
         setCurrentPage(safeDraftPage);
         setActiveQuestionId(initialQuestionId);
         setHasTimeLimit(durationSeconds > 0);
-        setTimeLeft(durationSeconds);
+        deadlineRef.current = deadlineAt;
+        setTimeLeft(
+          durationSeconds > 0
+            ? Math.max(0, Math.ceil((deadlineAt - Date.now()) / 1000))
+            : 0,
+        );
         timerStartedRef.current = durationSeconds > 0;
         autoSubmittedRef.current = false;
 
@@ -177,6 +213,9 @@ export default function QuizTakingPage() {
     if (!attempt || submittedRef.current || !currentUser?.userId) return;
     saveQuizDraft(quizId, currentUser.userId, {
       answers,
+      attemptId: attempt.attemptId,
+      quizId,
+      deadlineAt: deadlineRef.current,
       currentPage,
       flaggedQuestionIds: Array.from(flaggedQuestionIds),
       updatedAt: new Date().toISOString(),
@@ -198,7 +237,7 @@ export default function QuizTakingPage() {
 
   const doSubmit = useCallback(
     async (currentAnswers) => {
-      if (!attempt || submittedRef.current) return;
+      if (!attempt || submittedRef.current) return false;
       submittedRef.current = true;
       setSubmitting(true);
       setError("");
@@ -216,24 +255,26 @@ export default function QuizTakingPage() {
         });
         clearQuizDraft(quizId, currentUser?.userId);
         navigate(`/app/quiz/result/${attempt.attemptId}`);
+        return true;
       } catch (submitError) {
         submittedRef.current = false;
         setSubmitting(false);
         setError(getErrorMessage(submitError, "Có lỗi xảy ra khi nộp bài. Đáp án của bạn vẫn được giữ lại."));
+        return false;
       }
     },
     [attempt, currentUser?.userId, navigate, quizId],
   );
 
   useEffect(() => {
-    if (!hasTimeLimit || !attempt || submitting || timeLeft <= 0) return undefined;
+    if (!hasTimeLimit || !attempt || submitting) return undefined;
 
     const timer = setInterval(() => {
-      setTimeLeft((previous) => Math.max(previous - 1, 0));
+      setTimeLeft(Math.max(0, Math.ceil((deadlineRef.current - Date.now()) / 1000)));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [attempt, hasTimeLimit, submitting, timeLeft]);
+  }, [attempt, hasTimeLimit, submitting]);
 
   useEffect(() => {
     if (
@@ -249,10 +290,23 @@ export default function QuizTakingPage() {
     }
   }, [answers, attempt, doSubmit, hasTimeLimit, timeLeft]);
 
-  const handleAnswerChange = (questionId, optionId) => {
+  // Modal xác nhận nộp và modal kỹ năng tự xử lý Escape (Modal dùng chung);
+  // chỉ còn bottom sheet phiếu trả lời cần đóng bằng Escape ở đây.
+  useEffect(() => {
+    if (!answerSheetOpen) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") setAnswerSheetOpen(false);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [answerSheetOpen]);
+
+  const handleAnswerChange = useCallback((questionId, optionId) => {
     setActiveQuestionId(questionId);
     setAnswers((current) => ({ ...current, [questionId]: optionId }));
-  };
+  }, []);
 
   const toggleFlag = (questionId) => {
     setFlaggedQuestionIds((current) => {
@@ -270,18 +324,94 @@ export default function QuizTakingPage() {
     setCurrentPage(target.page);
     setActiveQuestionId(target.questionId);
     setPendingScrollQuestionId(target.questionId);
+    setAnswerSheetOpen(false);
   };
 
-  const goToPage = (page) => {
-    const target = getPageNavigationTarget(questions, page, PAGE_SIZE);
+  const goToPage = useCallback(
+    (page) => {
+      const target = getPageNavigationTarget(questions, page, PAGE_SIZE);
 
-    setCurrentPage(target.page);
-    setActiveQuestionId(target.questionId);
-    setPendingScrollQuestionId(target.questionId);
-  };
+      setCurrentPage(target.page);
+      setActiveQuestionId(target.questionId);
+      setPendingScrollQuestionId(target.questionId);
+    },
+    [questions],
+  );
+
+  // Phím tắt bàn phím: 1-9 hoặc A-D chọn đáp án, ←/→ chuyển trang câu hỏi.
+  // "Câu hỏi đang chọn" = activeQuestionId, tức thẻ câu hỏi nhận tương tác gần
+  // nhất (bấm chuột, focus, trả lời, hoặc điều hướng từ phiếu trả lời) — cách
+  // đơn giản và dễ đoán nhất, không cần theo dõi vị trí cuộn.
+  useEffect(() => {
+    const anyDialogOpen =
+      submitConfirmOpen || Boolean(activeSkillQuestion) || answerSheetOpen;
+    if (anyDialogOpen || submitting) return undefined;
+
+    // Không cướp phím khi người dùng đang gõ chữ (radio/checkbox không tính).
+    const isTextEntryTarget = (element) => {
+      if (!(element instanceof HTMLElement)) return false;
+      if (element.isContentEditable) return true;
+      const tag = element.tagName;
+      if (tag === "TEXTAREA" || tag === "SELECT") return true;
+      if (tag !== "INPUT") return false;
+      return !["radio", "checkbox", "button", "submit", "range"].includes(
+        (element.type || "").toLowerCase(),
+      );
+    };
+
+    const handleShortcuts = (event) => {
+      if (event.defaultPrevented) return;
+      if (event.altKey || event.ctrlKey || event.metaKey) return;
+      if (isTextEntryTarget(event.target)) return;
+
+      if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+        // Khi focus nằm trong input (kể cả radio), giữ hành vi mũi tên mặc định.
+        if (
+          event.target instanceof HTMLElement &&
+          ["INPUT", "SELECT"].includes(event.target.tagName)
+        ) {
+          return;
+        }
+        event.preventDefault();
+        goToPage(currentPage + (event.key === "ArrowRight" ? 1 : -1));
+        return;
+      }
+
+      let optionIndex = -1;
+      if (/^[1-9]$/.test(event.key)) {
+        optionIndex = Number(event.key) - 1;
+      } else if (/^[a-d]$/i.test(event.key)) {
+        optionIndex = event.key.toLowerCase().charCodeAt(0) - 97;
+      }
+      if (optionIndex < 0) return;
+
+      const activeQuestion = questions.find(
+        (question) => question.questionId === activeQuestionId,
+      );
+      const option = activeQuestion?.options?.[optionIndex];
+      if (!option) return;
+
+      event.preventDefault();
+      handleAnswerChange(activeQuestion.questionId, option.optionId);
+    };
+
+    window.addEventListener("keydown", handleShortcuts);
+    return () => window.removeEventListener("keydown", handleShortcuts);
+  }, [
+    activeQuestionId,
+    activeSkillQuestion,
+    answerSheetOpen,
+    currentPage,
+    goToPage,
+    handleAnswerChange,
+    questions,
+    submitConfirmOpen,
+    submitting,
+  ]);
 
   const handleSubmit = () => {
     if (submitting) return;
+    setAnswerSheetOpen(false);
     setSubmitConfirmOpen(true);
   };
 
@@ -292,14 +422,21 @@ export default function QuizTakingPage() {
 
   const confirmSubmit = async () => {
     if (submitting) return;
-    setSubmitConfirmOpen(false);
-    await doSubmit(answers);
+    // Chỉ đóng hộp thoại khi nộp thành công để lỗi hiện ngay cạnh nút bấm.
+    const submitted = await doSubmit(answers);
+    if (submitted) setSubmitConfirmOpen(false);
   };
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    const paddedSecs = secs.toString().padStart(2, "0");
+    if (seconds >= 3600) {
+      return `${Math.floor(seconds / 3600)}:${(mins % 60)
+        .toString()
+        .padStart(2, "0")}:${paddedSecs}`;
+    }
+    return `${mins.toString().padStart(2, "0")}:${paddedSecs}`;
   };
 
   const timeLimitLabel = hasTimeLimit ? `${quiz?.duration} phút` : "Không giới hạn thời gian";
@@ -309,7 +446,7 @@ export default function QuizTakingPage() {
     return (
       <div className="quiz-loading">
         <Spinner size={32} />
-        <p>Đang tải đề thi...</p>
+        <p>Đang tải bài kiểm tra...</p>
       </div>
     );
   }
@@ -331,8 +468,8 @@ export default function QuizTakingPage() {
     return (
       <div className="quiz-taking-page">
         <ErrorState
-          title="Không tìm thấy đề thi"
-          description="Đề thi này không tồn tại hoặc đã bị gỡ."
+          title="Không tìm thấy bài kiểm tra"
+          description="Bài kiểm tra này không tồn tại hoặc đã bị gỡ."
           onRetry={() => navigate("/app/subjects")}
           retryLabel="Quay lại danh sách môn học"
         />
@@ -351,7 +488,7 @@ export default function QuizTakingPage() {
         <div className="quiz-header__info">
           <h1>{quiz.name}</h1>
           <div className="quiz-meta">
-            <span>{quiz.totalQuestion || questions.length} câu hỏi</span>
+            <span>{questions.length} câu hỏi</span>
             <span className="quiz-meta__dot" />
             <span>{timeLimitLabel}</span>
           </div>
@@ -361,8 +498,8 @@ export default function QuizTakingPage() {
             hasTimeLimit && timeLeft < 60 ? "time-warning" : ""
           } ${hasTimeLimit ? "" : "quiz-timer--unlimited"}`}
         >
-          <Clock size={18} />
-          <span>{timerLabel}</span>
+          {hasTimeLimit && <span className="quiz-timer__label">Thời gian còn</span>}
+          <span className="quiz-timer__value">{timerLabel}</span>
         </div>
       </header>
 
@@ -390,6 +527,28 @@ export default function QuizTakingPage() {
 
       <div className="quiz-layout">
         <div className="quiz-main">
+          <div className="quiz-info-banner">
+            <span className="quiz-info-banner__icon" aria-hidden="true">
+              ⓘ
+            </span>
+            <span>Không hiển thị đúng sai hoặc lời giải trước khi nộp.</span>
+            <span className="quiz-info-banner__hint">
+              Phím tắt: 1-4 chọn đáp án, ←/→ chuyển trang.
+            </span>
+          </div>
+
+          {questions.length === 0 && (
+            <EmptyState
+              title="Bài kiểm tra chưa có câu hỏi"
+              description="Bài kiểm tra này chưa được thêm câu hỏi. Vui lòng quay lại sau hoặc chọn bài kiểm tra khác."
+              action={
+                <Button variant="primary" onClick={() => navigate("/app/subjects")}>
+                  Về danh sách môn học
+                </Button>
+              }
+            />
+          )}
+
           <div className="quiz-questions">
             {visibleQuestions.map((question) => {
               const questionIndex = questions.findIndex(
@@ -426,21 +585,21 @@ export default function QuizTakingPage() {
                       <button
                         type="button"
                         className={`flag-btn ${flagged ? "flag-btn--active" : ""}`}
+                        aria-pressed={flagged}
                         onClick={() => toggleFlag(question.questionId)}
                       >
                         <Flag size={14} />
                         {flagged ? "Bỏ đánh dấu" : "Đánh dấu"}
                       </button>
-                      <button
-                        type="button"
-                        className="skill-btn"
-                        disabled={!hasSkills}
-                        onClick={() => setActiveSkillQuestion(question)}
-                      >
-                        {hasSkills
-                          ? `${question.skills.length} kỹ năng`
-                          : "Chưa gắn kỹ năng"}
-                      </button>
+                      {hasSkills && (
+                        <button
+                          type="button"
+                          className="skill-btn"
+                          onClick={() => setActiveSkillQuestion(question)}
+                        >
+                          {question.skills.length} kỹ năng
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -495,30 +654,50 @@ export default function QuizTakingPage() {
             })}
           </div>
 
-          <div className="quiz-pagination">
-            <Button
-              variant="ghost"
-              onClick={() => goToPage(currentPage - 1)}
-              disabled={currentPage === 0}
-            >
-              Trước
-            </Button>
-            <span className="page-indicator">
-              Trang {currentPage + 1} / {totalPages}
-            </span>
-            <Button
-              variant="ghost"
-              onClick={() => goToPage(currentPage + 1)}
-              disabled={currentPage >= totalPages - 1}
-            >
-              Sau
-            </Button>
-          </div>
+          {questions.length > 0 && (
+            <div className="quiz-pagination">
+              <Button
+                variant="ghost"
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 0}
+              >
+                ← Trang trước
+              </Button>
+              <span className="page-indicator">
+                Trang {currentPage + 1} / {totalPages}
+              </span>
+              <Button
+                variant="ghost"
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage >= totalPages - 1}
+              >
+                Trang sau →
+              </Button>
+            </div>
+          )}
         </div>
 
-        <aside className="quiz-sidebar">
+        {answerSheetOpen && (
+          <div
+            className="quiz-sheet-overlay"
+            onClick={() => setAnswerSheetOpen(false)}
+            aria-hidden="true"
+          />
+        )}
+
+        <aside className={`quiz-sidebar ${answerSheetOpen ? "is-open" : ""}`}>
           <div className="quiz-sidebar__card">
-            <p className="quiz-sidebar__title">Danh sách câu hỏi</p>
+            <div className="quiz-sidebar__head">
+              <p className="quiz-sidebar__title">Danh sách câu hỏi</p>
+              <button
+                type="button"
+                className="quiz-sheet-close"
+                onClick={() => setAnswerSheetOpen(false)}
+                aria-label="Đóng danh sách câu hỏi"
+              >
+                <X size={20} />
+              </button>
+            </div>
             <div className="quiz-nav">
               {questions.map((question, index) => {
                 const answered = answers[question.questionId] != null;
@@ -562,6 +741,7 @@ export default function QuizTakingPage() {
               variant="primary"
               fullWidth
               loading={submitting}
+              disabled={questions.length === 0}
               onClick={handleSubmit}
             >
               {submitting ? "Đang nộp bài..." : "Nộp bài"}
@@ -570,106 +750,107 @@ export default function QuizTakingPage() {
         </aside>
       </div>
 
-      {submitConfirmOpen && (
-        <div
-          className="submit-confirm-overlay"
-          onClick={closeSubmitConfirm}
-        >
-          <section
-            className="submit-confirm-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="submit-confirm-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="submit-confirm-header">
-              <h3 id="submit-confirm-title">Xác nhận nộp bài</h3>
-              <button
-                type="button"
-                className="submit-confirm-close"
-                onClick={closeSubmitConfirm}
-                aria-label="Đóng"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="submit-confirm-body">
-              <p>
-                Bạn đã trả lời <strong>{answeredCount}/{questions.length}</strong> câu.
-                Sau khi nộp, hệ thống sẽ chấm bài và chuyển sang trang kết quả.
-              </p>
-              {answeredCount < questions.length && (
-                <p className="submit-confirm-warning">
-                  Vẫn còn {questions.length - answeredCount} câu chưa trả lời.
-                </p>
-              )}
-            </div>
-
-            <div className="submit-confirm-actions">
-              <Button
-                variant="ghost"
-                onClick={closeSubmitConfirm}
-                disabled={submitting}
-              >
-                Hủy
-              </Button>
-              <Button
-                variant="primary"
-                onClick={confirmSubmit}
-                loading={submitting}
-              >
-                Nộp bài
-              </Button>
-            </div>
-          </section>
+      {/* Thanh thao tác cố định đáy màn hình, chỉ hiện trên mobile */}
+      <div className="quiz-bottombar">
+        <div className="quiz-bottombar__status">
+          {hasTimeLimit && (
+            <span
+              className={`quiz-bottombar__timer ${
+                timeLeft < 60 ? "time-warning" : ""
+              }`}
+            >
+              {formatTime(timeLeft)}
+            </span>
+          )}
+          <span className="quiz-bottombar__count">
+            {answeredCount}/{questions.length} câu
+          </span>
         </div>
-      )}
-
-      {activeSkillQuestion && (
-        <div
-          className="skill-modal-overlay"
-          onClick={() => setActiveSkillQuestion(null)}
+        <Button
+          variant="secondary"
+          iconLeft={<ListChecks size={18} />}
+          onClick={() => setAnswerSheetOpen(true)}
         >
-          <div
-            className="skill-modal"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="skill-modal-header">
-              <h3>Kỹ năng của câu hỏi</h3>
-              <button
-                type="button"
-                className="skill-modal-close"
-                onClick={() => setActiveSkillQuestion(null)}
-                aria-label="Đóng"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <ul className="skill-list">
-              {(activeSkillQuestion.skills || []).map((skill) => (
-                <li key={skill.skillId} className="skill-item">
-                  <span className="skill-item__name">
-                    {skill.name || "Kỹ năng chưa đặt tên"}
-                  </span>
-                  {skill.primary && (
-                    <span className="skill-primary-badge">Chính</span>
-                  )}
-                  <span className="skill-weight">
-                    Trọng số: {skill.weight ?? "—"}
-                  </span>
-                </li>
-              ))}
-              {(!activeSkillQuestion.skills ||
-                activeSkillQuestion.skills.length === 0) && (
-                <li className="skill-item skill-empty">
-                  Câu hỏi này chưa gắn kỹ năng.
-                </li>
-              )}
-            </ul>
+          Danh sách câu
+        </Button>
+        <Button
+          variant="primary"
+          loading={submitting}
+          disabled={questions.length === 0}
+          onClick={handleSubmit}
+        >
+          Nộp bài
+        </Button>
+      </div>
+
+      <Modal
+        open={submitConfirmOpen}
+        onClose={closeSubmitConfirm}
+        title="Xác nhận nộp bài"
+        size="md"
+        footer={
+          <div className="submit-confirm-footer">
+            <Button
+              variant="ghost"
+              onClick={closeSubmitConfirm}
+              disabled={submitting}
+            >
+              Quay lại bài kiểm tra
+            </Button>
+            <Button
+              variant="primary"
+              onClick={confirmSubmit}
+              loading={submitting}
+            >
+              Nộp và xem kết quả
+            </Button>
           </div>
+        }
+      >
+        <div className="submit-confirm-content">
+          <p className="submit-confirm-sub">
+            Kết quả chỉ được chấm sau thao tác này.
+          </p>
+
+          <div className="submit-confirm-stats">
+            <StatTile value={answeredCount} label="Đã trả lời" tone="success" />
+            <StatTile
+              value={flaggedQuestionIds.size}
+              label="Đánh dấu"
+              tone="warning"
+            />
+            <StatTile
+              value={questions.length - answeredCount}
+              label="Chưa trả lời"
+              tone={questions.length - answeredCount > 0 ? "danger" : "default"}
+            />
+          </div>
+
+          {answeredCount < questions.length && (
+            <p className="submit-confirm-warning">
+              Bạn còn {questions.length - answeredCount} câu chưa trả lời. Có
+              thể quay lại danh sách câu hỏi trước khi nộp.
+            </p>
+          )}
+
+          <p className="submit-confirm-note">
+            Sau khi nộp, bạn không thể sửa đáp án; thời gian làm bài sẽ dừng và
+            trang kết quả được mở.
+          </p>
+
+          {error && (
+            <div className="quiz-inline-error">
+              <AlertCircle size={16} />
+              <span>{error}</span>
+            </div>
+          )}
         </div>
-      )}
+      </Modal>
+
+      <SkillInfoModal
+        question={activeSkillQuestion}
+        onClose={() => setActiveSkillQuestion(null)}
+      />
     </div>
   );
 }

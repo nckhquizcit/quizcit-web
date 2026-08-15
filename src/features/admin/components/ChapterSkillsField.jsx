@@ -36,7 +36,7 @@ export default function ChapterSkillsField({ skills = [], value = [], onChange }
       <div className="chapter-skills-field__header">
         <div>
           <strong>Kỹ năng yêu cầu</strong>
-          <p>Chọn kỹ năng và mức theta tối thiểu để mở khóa chương.</p>
+          <p>Chọn kỹ năng và theta tối thiểu để mở chương.</p>
         </div>
         <span className="chapter-skills-field__count">{value.length} đã chọn</span>
       </div>

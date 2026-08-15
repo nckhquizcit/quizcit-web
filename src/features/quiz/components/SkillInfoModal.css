@@ -1,0 +1,33 @@
+.skill-info-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.skill-info-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+}
+.skill-info-item__name {
+  font-weight: 600;
+  color: var(--color-text);
+}
+.skill-info-item__primary {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-700);
+}
+.skill-info-item--empty {
+  color: var(--color-text-muted);
+  justify-content: center;
+}

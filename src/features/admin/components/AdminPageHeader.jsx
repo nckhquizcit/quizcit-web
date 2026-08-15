@@ -6,6 +6,7 @@ export default function AdminPageHeader({
   title,
   subtitle,
   backHref,
+  backLabel = "Quay lại",
   onBack,
   action,
   icon,
@@ -37,13 +38,13 @@ export default function AdminPageHeader({
           {backHref ? (
             <Link className="back-btn" to={backHref}>
               <ArrowLeft size={16} />
-              Quay lại
+              {backLabel}
             </Link>
           ) : (
             onBack && (
               <button className="back-btn" onClick={onBack} type="button">
                 <ArrowLeft size={16} />
-                Quay lại
+                {backLabel}
               </button>
             )
           )}

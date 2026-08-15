@@ -1,9 +1,16 @@
-import "./VerifyForgotPasswordForm.css";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
+import { Link } from "react-router-dom";
 import { Mail } from "lucide-react";
 import { useForgotPassword } from "../../../../stores/contexts/ForgotPasswordContext.jsx";
 import { forgotPassword, verifyResetOtp } from "../../../../services/authService";
-import { getErrorMessage } from "../../../../services/apiClient";
+import { getErrorMessage, isRateLimited } from "../../../../services/apiClient";
+import { Button } from "../../../../components/ui";
+import useCountdown, { isWindowRateLimit } from "../../hooks/useCountdown";
+import "../../styles/authShared.css";
+
+const DEAD_TOKEN_MESSAGE = "Mã đã hết hiệu lực. Vui lòng bấm Gửi lại mã.";
+// BE gioi han FORGOT_PASSWORD 3 lan / 600s.
+const RATE_LIMIT_COOLDOWN_SECONDS = 600;
 
 export default function VerifyForgotPasswordForm() {
   const { email, resetToken, setResetToken, setConfirmedToken, setCurrentState } =
@@ -12,14 +19,12 @@ export default function VerifyForgotPasswordForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
-  const [cooldown, setCooldown] = useState(0);
   const inputRefs = useRef([]);
 
-  useEffect(() => {
-    if (cooldown <= 0) return undefined;
-    const timer = setInterval(() => setCooldown((prev) => prev - 1), 1000);
-    return () => clearInterval(timer);
-  }, [cooldown]);
+  const trimmedEmail = (email || "").trim();
+  const [cooldown, startCooldown] = useCountdown(
+    trimmedEmail ? `otp-cooldown:reset:${trimmedEmail.toLowerCase()}` : "",
+  );
 
   const handleChange = (element, index) => {
     if (isNaN(element.value)) return false;
@@ -44,82 +49,132 @@ export default function VerifyForgotPasswordForm() {
       return;
     }
     if (!resetToken) {
-      setError("Phiên đặt lại mật khẩu đã hết hạn. Vui lòng thử lại.");
+      setError(DEAD_TOKEN_MESSAGE);
       return;
     }
     try {
       setLoading(true);
       setError("");
       const res = await verifyResetOtp(resetToken, verificationCode);
+      if (!res?.confirmedToken) {
+        throw new Error("Xác minh thất bại. Vui lòng thử lại.");
+      }
       setConfirmedToken(res.confirmedToken);
       setCurrentState(3);
     } catch (apiError) {
-      setError(getErrorMessage(apiError, "Xác minh thất bại."));
+      // 429 (sai qua so lan) va 400 (het han/da dung) deu giet challenge.
+      if (apiError?.status === 429 || apiError?.status === 400) {
+        setResetToken("");
+        setOtp(new Array(6).fill(""));
+        setError(DEAD_TOKEN_MESSAGE);
+      } else {
+        setError(getErrorMessage(apiError, "Xác minh thất bại."));
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const handleResend = async () => {
-    if (!email || cooldown > 0) return;
+    if (!trimmedEmail || resending || cooldown > 0) return;
     try {
       setResending(true);
       setError("");
-      const res = await forgotPassword(email);
+      const res = await forgotPassword(trimmedEmail);
+      if (!res?.resetToken) {
+        throw new Error("Không nhận được mã mới. Vui lòng thử lại.");
+      }
       setResetToken(res.resetToken);
       setOtp(new Array(6).fill(""));
-      setCooldown(60);
+      startCooldown();
+      inputRefs.current[0]?.focus();
     } catch (apiError) {
-      setError(getErrorMessage(apiError, "Không thể gửi lại mã."));
+      if (isRateLimited(apiError) && isWindowRateLimit(apiError)) {
+        startCooldown(RATE_LIMIT_COOLDOWN_SECONDS);
+        setError("Bạn đã thử quá nhiều lần. Vui lòng thử lại sau khoảng 10 phút.");
+      } else {
+        // 429 con lai la cooldown gui lai ma 60s cua challenge, khong phai gioi han cua so.
+        if (isRateLimited(apiError)) startCooldown();
+        setError(getErrorMessage(apiError, "Không thể gửi lại mã."));
+      }
     } finally {
       setResending(false);
     }
   };
   return (
-    <form className="verify-form-container" onSubmit={handleVerify}>
-      <h2 className="form-title">Nhập mã xác minh</h2>
-      <p className="form-subtitle">Mã xác minh đã được gửi đến</p>
-
-      <div className="email-display">
-        <Mail size={18} />
-        <span>{email}</span>
+    <form className="auth-form" onSubmit={handleVerify}>
+      <div className="auth-form__head">
+        <h1>Xác minh email</h1>
+        <p>
+          {resetToken
+            ? "Nhập mã 6 số để đặt lại mật khẩu."
+            : "Bấm Gửi lại mã để nhận mã xác minh mới."}
+        </p>
       </div>
+
+      {email && (
+        <div className="auth-email-chip">
+          <Mail size={16} />
+          <span>{email}</span>
+        </div>
+      )}
 
       {error && <div className="auth-form__error">{error}</div>}
 
-      <div className="otp-section">
-        <p>Nhập 6 số mã xác minh</p>
-        <div className="otp-inputs">
-          {otp.map((data, index) => (
-            <input
-              key={index}
-              type="text"
-              inputMode="numeric"
-              maxLength="1"
-              ref={(el) => (inputRefs.current[index] = el)}
-              value={data}
-              onChange={(e) => handleChange(e.target, index)}
-              onKeyDown={(e) => handleKeyDown(e, index)}
-            />
-          ))}
-        </div>
+      <div className="auth-otp" role="group" aria-label="Mã xác minh 6 số">
+        {otp.map((data, index) => (
+          <input
+            key={index}
+            type="text"
+            inputMode="numeric"
+            maxLength="1"
+            autoComplete="one-time-code"
+            aria-label={`Số thứ ${index + 1}`}
+            ref={(el) => (inputRefs.current[index] = el)}
+            value={data}
+            onChange={(e) => handleChange(e.target, index)}
+            onKeyDown={(e) => handleKeyDown(e, index)}
+          />
+        ))}
       </div>
 
-      <button type="submit" className="submit-btn" disabled={loading}>
-        {loading ? "Đang xác minh..." : "Xác minh"}
-      </button>
+      <Button
+        type="submit"
+        variant="primary"
+        fullWidth
+        loading={loading}
+        disabled={!resetToken}
+      >
+        Xác nhận mã
+      </Button>
 
-      <div className="resend-group">
+      <div className="auth-resend">
         <span>Không nhận được mã?</span>
         <button
           type="button"
-          className="resend-btn"
+          className="auth-resend__btn"
           onClick={handleResend}
-          disabled={resending || cooldown > 0 || !email}
+          disabled={resending || cooldown > 0 || !trimmedEmail}
         >
           {cooldown > 0 ? `Gửi lại sau ${cooldown}s` : "Gửi lại mã"}
         </button>
       </div>
+
+      <p className="auth-form__switch">
+        <button
+          type="button"
+          className="auth-resend__btn"
+          onClick={() => setCurrentState(1)}
+        >
+          Đổi email khác
+        </button>
+      </p>
+
+      <p className="auth-form__switch">
+        <Link to="/login" className="auth-back-link">
+          ← Quay lại đăng nhập
+        </Link>
+      </p>
     </form>
   );
 }

@@ -48,8 +48,8 @@
 }
 
 .back-btn:hover {
-  border-color: #009e60;
-  color: #007a44;
+  border-color: #10b981;
+  color: #047857;
 }
 
 .header-action {
@@ -57,7 +57,7 @@
   align-items: center;
 }
 .logo {
-  color: #009e60;
+  color: #059669;
   margin-bottom: 30px;
 }
 
@@ -79,7 +79,7 @@
 }
 
 .sidebar-menu .active {
-  background: #009e60;
+  background: #10b981;
   color: white;
 }
 
@@ -132,13 +132,13 @@
 }
 
 .preview-user-btn:hover {
-  border-color: #009e60;
+  border-color: #10b981;
   background: #ecfdf5;
-  color: #007a44;
+  color: #047857;
 }
 
 .role {
-  background: #009e60;
+  background: #10b981;
   color: white;
   padding: 4px 12px;
   border-radius: 20px;
@@ -302,7 +302,7 @@
   align-items: center;
   gap: 6px;
 
-  background: #009e60;
+  background: #10b981;
   color: white;
 
   padding: 10px 16px;
@@ -318,12 +318,8 @@
 }
 
 .add-btn:hover {
-  background: #008050;
+  background: #059669;
   transform: translateY(-1px);
-}
-
-.add-btn:hover {
-  background: #008050;
 }
 
 .add-btn:disabled,
@@ -334,7 +330,7 @@
 }
 
 .add-btn:disabled:hover {
-  background: #009e60;
+  background: #10b981;
   transform: none;
 }
 
@@ -464,8 +460,8 @@
 }
 
 .search-bar:focus {
-  border-color: #009e60;
-  box-shadow: 0 0 0 3px rgba(0, 158, 96, 0.1);
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
 }
 
 /* ===== SUBJECT CÁC LOẠI ===== */
@@ -682,10 +678,13 @@
   opacity: 0.45;
 }
 
+/* Grip nằm giữa mép trên card để không đè lên icon môn học */
 .subject-card > .display-order-drag-handle {
   position: absolute;
-  left: 12px;
-  top: 12px;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%) rotate(90deg);
+  color: var(--admin-subtle, #8a9aac);
 }
 .subject-title {
   font-size: 18px;
@@ -694,7 +693,7 @@
 
 .subject-code {
   font-size: 13px;
-  color: #009e60;
+  color: #059669;
   font-weight: 500;
 }
 
@@ -719,7 +718,7 @@
   border-radius: 12px;
 
   background: #e6f4ea;
-  color: #009e60;
+  color: #059669;
 
   display: flex;
   align-items: center;
@@ -758,14 +757,14 @@
 
   width: 0%;
   height: 2px;
-  background: #009e60;
+  background: #10b981;
 
   transition: width 0.2s ease;
 }
 
 /* hover = sáng lên */
 .breadcrumb-item a:hover {
-  color: #009e60;
+  color: #059669;
   text-decoration: underline;
 }
 
@@ -824,7 +823,7 @@
   height: 48px;
 
   background: #e6f4ea;
-  color: #009e60;
+  color: #059669;
 
   border-radius: 12px;
 
@@ -849,7 +848,7 @@
 /* ARROW */
 .chapter-arrow {
   font-size: 22px;
-  color: #009e60;
+  color: #059669;
 }
 
 /* ===== QUESTION ===== */
@@ -864,7 +863,7 @@
   border-radius: 18px;
   padding: 20px;
 
-  border-left: 4px solid #009e60;
+  border-left: 4px solid #10b981;
 
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.04);
 }
@@ -890,7 +889,7 @@
 
   border-radius: 12px;
   background: #e6f4ea;
-  color: #009e60;
+  color: #059669;
 
   display: flex;
   align-items: center;
@@ -916,7 +915,7 @@
 }
 
 .icon-btn:hover {
-  color: #009e60;
+  color: #059669;
 }
 
 .icon-btn.delete:hover {
@@ -1010,7 +1009,7 @@
 }
 
 .import-question-btn:hover {
-  border-color: #009e60;
+  border-color: #10b981;
   background: #f5fbf8;
   transform: translateY(-1px);
 }
@@ -1081,7 +1080,7 @@
   height: 36px;
   border-radius: 8px;
   background: #ecfdf5;
-  color: #009e60;
+  color: #059669;
 }
 
 .question-bank-insights p {
@@ -1131,9 +1130,9 @@
 }
 
 .question-bank-search:focus-within {
-  border-color: #009e60;
+  border-color: #10b981;
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(0, 158, 96, 0.12);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
 }
 
 .question-bank-search input {
@@ -1182,9 +1181,9 @@
 }
 
 .question-bank-select:focus {
-  border-color: #009e60;
+  border-color: #10b981;
   outline: 0;
-  box-shadow: 0 0 0 3px rgba(0, 158, 96, 0.12);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
 }
 
 .question-bank-active-line {
@@ -1218,8 +1217,8 @@
 }
 
 .question-bank-active-line button:hover {
-  border-color: #009e60;
-  color: #007a44;
+  border-color: #10b981;
+  color: #047857;
 }
 
 .question-bank-table-wrap {
@@ -1313,7 +1312,7 @@
   height: 34px;
   border-radius: 8px;
   background: #ecfdf5;
-  color: #007a44;
+  color: #047857;
   font-size: 12px;
   font-weight: 800;
 }
@@ -1373,7 +1372,7 @@
 }
 
 .skill-preview-trigger:hover {
-  border-color: #009e60;
+  border-color: #10b981;
   background: #e7f8ef;
   color: #006f45;
   transform: translateY(-1px);
@@ -1403,7 +1402,7 @@
 .published-pill,
 .status-pill.success {
   background: #d8fae5;
-  color: #007a44;
+  color: #047857;
 }
 
 .difficulty-pill.very-easy,
@@ -1445,7 +1444,7 @@
 .preview-difficulty.very-easy,
 .preview-difficulty.easy {
   background: #d8fae5;
-  color: #007a44;
+  color: #047857;
 }
 
 .preview-difficulty.medium,
@@ -1467,7 +1466,7 @@
 }
 
 .table-actions button:hover {
-  color: #009e60;
+  color: #059669;
 }
 
 .table-actions button:last-child:hover {
@@ -1565,8 +1564,8 @@
 }
 
 .question-pagination button.active {
-  border-color: #009e60;
-  background: #009e60;
+  border-color: #10b981;
+  background: #10b981;
   color: #fff;
 }
 
@@ -1891,8 +1890,8 @@
 }
 
 .preview-toggle:hover {
-  border-color: #009e60;
-  color: #007a44;
+  border-color: #10b981;
+  color: #047857;
 }
 
 .question-builder-layout {
@@ -2047,8 +2046,8 @@
 .form-field textarea:focus,
 .form-field input:focus,
 .form-field select:focus {
-  border-color: #009e60;
-  box-shadow: 0 0 0 4px rgba(0, 158, 96, 0.12);
+  border-color: #10b981;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
 }
 
 .form-field textarea {
@@ -2144,12 +2143,12 @@
 .choice-list button.selected {
   border-color: #bbf7d0;
   background: #f0fdf4;
-  color: #009e60;
+  color: #059669;
 }
 
 .choice-list button.selected span {
-  border-color: #009e60;
-  background: #009e60;
+  border-color: #10b981;
+  background: #10b981;
 }
 
 .difficulty-selector {
@@ -2193,7 +2192,7 @@
 .difficulty-selector button.easy {
   border-color: #bbf7d0;
   background: #d8fae5;
-  color: #007a44;
+  color: #047857;
 }
 
 .difficulty-selector button.medium,
@@ -2254,7 +2253,7 @@
 }
 
 .answer-row.marked-row .answer-letter {
-  background: #009e60;
+  background: #10b981;
   color: #fff;
 }
 
@@ -2475,9 +2474,9 @@
 }
 
 .question-import-tabs button.active {
-  border-color: #009e60;
+  border-color: #10b981;
   background: #d8fae5;
-  color: #007a44;
+  color: #047857;
 }
 
 .question-import-defaults,
@@ -2674,7 +2673,7 @@
 }
 
 .question-import-option.is-correct {
-  border-color: #009e60;
+  border-color: #10b981;
   background: #ecfdf5;
 }
 
@@ -2691,7 +2690,7 @@
 }
 
 .question-import-option.is-correct > span {
-  background: #009e60;
+  background: #10b981;
   color: #fff;
 }
 
@@ -2710,7 +2709,7 @@
   width: 18px;
   height: 18px;
   margin: 0;
-  accent-color: #009e60;
+  accent-color: #10b981;
 }
 
 .question-import-meta,
@@ -2767,7 +2766,7 @@
 .question-import-progress progress {
   width: 100%;
   height: 10px;
-  accent-color: #009e60;
+  accent-color: #10b981;
 }
 
 .question-import-result {
@@ -2851,9 +2850,9 @@
 }
 
 .selected-skill-row .primary-skill-btn.active {
-  border-color: #009e60;
+  border-color: #10b981;
   background: #d8fae5;
-  color: #007a44;
+  color: #047857;
 }
 
 .skill-weight-sum {
@@ -2925,7 +2924,7 @@
 
 .question-skill-popup-item em.primary {
   background: #d8fae5;
-  color: #007a44;
+  color: #047857;
 }
 
 .question-skill-popup-item em.secondary {
@@ -2974,14 +2973,14 @@
   padding: 0 18px;
   border: 0;
   border-radius: 10px;
-  background: #e7040f;
+  background: var(--admin-danger, #dc2626);
   color: #fff;
   font-weight: 700;
   cursor: pointer;
 }
 
 .danger-btn:hover {
-  background: #c3000a;
+  background: #b91c1c;
 }
 
 /* ===== QUIZ MANAGEMENT ===== */
@@ -3234,7 +3233,7 @@
   padding: 4px 10px;
   border-radius: 999px;
   background: #d8fae5;
-  color: #007a44;
+  color: #047857;
   font-style: normal;
   font-weight: 700;
   text-align: center;
@@ -3330,7 +3329,7 @@
   height: 48px;
   border-radius: 14px;
   background: #e6f7ef;
-  color: #009e60;
+  color: #059669;
 }
 
 .skill-card-title {
@@ -3540,25 +3539,6 @@
   text-transform: uppercase;
 }
 
-.theory-rich-text {
-  max-width: 78ch;
-  overflow-wrap: anywhere;
-}
-
-.theory-rich-text p {
-  margin: 0;
-  white-space: pre-wrap;
-}
-
-.theory-rich-text p + p {
-  margin-top: 14px;
-}
-
-.theory-rich-text.is-collapsed {
-  max-height: 13rem;
-  overflow: hidden;
-}
-
 .theory-expand-btn {
   margin-top: 10px;
   padding: 0;
@@ -3598,7 +3578,7 @@
 }
 
 .view-questions-btn:hover {
-  background: #009e60;
+  background: #059669;
 }
 
 .empty-state {
@@ -3801,9 +3781,9 @@
 }
 
 .admin-content {
-  width: min(100%, 1440px);
-  margin: 0 auto;
-  padding: 24px;
+  width: 100%;
+  margin: 0;
+  padding: 24px 28px;
   gap: 18px;
 }
 
@@ -4638,6 +4618,15 @@
   background: var(--admin-surface-muted);
 }
 
+/* Trong card trang hoặc modal có padding: bỏ nền xám nổi, chỉ giữ đường phân cách */
+.admin-section-card .question-modal-actions,
+.admin-section-card .form-actions,
+.modal-container .question-modal-actions,
+.modal-container .form-actions {
+  padding: 16px 0 0;
+  background: transparent;
+}
+
 .modal-close,
 .close-btn {
   display: inline-flex;
@@ -5443,25 +5432,33 @@
 .question-import-card__summary {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   cursor: pointer;
   list-style: none;
+  flex-wrap: wrap;
 }
 
 .question-import-card__summary::-webkit-details-marker {
   display: none;
 }
 
+.question-import-card__summary .bank-question-index {
+  flex-shrink: 0;
+}
+
 .question-import-card__summary > div {
   display: grid;
   min-width: 0;
+  flex: 1 1 240px;
   gap: 3px;
 }
 
 .question-import-card__summary strong {
   color: var(--admin-text);
   font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .question-import-card__summary > div > span {
@@ -5470,6 +5467,16 @@
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.question-import-card__summary .difficulty-pill,
+.question-import-card__summary .import-status-pill {
+  flex-shrink: 0;
+}
+
+.question-import-edit-label {
+  flex-shrink: 0;
+  font-size: 13px;
 }
 
 .question-import-card__body {
@@ -5521,12 +5528,871 @@
     grid-template-columns: 1fr;
   }
 }
-.subject-hidden-badge {
-  align-self: flex-start;
+/* =====================================================================
+   ADM2 — Figma redesign additions (pages 07–13, admin screens)
+   Scoped, additive primitives only. Prefixed `adm2-` to avoid collisions
+   with the legacy rules above. Prefer adding new adm2- classes on top of
+   existing markup over editing the rules above this block.
+   ===================================================================== */
+
+.adm2-card {
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: var(--radius-md, 12px);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.06));
+}
+
+.adm2-card-pad {
+  padding: 20px;
+}
+
+/* ---- Badges & chips ---------------------------------------------- */
+.adm2-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
   border-radius: 999px;
-  background: #fef3c7;
-  color: #92400e;
-  font-size: 0.75rem;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  line-height: 1.6;
+}
+.adm2-badge--emerald { background: var(--color-primary-soft, #ecfdf5); color: var(--color-primary-700, #047857); }
+.adm2-badge--amber { background: var(--color-warning-soft, #fffbeb); color: #92400e; }
+.adm2-badge--gray { background: var(--color-surface-3, #f1f5f9); color: var(--color-text-muted, #64748b); }
+.adm2-badge--red { background: var(--color-error-soft, #fef2f2); color: var(--color-error, #ef4444); }
+.adm2-badge--dark { background: #0f172a; color: #fff; }
+.adm2-badge--info { background: var(--color-info-soft, #eff6ff); color: var(--color-info, #3b82f6); }
+
+.adm2-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--color-surface-3, #f1f5f9);
+  color: var(--color-text-muted, #64748b);
+  white-space: nowrap;
+}
+.adm2-chip--emerald { background: var(--color-primary-soft, #ecfdf5); color: var(--color-primary-700, #047857); }
+.adm2-chip--amber { background: var(--color-warning-soft, #fffbeb); color: #92400e; }
+.adm2-chip--red { background: var(--color-error-soft, #fef2f2); color: var(--color-error, #ef4444); }
+
+/* ---- Navbar breadcrumb/title block --------------------------------- */
+.adm2-navbar-titleblock {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1.25;
+}
+.adm2-navbar-eyebrow {
+  font-size: 12px;
   font-weight: 600;
+  color: var(--admin-muted, #5f6f82);
+}
+.adm2-navbar-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--admin-text, #0f172a);
+}
+
+/* ---- Back link (text, with label control) -------------------------- */
+.adm2-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--color-text-muted, #64748b);
+  text-decoration: none;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+.adm2-back-link:hover { color: var(--color-primary-600, #059669); }
+
+/* ---- Stat tiles (generic 4-up row) --------------------------------- */
+.adm2-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.adm2-stat-tile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+}
+.adm2-stat-tile__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--color-primary-soft, #ecfdf5);
+  color: var(--color-primary-700, #047857);
+}
+.adm2-stat-tile__value {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--color-text, #0f172a);
+  line-height: 1.2;
+}
+.adm2-stat-tile__label {
+  font-size: 12.5px;
+  color: var(--color-text-muted, #64748b);
+  margin-top: 1px;
+}
+
+/* ---- Icon square (subject/skill avatar-style code icon) ------------ */
+.adm2-icon-square {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--color-primary-soft, #ecfdf5);
+  color: var(--color-primary-700, #047857);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  flex-shrink: 0;
+  overflow: hidden;
+  padding: 0 4px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ---- Divider ------------------------------------------------------- */
+.adm2-divider {
+  height: 1px;
+  background: var(--color-border, #e2e8f0);
+  margin: 12px 0;
+  border: none;
+}
+
+/* ---- Search row with trailing count pill --------------------------- */
+.adm2-searchrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.adm2-count-pill {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-muted, #64748b);
+  white-space: nowrap;
+}
+
+/* ---- Leading search icon (used inside search-wrapper / custom bars) - */
+.search-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.adm2-search-icon {
+  flex-shrink: 0;
+  color: var(--color-text-subtle, #94a3b8);
+}
+
+/* ---- Text action buttons (icon + visible label, e.g. Sửa / Xóa) ---- */
+.adm2-text-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm, 8px);
+  background: transparent;
+  color: var(--color-text-muted, #64748b);
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+}
+.adm2-text-btn:hover { background: var(--color-surface-3, #f1f5f9); color: var(--color-text, #0f172a); }
+.adm2-text-btn.is-danger:hover { background: var(--color-error-soft, #fef2f2); color: var(--color-error, #ef4444); }
+.adm2-text-btn:disabled { cursor: not-allowed; opacity: 0.45; }
+.adm2-text-btn:disabled:hover { background: transparent; color: var(--color-text-muted, #64748b); }
+
+.adm2-link-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-primary-700, #047857);
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+.adm2-link-arrow:hover { color: var(--color-primary-600, #059669); }
+
+/* ---- Card footer row (left actions, right link) --------------------- */
+.adm2-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 12px;
+  margin-top: 12px;
+  border-top: 1px solid var(--color-border, #e2e8f0);
+}
+.adm2-card-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ---- Info / note boxes ---------------------------------------------- */
+.adm2-note {
+  padding: 12px 14px;
+  border-radius: var(--radius-sm, 8px);
+  font-size: 13px;
+  line-height: 1.5;
+  border: 1px solid var(--color-border, #e2e8f0);
+  background: var(--color-surface-2, #f8fafc);
+  color: var(--color-text-muted, #64748b);
+}
+.adm2-note--emerald {
+  border-color: var(--color-primary-200, #a7f3d0);
+  background: var(--color-primary-soft, #ecfdf5);
+  color: var(--color-primary-700, #047857);
+}
+.adm2-note--amber {
+  border-color: #fde68a;
+  background: var(--color-warning-soft, #fffbeb);
+  color: #92400e;
+}
+.adm2-note--muted {
+  font-size: 12.5px;
+  color: var(--color-text-subtle, #94a3b8);
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+/* ---- Two column page grid (form + aside) ----------------------------- */
+.adm2-form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 18px;
+  align-items: start;
+}
+.adm2-field-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+@media (max-width: 560px) {
+  .adm2-field-row {
+    grid-template-columns: 1fr;
+  }
+}
+.adm2-aside-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.adm2-aside-card {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+/* Hàng kỹ năng trong cột Thiết lập hẹp: xếp tên riêng một dòng, điều khiển bên dưới */
+.adm2-aside-card .selected-skill-list {
+  gap: 10px;
+}
+.adm2-aside-card .selected-skill-row {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 8px 10px;
+  padding: 10px 12px;
+}
+.adm2-aside-card .selected-skill-row strong {
+  grid-column: 1 / -1;
+  font-size: 13px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.adm2-aside-card .selected-skill-row .primary-skill-btn {
+  padding: 8px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.adm2-aside-card .selected-skill-row input {
+  width: 100%;
+  min-width: 0;
+}
+.adm2-aside-card .selected-skill-row button {
+  padding: 8px 10px;
+  font-size: 12px;
+}
+.adm2-aside-card h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 750;
+  color: var(--color-text, #0f172a);
+}
+.adm2-aside-card p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-muted, #64748b);
+  line-height: 1.5;
+}
+
+/* ---- Toggle row (visibility switch look) ----------------------------- */
+.adm2-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: var(--radius-sm, 8px);
+  background: var(--color-surface-2, #f8fafc);
+  cursor: pointer;
+}
+.adm2-toggle-row__text strong {
+  display: block;
+  font-size: 14px;
+  color: var(--color-text, #0f172a);
+}
+.adm2-toggle-row__text span {
+  display: block;
+  font-size: 12.5px;
+  color: var(--color-text-muted, #64748b);
+  margin-top: 2px;
+}
+.adm2-switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 40px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--color-border-strong, #cbd5e1);
+  transition: background 0.18s ease;
+}
+.adm2-switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.18s ease;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.25);
+}
+.adm2-switch.is-on {
+  background: var(--color-primary, #10b981);
+}
+.adm2-switch.is-on::after {
+  transform: translateX(16px);
+}
+
+/* ---- Readiness / constraints boxes ------------------------------------ */
+.adm2-ready-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--color-primary-200, #a7f3d0);
+  background: var(--color-primary-soft, #ecfdf5);
+  color: var(--color-primary-700, #047857);
+  font-size: 13px;
+}
+.adm2-ready-box.is-pending {
+  border-color: var(--color-border, #e2e8f0);
+  background: var(--color-surface-2, #f8fafc);
+  color: var(--color-text-muted, #64748b);
+}
+.adm2-ready-box strong {
+  font-size: 13px;
+  font-weight: 750;
+}
+.adm2-ready-box ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.adm2-list-box {
+  padding: 12px 14px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--color-border, #e2e8f0);
+  background: var(--color-surface-2, #f8fafc);
+}
+.adm2-list-box strong {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 750;
+  color: var(--color-text, #0f172a);
+  margin-bottom: 6px;
+}
+.adm2-list-box ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.adm2-list-box li {
+  font-size: 12.5px;
+  color: var(--color-text-muted, #64748b);
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.adm2-list-box li::before {
+  content: "•";
+  color: var(--color-text-subtle, #94a3b8);
+}
+
+/* ---- Danger zone card -------------------------------------------------- */
+.adm2-danger-card {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-color: #fecaca;
+  background: var(--color-error-soft, #fef2f2);
+}
+.adm2-danger-card h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 750;
+  color: var(--color-error, #dc2626);
+}
+.adm2-danger-card p {
+  margin: 0;
+  font-size: 12.5px;
+  color: #b91c1c;
+}
+.adm2-danger-btn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--color-error, #ef4444);
+  background: #fff;
+  color: var(--color-error, #ef4444);
+  font-weight: 650;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+.adm2-danger-btn:hover {
+  background: var(--color-error, #ef4444);
+  color: #fff;
+}
+
+/* ---- Section heading (mini title + sub inside a card) ----------------- */
+.adm2-section-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 4px;
+}
+.adm2-section-heading h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 750;
+  color: var(--color-text, #0f172a);
+}
+.adm2-section-heading p {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--color-text-muted, #64748b);
+}
+
+/* ---- Condition / selection list (e.g. skill ≥ theta rows) -------------- */
+.adm2-condition-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.adm2-condition-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--color-surface-2, #f8fafc);
+  font-size: 13px;
+  color: var(--color-text, #0f172a);
+}
+.adm2-condition-list li strong {
+  color: var(--color-primary-700, #047857);
+  font-weight: 750;
+  flex-shrink: 0;
+}
+
+/* ---- Chapter row number badge (36px, per Figma A04) ------------------- */
+.chapter-index {
+  width: 36px;
+  height: 36px;
+  font-size: 13px;
+}
+
+/* ---- Chapter expanded panel head (chip + skills + add-theory btn) ----- */
+.adm2-chapter-panel-head {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.adm2-chapter-panel-head-text {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.adm2-chapter-panel-skills {
+  font-size: 13px;
+  color: var(--color-text-muted, #64748b);
+}
+
+/* ---- Theory row head (label + format badge) --------------------------- */
+.adm2-theory-row-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.adm2-theory-row-head .theory-item-label {
+  margin-bottom: 0;
+}
+
+/* ---- Chapter panel footer (count + link) ------------------------------- */
+.adm2-panel-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.adm2-panel-footer-count {
+  font-size: 13px;
+  color: var(--color-text-muted, #64748b);
+}
+
+/* ---- Subject card head (icon square + name/code + visibility badge) --- */
+.adm2-subject-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.adm2-subject-card-headtext {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.adm2-subject-card-meta {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--color-text-muted, #64748b);
+}
+
+/* ---- Numbered pagination active state + ellipsis ----------------------- */
+.question-bank-pagination button.is-active,
+.data-table__pager button.is-active {
+  border-color: var(--color-primary, #10b981);
+  background: var(--color-primary, #10b981);
+  color: #fff;
+}
+.adm2-page-ellipsis {
+  padding: 0 4px;
+  color: var(--color-text-subtle, #94a3b8);
+  font-size: 13px;
+}
+
+/* ---- Status chip (form drafting state) --------------------------------- */
+.adm2-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  background: var(--color-info-soft, #eff6ff);
+  color: var(--color-info, #3b82f6);
+}
+
+/* ---- Question create page: answer options (radio + remove) ------------ */
+.adm2-answer-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.adm2-answer-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: var(--radius-sm, 8px);
+}
+.adm2-answer-option:has(.adm2-answer-radio:checked) {
+  border-color: var(--color-primary-200, #a7f3d0);
+  background: var(--color-primary-soft, #ecfdf5);
+}
+.adm2-answer-option input.adm2-answer-radio {
+  margin-top: 12px;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  flex: 0 0 16px;
+  accent-color: var(--color-primary, #10b981);
+  cursor: pointer;
+}
+.adm2-answer-option .answer-rich-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.adm2-answer-remove {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin-top: 8px;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: var(--radius-sm, 8px);
+  background: #fff;
+  color: var(--color-text-muted, #64748b);
+  cursor: pointer;
+}
+.adm2-answer-remove:hover:not(:disabled) {
+  background: var(--color-error-soft, #fef2f2);
+  color: var(--color-error, #ef4444);
+  border-color: var(--color-error, #ef4444);
+}
+.adm2-answer-remove:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ---- Question create page: right-side "Thiết lập" blocks --------------- */
+.adm2-setup-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.adm2-setup-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-text-muted, #64748b);
+}
+.adm2-setup-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.adm2-setup-label-row .adm2-text-btn {
   padding: 3px 8px;
+  font-size: 12px;
+}
+
+/* ---- Readiness box (question create summary) --------------------------- */
+.adm2-ready-box {
+  padding: 12px 14px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--color-border, #e2e8f0);
+  background: var(--color-surface-2, #f8fafc);
+}
+.adm2-ready-box strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 750;
+  color: var(--color-text-muted, #64748b);
+  margin-bottom: 8px;
+}
+.adm2-ready-box.is-ready {
+  border-color: var(--color-primary-200, #a7f3d0);
+  background: var(--color-primary-soft, #ecfdf5);
+}
+.adm2-ready-box.is-ready strong {
+  color: var(--color-primary-700, #047857);
+}
+.adm2-ready-box.is-invalid {
+  border-color: #fde68a;
+}
+.adm2-ready-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.adm2-ready-rows > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+}
+.adm2-ready-rows > div > span:first-child {
+  color: var(--color-text-muted, #64748b);
+}
+.adm2-ready-rows > div > span:last-child {
+  font-weight: 650;
+  color: var(--color-text, #0f172a);
+  text-align: right;
+}
+
+/* ---- Question import: tab strip + template links ----------------------- */
+.question-import-tabstrip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.question-import-template-links {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+.adm2-mono-textarea {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 12.5px;
+  min-height: 220px;
+}
+
+/* ---- Question import: preview section head + badges -------------------- */
+.question-import-preview-section {
+  margin-top: 16px;
+}
+.question-import-preview-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.question-import-preview-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.question-import-footnote {
+  margin-top: 14px;
+}
+
+/* ---- Constraint info box (static, informational) ----------------------- */
+.adm2-constraint-box {
+  padding: 12px 14px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--color-border, #e2e8f0);
+  background: #fff;
+}
+.adm2-constraint-title {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle, #94a3b8);
+  margin-bottom: 8px;
+}
+.adm2-constraint-box ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.adm2-constraint-box li {
+  font-size: 13px;
+  color: var(--color-text-muted, #64748b);
+  padding-left: 14px;
+  position: relative;
+}
+.adm2-constraint-box li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-text-subtle, #94a3b8);
+}
+
+/* ---- Responsive: collapse two/four column grids below 1024px --------- */
+@media (max-width: 1024px) {
+  .adm2-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .adm2-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 600px) {
+  .adm2-stat-grid {
+    grid-template-columns: 1fr;
+  }
+  .adm2-searchrow {
+    align-items: flex-start;
+  }
+}
+
+/* ---- Navbar title block responsiveness (mirrors legacy .navbar-title) - */
+@media (max-width: 1023px) {
+  .adm2-navbar-title {
+    font-size: 15px;
+  }
+}
+@media (max-width: 700px) {
+  .adm2-navbar-titleblock {
+    display: none;
+  }
+}
+
+/* ---- Loading spinner (LoaderCircle icons use className="spin") ---- */
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

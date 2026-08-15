@@ -8,4 +8,6 @@ export { default as Skeleton, SkeletonCard } from "./Skeleton/Skeleton";
 export { default as ProgressRing } from "./ProgressRing/ProgressRing";
 export { default as EmptyState } from "./EmptyState/EmptyState";
 export { default as ErrorState } from "./ErrorState/ErrorState";
+export { default as Modal } from "./Modal/Modal";
+export { default as StatTile } from "./StatTile/StatTile";
 export { ToastProvider, useToast } from "./Toast/Toast";

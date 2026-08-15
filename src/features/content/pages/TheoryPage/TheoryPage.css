@@ -1,0 +1,258 @@
+.theory-page {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr) 320px;
+  gap: var(--space-5);
+  align-items: start;
+  padding: var(--space-8);
+}
+.theory-page--center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  color: var(--color-text-muted);
+}
+
+/* Left nav */
+.theory-page__nav {
+  position: sticky;
+  top: var(--sticky-top);
+}
+.theory-nav-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.theory-nav-card__title {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-subtle);
+}
+.theory-nav-card__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.theory-nav-card__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: 0.55rem 0.6rem;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-md);
+  text-align: left;
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+.theory-nav-card__item:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+.theory-nav-card__item.active {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-700);
+}
+.theory-nav-card__index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-3);
+  color: var(--color-text-muted);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.theory-nav-card__item.active .theory-nav-card__index {
+  background: var(--color-primary-700);
+  color: #fff;
+}
+.theory-nav-card__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Center content */
+.theory-page__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.theory-page__back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  align-self: flex-start;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  padding: var(--space-1) 0;
+}
+.theory-page__back:hover {
+  color: var(--color-primary-700);
+}
+
+.theory-content-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.theory-content-card__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.theory-content-card__head h1 {
+  font-size: var(--fs-2xl);
+  color: var(--color-text);
+  line-height: 1.25;
+}
+
+/* Right docked AI panel */
+.theory-page__chat-dock {
+  position: sticky;
+  top: var(--sticky-top);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - var(--topbar-h) - var(--space-8) * 2);
+  min-height: 420px;
+}
+.theory-chat {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.theory-chat__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+.theory-chat__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  /* Chữ trắng trên nền xanh: tông 700 cho đủ tương phản */
+  background: var(--color-primary-700);
+  color: #fff;
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+.theory-chat__title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.theory-chat__title strong {
+  font-size: var(--fs-sm);
+  color: var(--color-text);
+}
+.theory-chat__title small {
+  font-size: var(--fs-xs);
+  color: var(--color-text-muted);
+}
+.theory-chat .chatbox-messages {
+  padding: var(--space-4);
+}
+.theory-chat .chatbox-input-row {
+  padding: var(--space-3) var(--space-4) var(--space-4);
+}
+
+.theory-page__chat-mobile-fab {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .theory-page {
+    grid-template-columns: 1fr;
+  }
+  .theory-page__nav {
+    position: static;
+  }
+  .theory-nav-card__list {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  /* Nhãn co giãn theo bề ngang còn lại thay vì cắt cứng ở px cố định */
+  .theory-nav-card__item {
+    max-width: 100%;
+  }
+  .theory-page__chat-dock {
+    display: none;
+  }
+  .theory-page__chat-mobile-fab {
+    display: block;
+  }
+}
+
+@media (max-width: 767px) {
+  .theory-page {
+    gap: var(--space-4);
+    padding: var(--space-4);
+  }
+  .theory-page__back {
+    min-height: 44px;
+  }
+  .theory-page__nav {
+    min-width: 0;
+  }
+  .ui-card.theory-nav-card {
+    padding: var(--space-3);
+  }
+  /* Mục lục bài học cuộn ngang một hàng thay vì xuống dòng chiếm hết màn hình */
+  .theory-nav-card__list {
+    flex-wrap: nowrap;
+    gap: var(--space-2);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: var(--space-1);
+  }
+  /* Chip không co trong hàng cuộn ngang; nhãn dài tự cắt nhờ max-width: 100% */
+  .theory-nav-card__item {
+    flex: 0 0 auto;
+    min-height: 44px;
+  }
+  /* Ghi đè padding "lg" của Card để phần đọc rộng thêm ~16px mỗi bên */
+  .ui-card.theory-content-card {
+    padding: var(--space-4);
+    gap: var(--space-4);
+  }
+  .theory-content-card__head h1 {
+    font-size: var(--fs-xl);
+  }
+}
+
+@media (max-width: 640px) {
+  .theory-page {
+    padding: var(--space-3);
+  }
+}

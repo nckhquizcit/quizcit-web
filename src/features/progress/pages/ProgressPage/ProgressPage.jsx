@@ -1,6 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
-import { getAverageAbility, getAbilityHistories, getUserSkillAbilities } from "../../../../services/progressService";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { ChevronRight } from "lucide-react";
+import {
+  getAverageAbility,
+  getAbilityHistories,
+  getUserSkillAbilities,
+} from "../../../../services/progressService";
 import { getSkills } from "../../../../services/skillService";
 import { getStoredUser, getErrorMessage } from "../../../../services/apiClient";
 import {
@@ -9,71 +14,87 @@ import {
   thetaRawToPercent,
 } from "../../../../services/mappers";
 import {
+  Badge,
   Card,
   EmptyState,
   ErrorState,
   ProgressRing,
   SkeletonCard,
 } from "../../../../components/ui";
-import ProgressBar from "../../../home/components/ProgressBar";
+import SkillTile from "../../components/SkillTile/SkillTile";
+import {
+  TREND_BADGE_VARIANT,
+  TREND_ICON,
+  buildSkillMaps,
+  formatDelta,
+  getSkillDisplayName,
+  normalizeSkillId,
+} from "../../utils/skillProgress";
+import { formatSubmittedAt } from "../../../../utils/dateFormat";
 import "./ProgressPage.css";
 
-const MISSING_SKILL_NAME = "Kỹ năng chưa đặt tên";
-
-const getSkillDisplayName = (skillNameById, skillId, rowName) =>
-  skillNameById.get(String(skillId ?? "").trim()) ||
-  (rowName && rowName !== MISSING_SKILL_NAME ? rowName : "") ||
-  MISSING_SKILL_NAME;
+const HISTORY_LIMIT = 12;
+const SKILL_LIMIT = 4;
+const INVALID_SESSION_MESSAGE = "Phiên đăng nhập không hợp lệ, vui lòng đăng nhập lại.";
+const LOAD_ERROR_MESSAGE = "Không thể tải tiến độ học tập.";
 
 export default function ProgressPage() {
   const [abilities, setAbilities] = useState([]);
   const [histories, setHistories] = useState([]);
   const [skills, setSkills] = useState([]);
-  const [averageAbility, setAverageAbility] = useState(0);
+  const [averageAbility, setAverageAbility] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const user = useMemo(() => getStoredUser(), []);
+  const loadIdRef = useRef(0);
 
-  useEffect(() => {
-    let alive = true;
+  // Tách phần tải dữ liệu thành hàm gọi lại được: effect ban đầu và nút "Thử lại" dùng chung.
+  const loadProgress = useCallback(async () => {
+    const loadId = ++loadIdRef.current;
+    const isCurrent = () => loadIdRef.current === loadId;
 
-    async function loadProgress() {
-      if (!user?.userId) return;
-      try {
-        setLoading(true);
-        setError("");
-        const [abilityRows, historyRows, skillRows, average] = await Promise.allSettled([
-          getUserSkillAbilities(user.userId),
-          getAbilityHistories(user.userId),
-          getSkills(),
-          getAverageAbility(user.userId),
-        ]);
-
-        if (!alive) return;
-        setAbilities(abilityRows.status === "fulfilled" ? abilityRows.value : []);
-        setHistories(historyRows.status === "fulfilled" ? historyRows.value : []);
-        setSkills(skillRows.status === "fulfilled" ? skillRows.value : []);
-        setAverageAbility(average.status === "fulfilled" ? average.value : 0);
-      } catch (loadError) {
-        if (alive) setError(getErrorMessage(loadError, "Không thể tải tiến độ học tập."));
-      } finally {
-        if (alive) setLoading(false);
-      }
+    if (!user?.userId) {
+      setError(INVALID_SESSION_MESSAGE);
+      setLoading(false);
+      return;
     }
+    try {
+      setLoading(true);
+      setError("");
+      const [abilityRows, historyRows, skillRows, average] = await Promise.allSettled([
+        getUserSkillAbilities(user.userId),
+        getAbilityHistories(user.userId),
+        getSkills(),
+        getAverageAbility(user.userId),
+      ]);
 
-    loadProgress();
-    return () => {
-      alive = false;
-    };
+      if (!isCurrent()) return;
+
+      // allSettled không bao giờ reject nên phải tự kiểm tra từng kết quả.
+      if (abilityRows.status === "rejected" && historyRows.status === "rejected") {
+        setError(getErrorMessage(abilityRows.reason, LOAD_ERROR_MESSAGE));
+        return;
+      }
+
+      setAbilities(abilityRows.status === "fulfilled" ? abilityRows.value : []);
+      setHistories(historyRows.status === "fulfilled" ? historyRows.value : []);
+      setSkills(skillRows.status === "fulfilled" ? skillRows.value : []);
+      setAverageAbility(average.status === "fulfilled" ? average.value : null);
+    } catch (loadError) {
+      if (isCurrent()) setError(getErrorMessage(loadError, LOAD_ERROR_MESSAGE));
+    } finally {
+      if (isCurrent()) setLoading(false);
+    }
   }, [user?.userId]);
 
-  const skillNameById = useMemo(
-    () =>
-      new Map(
-        skills.map((skill) => [String(skill.skillId ?? "").trim(), skill.name]),
-      ),
-    [skills],
-  );
+  useEffect(() => {
+    loadProgress();
+    return () => {
+      loadIdRef.current += 1;
+    };
+  }, [loadProgress]);
+
+  const { nameById, descriptionById } = useMemo(() => buildSkillMaps(skills), [skills]);
 
   if (loading) {
     return (
@@ -87,121 +108,152 @@ export default function ProgressPage() {
   if (error) {
     return (
       <div className="progress-page">
-        <ErrorState
-          description={error}
-          onRetry={() => window.location.reload()}
-        />
+        <ErrorState description={error} onRetry={loadProgress} />
       </div>
     );
   }
 
-  const averagePercent = thetaRawToPercent(averageAbility);
-  const averageLevel = getAbilityLevel(averageAbility);
+  // Chỉ hiển thị vòng năng lực khi lời gọi trung bình thực sự trả về dữ liệu.
+  const hasAverage = averageAbility !== null && abilities.length > 0;
+  const averagePercent = hasAverage ? thetaRawToPercent(averageAbility) : 0;
+  const averageLevel = hasAverage ? getAbilityLevel(averageAbility) : null;
+  const visibleHistories = histories.slice(0, HISTORY_LIMIT);
+  const visibleAbilities = abilities.slice(0, SKILL_LIMIT);
+  const hiddenSkillCount = abilities.length - SKILL_LIMIT;
 
   return (
     <div className="progress-page">
       <header className="progress-header">
-        <div className="progress-header__text">
-          <p className="progress-eyebrow">Tiến độ học tập</p>
-          <h1>Năng lực theo kỹ năng</h1>
-          <p className="progress-header__desc">
-            Điểm năng lực quy đổi thang 0–4; xếp loại theo theta sau mỗi bài
-            kiểm tra, và sau từng nhóm 5 câu trong bài thích ứng.
-          </p>
-          <p className={`progress-level progress-level--${averageLevel.key}`}>
-            {averageLevel.label}
-          </p>
-        </div>
-        <div className="progress-header__ring">
-          <ProgressRing
-            value={averagePercent}
-            size={130}
-            stroke={12}
-            label={formatScaledThetaValue(averageAbility)}
-            sublabel="trên 4"
-          />
-        </div>
+        <h1>Tiến độ</h1>
+        <p className="progress-header__desc">
+          Theo dõi năng lực theo từng kỹ năng và các lần hệ thống cập nhật.
+        </p>
       </header>
 
-      {abilities.length === 0 ? (
-        <EmptyState
-          title="Chưa có dữ liệu năng lực"
-          description="Hoàn thành một bài quiz để hệ thống cập nhật theta theo kỹ năng."
-        />
-      ) : (
-        <section className="progress-section">
-          <h2 className="progress-section__title">Kỹ năng của bạn</h2>
-          <div className="progress-grid">
-            {abilities.map((ability) => {
-              const thetaRaw = Number(ability.theta ?? 0);
-              const percent = thetaRawToPercent(thetaRaw);
-              const level = getAbilityLevel(thetaRaw);
-              return (
-                <Card
-                  className="skill-progress-card"
-                  key={ability.id || ability.skillId}
-                >
-                  <div className="skill-progress-card__head">
-                    <span className="skill-progress-card__name">
-                      {getSkillDisplayName(skillNameById, ability.skillId, ability.name)}
-                    </span>
-                    <div className="skill-progress-card__score">
-                      <strong className="skill-progress-card__theta">
-                        {formatScaledThetaValue(thetaRaw)}
-                        <span>/4</span>
-                      </strong>
-                      <span className={`skill-progress-card__level skill-progress-card__level--${level.key}`}>
-                        {level.label}
-                      </span>
-                    </div>
-                  </div>
-                  <ProgressBar value={percent} />
-                </Card>
-              );
-            })}
+      <div className="progress-top-grid">
+        <Card as="section" padding="lg" className="progress-overview-card">
+          <h2>Năng lực tổng quan</h2>
+          <p className="progress-overview-card__scale">
+            Năng lực (θ) ước tính theo thang 0–4, cập nhật sau mỗi bài kiểm tra.
+          </p>
+          <p className="progress-overview-card__meta">
+            {hasAverage ? `Mức ${averageLevel.label}` : "Chưa có dữ liệu"}
+          </p>
+          <div className="progress-overview-card__ring">
+            <ProgressRing
+              value={averagePercent}
+              size={130}
+              stroke={12}
+              label={hasAverage ? formatScaledThetaValue(averageAbility) : "—"}
+              sublabel="trên 4"
+              ariaLabel={
+                hasAverage
+                  ? `Năng lực tổng quan ${formatScaledThetaValue(averageAbility)} trên 4, mức ${averageLevel.label}`
+                  : "Chưa có dữ liệu năng lực tổng quan"
+              }
+            />
           </div>
-        </section>
-      )}
+          <div className="progress-overview-card__stats">
+            <div className="progress-overview-card__stat">
+              <strong>{abilities.length}</strong>
+              <span>Kỹ năng theo dõi</span>
+            </div>
+            <span className="progress-overview-card__divider" aria-hidden="true" />
+            <div className="progress-overview-card__stat">
+              <strong>{histories.length}</strong>
+              <span>Lần cập nhật</span>
+            </div>
+          </div>
+          <p className="progress-overview-card__note">
+            Cập nhật sau bài kiểm tra hoặc mỗi nhóm 5 câu
+          </p>
+        </Card>
+
+        <Card as="section" padding="lg" className="progress-skills-card">
+          <h2>Kỹ năng của bạn</h2>
+          {abilities.length === 0 ? (
+            <EmptyState
+              title="Chưa có dữ liệu năng lực"
+              description="Hoàn thành một bài kiểm tra để hệ thống cập nhật năng lực theo kỹ năng."
+            />
+          ) : (
+            <>
+              <p className="progress-skills-card__hint">
+                Chọn một kỹ năng để mở trang chi tiết với biểu đồ và lịch sử năng lực.
+              </p>
+              <div className="progress-grid">
+                {visibleAbilities.map((ability) => {
+                  const skillId = normalizeSkillId(ability.skillId);
+                  return (
+                    <SkillTile
+                      key={ability.id || skillId}
+                      skillId={skillId}
+                      name={getSkillDisplayName(nameById, skillId, ability.name)}
+                      description={descriptionById.get(skillId) || ""}
+                      theta={ability.theta}
+                    />
+                  );
+                })}
+              </div>
+              {hiddenSkillCount > 0 && (
+                <Link className="progress-skills-card__more" to="/app/progress/skills">
+                  Xem tất cả {abilities.length} kỹ năng
+                  <ChevronRight size={16} />
+                </Link>
+              )}
+            </>
+          )}
+        </Card>
+      </div>
 
       <section className="progress-section">
-        <h2 className="progress-section__title">Lịch sử cập nhật</h2>
-        {histories.length === 0 ? (
-          <p className="progress-muted">
-            Chưa có lịch sử theta cho tài khoản này.
+        <div className="progress-section__head">
+          <h2 className="progress-section__title">Lịch sử cập nhật</h2>
+          <p className="progress-section__sub">
+            Năng lực được lưu sau bài kiểm tra và sau từng nhóm 5 câu thích ứng.
           </p>
+          {histories.length > HISTORY_LIMIT && (
+            <p className="progress-muted">
+              Hiển thị {HISTORY_LIMIT} / {histories.length} lần cập nhật gần nhất.
+            </p>
+          )}
+        </div>
+        {visibleHistories.length === 0 ? (
+          <EmptyState
+            className="progress-history-empty"
+            title="Chưa có lịch sử cập nhật"
+            description="Hoàn thành một bài kiểm tra để hệ thống ghi nhận năng lực."
+          />
         ) : (
           <Card padding="none" className="progress-history-card">
-            {histories.slice(0, 12).map((item) => {
+            {visibleHistories.map((item) => {
               const thetaRaw = Number(item.theta ?? 0);
-              const delta = Number(item.delta ?? 0);
               const level = getAbilityLevel(thetaRaw);
-              const trend =
-                delta > 0 ? "up" : delta < 0 ? "down" : "flat";
-              const TrendIcon =
-                trend === "up"
-                  ? TrendingUp
-                  : trend === "down"
-                    ? TrendingDown
-                    : Minus;
+              const delta = formatDelta(item.deltaScaled ?? 0);
+              const TrendIcon = TREND_ICON[delta.trend];
               return (
                 <div className="progress-history-row" key={item.id}>
                   <span className="progress-history-row__name">
-                    {getSkillDisplayName(skillNameById, item.skillId, item.name)}
-                  </span>
-                  <span className="progress-history-row__theta">
-                    {formatScaledThetaValue(thetaRaw)}
-                    <small>{level.label}</small>
+                    {getSkillDisplayName(nameById, item.skillId, item.name)}
                   </span>
                   <span
-                    className={`progress-history-row__delta progress-history-row__delta--${trend}`}
+                    className="progress-history-row__theta"
+                    title="Năng lực"
+                    aria-label={`Năng lực ${formatScaledThetaValue(thetaRaw)} trên 4, mức ${level.label}`}
                   >
-                    <TrendIcon size={14} />
-                    {delta > 0 ? "+" : ""}
-                    {delta.toFixed(2)}
+                    θ {formatScaledThetaValue(thetaRaw)} / 4 · {level.label}
                   </span>
+                  <Badge
+                    variant={TREND_BADGE_VARIANT[delta.trend]}
+                    size="sm"
+                    className="progress-history-row__delta"
+                    iconLeft={<TrendIcon size={12} />}
+                  >
+                    {delta.text}
+                  </Badge>
                   {item.createdAt && (
                     <small className="progress-history-row__date">
-                      {item.createdAt}
+                      {formatSubmittedAt(item.createdAt)}
                     </small>
                   )}
                 </div>

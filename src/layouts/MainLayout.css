@@ -5,13 +5,28 @@
 
 .app-main-col {
   --preview-banner-height: 45px;
+  /* Mốc top cho mọi phần tử sticky trong trang: nằm dưới topbar (và banner preview nếu có) */
+  --sticky-top: calc(var(--topbar-h) + var(--space-4));
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
   min-width: 0;
 }
 
+.app-main-col--preview {
+  --sticky-top: calc(
+    var(--preview-banner-height) + var(--topbar-h) + var(--space-4)
+  );
+}
+
 .user-preview-banner {
+  /* Bảng màu banner gom về một chỗ, bám token cảnh báo;
+     hai sắc cam nhạt chưa có token tương đương nên giữ giá trị cũ. */
+  --preview-banner-bg: var(--color-warning-soft);
+  --preview-banner-border: #fdba74;
+  --preview-banner-text: var(--color-warning-strong);
+  --preview-banner-accent: var(--color-warning);
+  --preview-banner-hover: #ffedd5;
   position: sticky;
   top: 0;
   z-index: calc(var(--z-topbar) + 1);
@@ -21,9 +36,9 @@
   gap: var(--space-4);
   min-height: var(--preview-banner-height);
   padding: 8px var(--space-4);
-  background: #fff7ed;
-  border-bottom: 1px solid #fdba74;
-  color: #9a3412;
+  background: var(--preview-banner-bg);
+  border-bottom: 1px solid var(--preview-banner-border);
+  color: var(--preview-banner-text);
   font-size: var(--fs-sm);
   font-weight: 600;
   text-align: center;
@@ -39,17 +54,17 @@
   gap: 6px;
   flex-shrink: 0;
   padding: 6px 10px;
-  border: 1px solid #f97316;
+  border: 1px solid var(--preview-banner-accent);
   border-radius: var(--radius-pill);
   background: #fff;
-  color: #c2410c;
+  color: var(--preview-banner-text);
   font: inherit;
   font-weight: 700;
   cursor: pointer;
 }
 
 .user-preview-banner button:hover {
-  background: #ffedd5;
+  background: var(--preview-banner-hover);
 }
 
 .app-overlay {
@@ -95,6 +110,27 @@
 .app-topbar__menu:hover {
   background: var(--color-surface-2);
 }
+.app-topbar__titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.app-topbar__breadcrumb {
+  font-size: var(--fs-xs);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.app-topbar__breadcrumb-link {
+  color: inherit;
+  text-decoration: none;
+}
+.app-topbar__breadcrumb-link:hover {
+  color: var(--color-text);
+  text-decoration: underline;
+}
 .app-topbar__title {
   font-size: var(--fs-lg);
   font-weight: 700;
@@ -138,13 +174,14 @@
 }
 
 /* Content */
+/* Không đặt overflow ở đây: nó biến main-content thành scrollport không bao giờ cuộn,
+   khiến mọi position:sticky bên trong trang mất tác dụng. Cho document tự cuộn. */
 .main-content {
   flex: 1 1 auto;
   min-width: 0;
-  overflow-y: auto;
 }
 .main-content__inner {
-  max-width: 1280px;
+  max-width: var(--content-wide);
   margin: 0 auto;
   width: 100%;
 }

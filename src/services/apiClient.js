@@ -23,9 +23,34 @@ const apiClient = axios.create({
 
 export function clearAuthSession() {
   localStorage.removeItem("accessToken");
+  localStorage.removeItem("accessTokenExpiresAt");
+  localStorage.removeItem("refreshToken");
   localStorage.removeItem("user");
   clearUserPreview();
   window.dispatchEvent(new CustomEvent(AUTH_CHANGED_EVENT));
+}
+
+const AUTH_TOKEN_FIELDS = [
+  "accessToken",
+  "refreshToken",
+  "refreshTokenExpiresAt",
+  "tokenType",
+  "expiresAt",
+];
+
+// Luu access/refresh token rieng, user object khong duoc chua token.
+export function saveAuthSession(auth) {
+  if (!auth?.accessToken) return;
+  localStorage.setItem("accessToken", auth.accessToken);
+  if (auth.expiresAt) {
+    localStorage.setItem("accessTokenExpiresAt", auth.expiresAt);
+  }
+  if (auth.refreshToken) {
+    localStorage.setItem("refreshToken", auth.refreshToken);
+  }
+  const user = { ...auth };
+  AUTH_TOKEN_FIELDS.forEach((field) => delete user[field]);
+  setStoredUser(user);
 }
 
 export function getStoredUser() {
@@ -47,6 +72,12 @@ export function setStoredUser(user) {
   window.dispatchEvent(new CustomEvent(AUTH_CHANGED_EVENT));
 }
 
+export function subscribeToAuthChange(callback) {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener(AUTH_CHANGED_EVENT, callback);
+  return () => window.removeEventListener(AUTH_CHANGED_EVENT, callback);
+}
+
 function normalizeValidation(data) {
   if (!data || typeof data !== "object") return null;
   if (data.errors && typeof data.errors === "object") return data.errors;
@@ -65,7 +96,7 @@ function normalizeApiError(error) {
   }
 
   const { status, data } = error.response;
-  const message = status === 403 ? ACCESS_DENIED_MESSAGE : data?.message || error.message;
+  const message = data?.message || (status === 403 ? ACCESS_DENIED_MESSAGE : error.message);
 
   return new ApiError({
     status,
@@ -76,8 +107,7 @@ function normalizeApiError(error) {
   });
 }
 
-function isAuthEndpointRequest(error) {
-  const requestUrl = error?.config?.url;
+function isAuthEndpointUrl(requestUrl) {
   if (!requestUrl) return false;
 
   try {
@@ -88,10 +118,38 @@ function isAuthEndpointRequest(error) {
   }
 }
 
-apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem("accessToken");
+function isAuthEndpointRequest(error) {
+  return isAuthEndpointUrl(error?.config?.url);
+}
+
+// Token con < 30s thi refresh truoc, tranh 401 giua chung voi request khong nen lap lai (OTP...).
+const TOKEN_EXPIRY_BUFFER_MS = 30_000;
+
+function isAccessTokenExpiringSoon() {
+  const expiresAt = localStorage.getItem("accessTokenExpiresAt");
+  if (!expiresAt) return false;
+  const expiryTime = Date.parse(expiresAt);
+  if (Number.isNaN(expiryTime)) return false;
+  return expiryTime - Date.now() < TOKEN_EXPIRY_BUFFER_MS;
+}
+
+apiClient.interceptors.request.use(async (config) => {
   const user = getStoredUser();
 
+  if (
+    !isAuthEndpointUrl(config.url) &&
+    localStorage.getItem("accessToken") &&
+    localStorage.getItem("refreshToken") &&
+    isAccessTokenExpiringSoon()
+  ) {
+    try {
+      await ensureFreshSession();
+    } catch {
+      // De request di tiep, 401 se duoc xu ly o response interceptor.
+    }
+  }
+
+  const token = localStorage.getItem("accessToken");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -103,20 +161,78 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+let refreshPromise = null;
+
+async function refreshAuthSession() {
+  const refreshToken = localStorage.getItem("refreshToken");
+  if (!refreshToken) {
+    throw new ApiError({ status: 401, message: "Phiên đăng nhập đã hết hạn." });
+  }
+  const baseUrl = (apiClient.defaults.baseURL || "").replace(/\/$/, "");
+  // Dung axios tran de khong lap vo han qua interceptor.
+  const response = await axios.post(`${baseUrl}/api/auth/refresh`, { refreshToken });
+  const auth = response.data?.data;
+  if (!auth?.accessToken) {
+    throw new ApiError({ status: 401, message: "Phiên đăng nhập đã hết hạn." });
+  }
+  localStorage.setItem("accessToken", auth.accessToken);
+  if (auth.expiresAt) {
+    localStorage.setItem("accessTokenExpiresAt", auth.expiresAt);
+  }
+  if (auth.refreshToken) {
+    localStorage.setItem("refreshToken", auth.refreshToken);
+  }
+  return auth;
+}
+
+// Single-flight: moi request 401 dong thoi cho chung mot lan refresh.
+function ensureFreshSession() {
+  if (!refreshPromise) {
+    refreshPromise = refreshAuthSession().finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
+}
+
+function redirectToLogin() {
+  clearAuthSession();
+  const currentPath = window.location.pathname;
+  if (!currentPath.startsWith("/login")) {
+    window.location.assign(`/login?from=${encodeURIComponent(currentPath)}`);
+  }
+}
+
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     const apiError = normalizeApiError(error);
+    const config = error?.config;
 
-    if (apiError.status === 401 && !isAuthEndpointRequest(error)) {
-      clearAuthSession();
-      const currentPath = window.location.pathname;
-      if (!currentPath.startsWith("/login")) {
-        window.location.assign(`/login?from=${encodeURIComponent(currentPath)}`);
-      }
+    if (apiError.status !== 401 || isAuthEndpointRequest(error)) {
+      return Promise.reject(apiError);
     }
 
-    return Promise.reject(apiError);
+    // Da refresh + retry ma van 401 -> tra loi ve caller.
+    // _noAuthRetry: request khong duoc phep gui lai (OTP, mat khau hien tai) vi BE dem so lan thu.
+    if (config?._retried || config?._noAuthRetry) {
+      return Promise.reject(apiError);
+    }
+
+    if (!config || !localStorage.getItem("refreshToken")) {
+      redirectToLogin();
+      return Promise.reject(apiError);
+    }
+
+    try {
+      await ensureFreshSession();
+    } catch {
+      redirectToLogin();
+      return Promise.reject(apiError);
+    }
+
+    config._retried = true;
+    return apiClient(config);
   },
 );
 
@@ -148,13 +264,29 @@ export function request(config) {
   return inFlightGets.get(key);
 }
 
+// Loi validation cua BE tra message chung "Du lieu khong hop le", chi tiet nam trong .validation.
+function joinValidationMessages(validation) {
+  if (!validation || typeof validation !== "object") return "";
+  return Object.values(validation)
+    .filter((message) => typeof message === "string" && message.trim())
+    .join(" ");
+}
+
 export function getErrorMessage(error, fallback = "Đã có lỗi xảy ra. Vui lòng thử lại.") {
-  if (isAccessDenied(error)) return ACCESS_DENIED_MESSAGE;
-  return error?.message || error?.response?.data?.message || fallback;
+  return (
+    joinValidationMessages(error?.validation) ||
+    error?.message ||
+    error?.response?.data?.message ||
+    fallback
+  );
 }
 
 export function isAccessDenied(error) {
   return error?.status === 403 || error?.response?.status === 403;
+}
+
+export function isRateLimited(error) {
+  return error?.status === 429 || error?.response?.status === 429;
 }
 
 export function isNotFound(error) {

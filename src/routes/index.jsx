@@ -6,15 +6,21 @@ import AuthLayout from "../layouts/AuthLayout.jsx";
 import AdminLayout from "../features/admin/AdminLayout.jsx";
 import ProtectedRoute from "../features/admin/components/guard/ProtectedRoute.jsx";
 import { ForgotPasswordProvider } from "../stores/contexts/ForgotPasswordContext.jsx";
+import { Spinner } from "../components/ui";
 
 const HomePage = lazy(() => import("../features/home/pages/HomePage/HomePage.jsx"));
 const SubjectsPage = lazy(() => import("../features/subjects/pages/SubjectsPage/SubjectsPage.jsx"));
 const SubjectDetailPage = lazy(
   () => import("../features/subjects/pages/SubjectDetailPage/SubjectDetailPage.jsx"),
 );
+const TheoryPage = lazy(() => import("../features/content/pages/TheoryPage/TheoryPage.jsx"));
 const ProfilePage = lazy(() => import("../features/profile/pages/ProfilePage/ProfilePage.jsx"));
 const HistoryPage = lazy(() => import("../features/history/pages/HistoryPage/HistoryPage.jsx"));
 const ProgressPage = lazy(() => import("../features/progress/pages/ProgressPage/ProgressPage.jsx"));
+const SkillsPage = lazy(() => import("../features/progress/pages/SkillsPage/SkillsPage.jsx"));
+const SkillDetailPage = lazy(
+  () => import("../features/progress/pages/SkillDetailPage/SkillDetailPage.jsx"),
+);
 const QuizTakingPage = lazy(() => import("../features/quiz/pages/QuizTakingPage/QuizTakingPage.jsx"));
 const QuizResultPage = lazy(() => import("../features/quiz/pages/QuizResultPage/QuizResultPage.jsx"));
 const AdaptiveQuizPage = lazy(() => import("../features/quiz/pages/AdaptiveQuizPage/AdaptiveQuizPage.jsx"));
@@ -43,7 +49,12 @@ const ForgotPasswordPage = lazy(
 );
 
 function PageLoader() {
-  return <div className="page-loader">Đang tải...</div>;
+  return (
+    <div className="page-loader">
+      <Spinner size={28} />
+      <span>Đang tải...</span>
+    </div>
+  );
 }
 
 function AccessDeniedPage() {
@@ -73,11 +84,17 @@ export const router = createBrowserRouter([
       { index: true, element: withSuspense(<HomePage />) },
       { path: "subjects", element: withSuspense(<SubjectsPage />) },
       { path: "subjects/:subjectId", element: withSuspense(<SubjectDetailPage />) },
+      {
+        path: "subjects/:subjectId/theories/:theoryId",
+        element: withSuspense(<TheoryPage />),
+      },
       { path: "quiz/:quizId", element: withSuspense(<QuizTakingPage />) },
       { path: "adaptive/:attemptId", element: withSuspense(<AdaptiveQuizPage />) },
       { path: "quiz/result/:attemptId", element: withSuspense(<QuizResultPage />) },
       { path: "history", element: withSuspense(<HistoryPage />) },
       { path: "progress", element: withSuspense(<ProgressPage />) },
+      { path: "progress/skills", element: withSuspense(<SkillsPage />) },
+      { path: "progress/skills/:skillId", element: withSuspense(<SkillDetailPage />) },
       { path: "profile", element: withSuspense(<ProfilePage />) },
     ],
   },

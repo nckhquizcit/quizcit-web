@@ -185,3 +185,34 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Figma alignment: right-aligned arrow on stat cards + quick action rows */
+.stat-card > .stat-card__body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.stat-card__arrow {
+  flex-shrink: 0;
+  margin-left: 8px;
+  color: var(--color-text-subtle);
+  transition: color 0.18s ease, transform 0.18s ease;
+}
+.stat-card:hover .stat-card__arrow {
+  color: var(--color-primary-600);
+  transform: translateX(2px);
+}
+
+.quick-action__label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.quick-action__arrow {
+  flex-shrink: 0;
+  margin-left: 8px;
+  color: var(--color-text-subtle);
+  transition: color 0.18s ease, transform 0.18s ease;
+}
+.quick-action:hover .quick-action__arrow {
+  color: var(--color-primary-600);
+  transform: translateX(2px);
+}
