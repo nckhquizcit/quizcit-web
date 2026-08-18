@@ -86,3 +86,19 @@ export async function updateQuestion(questionId, payload) {
 export async function deleteQuestion(questionId) {
   return request({ method: "DELETE", url: `/api/questions/${questionId}` });
 }
+
+export async function placeQuestion(questionId, subjectId, chapterId) {
+  return request({
+    method: "PATCH",
+    url: `/api/questions/${questionId}/placement`,
+    data: { subjectId, chapterId },
+  });
+}
+
+export async function placeQuestionsBulk(questionIds, subjectId, chapterId) {
+  return request({
+    method: "PATCH",
+    url: "/api/questions/placement",
+    data: { questionIds, subjectId, chapterId },
+  });
+}

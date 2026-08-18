@@ -24,6 +24,7 @@ export {
   getTheoriesBySubject,
   getTheoryById,
   updateTheory,
+  reindexTheoriesBySubject,
 } from "./theoryService";
 
 export { getQuizzesBySubject } from "./quizService";

@@ -10,6 +10,8 @@ import {
   getQuestionsByChapter,
   getQuestionsByQuiz,
   updateQuestion,
+  placeQuestion,
+  placeQuestionsBulk,
 } from "./questionService";
 
 const QUIZ_DRAFT_PREFIX = "quizcit:quiz-draft:";
@@ -81,6 +83,13 @@ export async function reorderQuizzes(chapterId, quizzes) {
 
 export async function startQuiz(quizId, userId) {
   return request({ method: "POST", url: `/api/quizzes/${quizId}/start`, params: { userId } });
+}
+
+export async function getAdaptiveEligibility(subjectId) {
+  return request({
+    method: "GET",
+    url: `/api/subjects/${subjectId}/adaptive-eligibility`,
+  });
 }
 
 export async function startAdaptiveQuiz(subjectId, totalQuestion) {
@@ -160,4 +169,4 @@ export function clearQuizDraft(quizId, userId) {
   }
 }
 
-export { createQuestion, createQuestionsBulk, deleteQuestion, getAllQuestions, getQuestionById, getQuestionsByChapter, getQuestionsByQuiz, updateQuestion };
+export { createQuestion, createQuestionsBulk, deleteQuestion, getAllQuestions, getQuestionById, getQuestionsByChapter, getQuestionsByQuiz, updateQuestion, placeQuestion, placeQuestionsBulk };

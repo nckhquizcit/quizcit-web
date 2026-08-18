@@ -9,6 +9,7 @@ import {
   Database,
   Gauge,
   ListChecks,
+  MoveRight,
   Pencil,
   Plus,
   Search,
@@ -30,6 +31,8 @@ import {
   deleteQuestion,
   getAllQuestions,
   getQuestionById,
+  placeQuestion,
+  placeQuestionsBulk,
   updateQuestion,
 } from "../../../services/quizService";
 import { getErrorMessage } from "../../../services/apiClient";
@@ -210,6 +213,72 @@ function QuestionSkillsModal({ open, question, onClose }) {
   );
 }
 
+function PlacementModal({ open, title, description, subjects, chapters, onCancel, onConfirm }) {
+  const [selectedSubjectId, setSelectedSubjectId] = useState("");
+  const [selectedChapterId, setSelectedChapterId] = useState("");
+
+  const chapterOptions = useMemo(
+    () => chapters.filter((chapter) => String(chapter.subjectId) === String(selectedSubjectId)),
+    [chapters, selectedSubjectId],
+  );
+
+  const handleSubjectChange = (value) => {
+    setSelectedSubjectId(value);
+    setSelectedChapterId("");
+  };
+
+  const canSubmit = Boolean(selectedSubjectId && selectedChapterId);
+
+  return (
+    <Modal open={open} onClose={onCancel}>
+      <div className="question-modal placement-modal">
+        <h2>{title}</h2>
+        {description && <p>{description}</p>}
+
+        <label className="placement-field">
+          <span>Môn học</span>
+          <select
+            value={selectedSubjectId}
+            onChange={(event) => handleSubjectChange(event.target.value)}
+          >
+            <option value="">Chọn môn học</option>
+            {subjects.map((subject) => (
+              <option key={subject.subjectId} value={subject.subjectId}>
+                {subject.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="placement-field">
+          <span>Chương</span>
+          <select
+            value={selectedChapterId}
+            onChange={(event) => setSelectedChapterId(event.target.value)}
+            disabled={!selectedSubjectId}
+          >
+            <option value="">Chọn chương</option>
+            {chapterOptions.map((chapter) => (
+              <option key={chapter.chapterId} value={chapter.chapterId}>
+                {chapter.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <div className="question-modal-actions">
+          <button className="cancel-btn" onClick={onCancel}>
+            Hủy
+          </button>
+          <button className="add-btn" disabled={!canSubmit} onClick={() => onConfirm(selectedSubjectId, selectedChapterId)}>
+            Gắn
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 export default function AdminQuestions() {
   const { subjectId, chapterId } = useParams();
   const navigate = useNavigate();
@@ -229,6 +298,10 @@ export default function AdminQuestions() {
   const [loadingEditQuestionId, setLoadingEditQuestionId] = useState("");
   const [deletingQuestion, setDeletingQuestion] = useState(null);
   const [skillPreviewQuestion, setSkillPreviewQuestion] = useState(null);
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState([]);
+  const [allChapters, setAllChapters] = useState([]);
+  const [placementContext, setPlacementContext] = useState(null);
+  const [placementNonce, setPlacementNonce] = useState(0);
 
   const loadQuestionBank = useCallback(async () => {
     try {
@@ -248,6 +321,7 @@ export default function AdminQuestions() {
       const subjectMap = new Map(normalizedSubjects.map((subject) => [subject.subjectId, subject]));
 
       setSubjects(normalizedSubjects);
+      setAllChapters(normalizedChapters);
       setChapters(
         subjectId
           ? normalizedChapters.filter((chapter) => String(chapter.subjectId) === String(subjectId))
@@ -438,6 +512,54 @@ export default function AdminQuestions() {
     toast.success("Đã xóa câu hỏi.");
   };
 
+  const toggleSelect = (questionId) => {
+    setSelectedQuestionIds((current) =>
+      current.includes(questionId)
+        ? current.filter((id) => id !== questionId)
+        : [...current, questionId],
+    );
+  };
+
+  const allPagedSelected =
+    pagedQuestions.length > 0 &&
+    pagedQuestions.every((question) => selectedQuestionIds.includes(question.questionId));
+
+  const toggleSelectAll = () => {
+    const pagedIds = pagedQuestions.map((question) => question.questionId);
+    setSelectedQuestionIds((current) => {
+      if (allPagedSelected) {
+        const pagedSet = new Set(pagedIds);
+        return current.filter((id) => !pagedSet.has(id));
+      }
+      return [...new Set([...current, ...pagedIds])];
+    });
+  };
+
+  const clearSelection = () => setSelectedQuestionIds([]);
+
+  const openPlacement = (context) => {
+    setPlacementNonce((nonce) => nonce + 1);
+    setPlacementContext(context);
+  };
+
+  const handlePlacementConfirm = async (targetSubjectId, targetChapterId) => {
+    if (!placementContext) return;
+    try {
+      if (placementContext.mode === "bulk") {
+        await placeQuestionsBulk(selectedQuestionIds, targetSubjectId, targetChapterId);
+        toast.success(`Đã gắn ${selectedQuestionIds.length} câu hỏi.`);
+        setSelectedQuestionIds([]);
+      } else {
+        await placeQuestion(placementContext.questionId, targetSubjectId, targetChapterId);
+        toast.success("Đã gắn câu hỏi.");
+      }
+      setPlacementContext(null);
+      await loadQuestionBank();
+    } catch (placeError) {
+      toast.error(getErrorMessage(placeError, "Không thể gắn câu hỏi."));
+    }
+  };
+
   const createQuestionPath =
     subjectId && chapterId
       ? `/admin/subjects/${subjectId}/chapters/${chapterId}/questions/new`
@@ -581,6 +703,14 @@ export default function AdminQuestions() {
               <table className="question-bank-table">
                 <thead>
                   <tr>
+                    <th scope="col" className="question-bank-check-col">
+                      <input
+                        type="checkbox"
+                        aria-label="Chọn tất cả câu hỏi trên trang"
+                        checked={allPagedSelected}
+                        onChange={toggleSelectAll}
+                      />
+                    </th>
                     <th scope="col">
                       <button type="button" onClick={() => toggleSort("content")}>
                         Câu hỏi {renderSortIcon("content")}
@@ -605,7 +735,7 @@ export default function AdminQuestions() {
                   {loading &&
                     Array.from({ length: QUESTION_PAGE_SIZE }).map((_, index) => (
                       <tr key={`question-skeleton-${index}`} className="question-bank-row">
-                        <td colSpan={4}>
+                        <td colSpan={5}>
                           <div className="question-bank-row-skeleton" />
                         </td>
                       </tr>
@@ -619,6 +749,14 @@ export default function AdminQuestions() {
 
                       return (
                         <tr className="question-bank-row" key={row.questionId}>
+                          <td className="question-bank-check-col">
+                            <input
+                              type="checkbox"
+                              aria-label={`Chọn câu hỏi ${rowNumber}`}
+                              checked={selectedQuestionIds.includes(row.questionId)}
+                              onChange={() => toggleSelect(row.questionId)}
+                            />
+                          </td>
                           <td>
                             <div className="bank-question-cell">
                               <span className="bank-question-index">
@@ -658,6 +796,15 @@ export default function AdminQuestions() {
                                   icon: <Pencil size={14} />,
                                   disabled: Boolean(loadingEditQuestionId),
                                   onClick: () => handleStartEditQuestion(row),
+                                },
+                                {
+                                  label: "Gắn vào chương",
+                                  icon: <MoveRight size={14} />,
+                                  onClick: () =>
+                                    openPlacement({
+                                      mode: "single",
+                                      questionId: row.questionId,
+                                    }),
                                 },
                                 {
                                   label: "Xóa",
@@ -733,6 +880,25 @@ export default function AdminQuestions() {
         </section>
       )}
 
+      {selectedQuestionIds.length > 0 && (
+        <div className="question-bank-bulk-bar" role="region" aria-label="Thao tác hàng loạt">
+          <span className="question-bank-bulk-bar__count">
+            Đã chọn {selectedQuestionIds.length} câu hỏi
+          </span>
+          <button type="button" className="cancel-btn" onClick={clearSelection}>
+            Bỏ chọn
+          </button>
+          <button
+            type="button"
+            className="add-btn"
+            onClick={() => openPlacement({ mode: "bulk" })}
+          >
+            <MoveRight size={16} />
+            Gắn vào chương
+          </button>
+        </div>
+      )}
+
       {chapterId && (
         <button
           className="back-to-chapters"
@@ -762,6 +928,20 @@ export default function AdminQuestions() {
         open={Boolean(skillPreviewQuestion)}
         question={skillPreviewQuestion}
         onClose={() => setSkillPreviewQuestion(null)}
+      />
+      <PlacementModal
+        key={placementNonce}
+        open={Boolean(placementContext)}
+        title={placementContext?.mode === "bulk" ? "Gắn nhiều câu hỏi" : "Gắn câu hỏi vào chương"}
+        description={
+          placementContext?.mode === "bulk"
+            ? `Gắn ${selectedQuestionIds.length} câu hỏi vào môn học và chương.`
+            : "Chọn môn học và chương cho câu hỏi."
+        }
+        subjects={subjects}
+        chapters={allChapters}
+        onCancel={() => setPlacementContext(null)}
+        onConfirm={handlePlacementConfirm}
       />
     </>
   );
