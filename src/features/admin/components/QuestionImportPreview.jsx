@@ -273,7 +273,7 @@ export default function QuestionImportPreview({
                 </>
               )}
 
-              {row.contentFormat === "blocknote" ? <div className="form-field"><span>Giải thích</span>{row.explanation ? <RichTextView content={row.explanation} contentFormat="blocknote" /> : <em>Không có</em>}</div> : <label className="form-field">
+              <label className="form-field">
                 <span>Độ khó</span>
                 <select
                   value={row.difficulty}
@@ -312,7 +312,7 @@ export default function QuestionImportPreview({
                     aria-label="Độ khó tùy chỉnh"
                   />
                 )}
-              </label>}
+              </label>
 
               <label className="form-field">
                 <span>Giải thích</span>
