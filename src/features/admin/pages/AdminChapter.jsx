@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
-import { Check, ChevronDown, ChevronRight, FileText, GripVertical, ListOrdered, Plus, Pencil, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, FileText, GripVertical, ListOrdered, Plus, Pencil, RefreshCw, Trash2, X } from "lucide-react";
 import AddChapterModal from "../components/modals/AddChapterModal";
 import ConfirmDeleteModal from "../components/modals/ConfirmDeleteModal";
 import AddTheoryModal from "../components/modals/AddTheoryModal";
@@ -18,9 +18,11 @@ import {
   createTheory,
   updateTheory,
   deleteTheory,
+  reindexTheoriesBySubject,
 } from "../../../services/contentService";
 import { getAllQuestions } from "../../../services/quizService";
 import { getErrorMessage } from "../../../services/apiClient";
+import { useToast } from "../../../components/ui/Toast/Toast";
 import { reorderById } from "../utils/displayOrder";
 import { toPreviewText } from "../../../components/richtext/richTextUtils";
 
@@ -30,6 +32,7 @@ const getQuestionChapterId = (question) =>
 export default function AdminChapters() {
   const { subjectId } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const [search, setSearch] = useState("");
   const [openAddChapter, setOpenAddChapter] = useState(false);
   const [deletingChapter, setDeletingChapter] = useState(null);
@@ -232,6 +235,18 @@ export default function AdminChapters() {
     }
   };
 
+  const handleReindex = async () => {
+    if (pendingAction) return;
+    try {
+      const chunkCount = await runAction("reindex-theories", () =>
+        reindexTheoriesBySubject(subjectId),
+      );
+      toast.success(`Đã re-index ${chunkCount ?? 0} đoạn lý thuyết.`);
+    } catch {
+      // Lỗi đã hiển thị qua actionError ở đầu trang.
+    }
+  };
+
   const isMutating = Boolean(pendingAction);
 
   if (loading) return <div className="admin-page-state">Đang tải danh sách chương...</div>;
@@ -248,6 +263,14 @@ export default function AdminChapters() {
         subtitle={`${subjectChapters.length} chương · quản lý lý thuyết, kỹ năng và câu hỏi.`}
         onBack={() => navigate("/admin/subjects")}
         action={<div className="display-order-actions">
+          <button
+            className="cancel-btn"
+            onClick={handleReindex}
+            disabled={isMutating || isOrdering}
+            title="Cập nhật lại chỉ mục lý thuyết cho chatbot"
+          >
+            <RefreshCw size={17} /> Re-index lý thuyết
+          </button>
           {isOrdering ? <>
             <button className="cancel-btn" onClick={cancelOrdering} disabled={isMutating}><X size={17} /> Hủy</button>
             <button className="add-btn" onClick={saveOrdering} disabled={isMutating}><Check size={17} /> Lưu thứ tự</button>

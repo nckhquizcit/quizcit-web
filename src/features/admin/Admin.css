@@ -1247,18 +1247,23 @@
   white-space: nowrap;
 }
 
-.question-bank-table th:nth-child(2),
-.question-bank-table td:nth-child(2) {
-  width: 150px;
+.question-bank-table th:nth-child(1),
+.question-bank-table td:nth-child(1) {
+  width: 44px;
 }
 
 .question-bank-table th:nth-child(3),
 .question-bank-table td:nth-child(3) {
-  width: 110px;
+  width: 150px;
 }
 
 .question-bank-table th:nth-child(4),
 .question-bank-table td:nth-child(4) {
+  width: 110px;
+}
+
+.question-bank-table th:nth-child(5),
+.question-bank-table td:nth-child(5) {
   width: 100px;
 }
 
@@ -1295,6 +1300,88 @@
 .question-bank-action-col,
 .question-bank-row-actions {
   text-align: right;
+}
+
+.question-bank-check-col {
+  text-align: center;
+}
+
+.question-bank-check-col input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #059669;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.question-bank-bulk-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+  transform: translateX(-50%);
+}
+
+.question-bank-bulk-bar__count {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.placement-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 320px;
+}
+
+.placement-modal h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 18px;
+}
+
+.placement-modal > p {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.placement-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.placement-field span {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.placement-field select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.placement-field select:disabled {
+  background: #f1f5f9;
+  color: #94a3b8;
+  cursor: not-allowed;
 }
 
 .bank-question-cell {

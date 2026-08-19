@@ -29,3 +29,7 @@ export async function updateTheory(theoryId, payload) {
 export async function deleteTheory(theoryId) {
   return request({ method: "DELETE", url: `/api/theories/${theoryId}` });
 }
+
+export async function reindexTheoriesBySubject(subjectId) {
+  return request({ method: "POST", url: `/api/subjects/${subjectId}/theories/reindex` });
+}

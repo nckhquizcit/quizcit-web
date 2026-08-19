@@ -15,7 +15,11 @@ import {
   getSubjectById,
   getTheoriesBySubject,
 } from "../../../../services/contentService";
-import { getQuizzesBySubject, startAdaptiveQuiz } from "../../../../services/quizService";
+import {
+  getAdaptiveEligibility,
+  getQuizzesBySubject,
+  startAdaptiveQuiz,
+} from "../../../../services/quizService";
 import {
   enrollCourse,
   getMyEnrollments,
@@ -58,6 +62,8 @@ export default function SubjectDetailPage() {
   const [adaptiveCount, setAdaptiveCount] = useState(15);
   const [startingAdaptive, setStartingAdaptive] = useState(false);
   const [adaptiveError, setAdaptiveError] = useState("");
+  const [adaptiveEligibility, setAdaptiveEligibility] = useState(null);
+  const [checkingEligibility, setCheckingEligibility] = useState(false);
   const adaptiveCancelledRef = useRef(false);
   const adaptiveInputRef = useRef(null);
   const loadIdRef = useRef(0);
@@ -67,7 +73,28 @@ export default function SubjectDetailPage() {
     adaptiveCancelledRef.current = true;
     setAdaptiveOpen(false);
     setAdaptiveError("");
+    setAdaptiveEligibility(null);
   }, []);
+
+  const handleOpenAdaptive = useCallback(async () => {
+    adaptiveCancelledRef.current = false;
+    setAdaptiveOpen(true);
+    setAdaptiveError("");
+    setAdaptiveEligibility(null);
+    setCheckingEligibility(true);
+    try {
+      const eligibility = await getAdaptiveEligibility(subjectId);
+      if (adaptiveCancelledRef.current) return;
+      setAdaptiveEligibility(eligibility);
+    } catch (err) {
+      if (adaptiveCancelledRef.current) return;
+      setAdaptiveError(
+        getErrorMessage(err, "Không thể kiểm tra điều kiện làm bài thích ứng.")
+      );
+    } finally {
+      setCheckingEligibility(false);
+    }
+  }, [subjectId]);
 
   const handleStartAdaptive = async () => {
     const count = Number(adaptiveCount);
@@ -282,7 +309,7 @@ export default function SubjectDetailPage() {
           {subjectDescription && <p>{subjectDescription}</p>}
         </div>
         {!contentUnavailable && (
-          <Button variant="primary" onClick={() => setAdaptiveOpen(true)}>
+          <Button variant="primary" onClick={handleOpenAdaptive}>
             Bài kiểm tra thích ứng
           </Button>
         )}
@@ -329,24 +356,49 @@ export default function SubjectDetailPage() {
             footer={
               <>
                 <Button variant="ghost" onClick={closeAdaptiveDialog}>Hủy</Button>
-                <Button variant="primary" loading={startingAdaptive} onClick={handleStartAdaptive}>
-                  Bắt đầu
-                </Button>
+                {adaptiveEligibility?.eligible && (
+                  <Button variant="primary" loading={startingAdaptive} onClick={handleStartAdaptive}>
+                    Bắt đầu
+                  </Button>
+                )}
               </>
             }
           >
             <div className="adaptive-form">
-              <p className="adaptive-form__desc">Nhập số câu (tối thiểu 15 và chia hết cho 5).</p>
-              {adaptiveError && <p className="adaptive-form__error">{adaptiveError}</p>}
-              <Input
-                ref={adaptiveInputRef}
-                type="number"
-                min="15"
-                step="5"
-                aria-label="Số câu hỏi"
-                value={adaptiveCount}
-                onChange={(event) => setAdaptiveCount(event.target.value)}
-              />
+              {checkingEligibility ? (
+                <div className="adaptive-form__checking">
+                  <Spinner size={22} />
+                  <span>Đang kiểm tra điều kiện làm bài...</span>
+                </div>
+              ) : adaptiveEligibility && !adaptiveEligibility.eligible ? (
+                <div className="adaptive-form__ineligible">
+                  <p>
+                    Bạn cần hoàn thành {adaptiveEligibility.requiredQuizzes} bài kiểm tra tiêu
+                    chuẩn trước khi làm bài kiểm tra thích ứng.
+                  </p>
+                  <p className="adaptive-form__progress">
+                    Đã hoàn thành {adaptiveEligibility.completedQuizzes}/
+                    {adaptiveEligibility.requiredQuizzes} bài, còn thiếu{" "}
+                    {adaptiveEligibility.remainingQuizzes} bài.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <p className="adaptive-form__desc">
+                    Nhập số câu (tối thiểu 15 và chia hết cho 5).
+                  </p>
+                  {adaptiveError && <p className="adaptive-form__error">{adaptiveError}</p>}
+                  <Input
+                    ref={adaptiveInputRef}
+                    type="number"
+                    min="15"
+                    step="5"
+                    aria-label="Số câu hỏi"
+                    value={adaptiveCount}
+                    onChange={(event) => setAdaptiveCount(event.target.value)}
+                  />
+                </>
+              )}
             </div>
           </Modal>
 
