@@ -112,16 +112,19 @@ const getQuestionSubjectId = (question) =>
   question?.chapter?.subject?.subjectId ??
   question?.chapter?.subject?.id;
 
-const enrichQuestion = (question, chapterMap, subjectMap) => {
-  const chapterKey = getQuestionChapterId(question);
-  const subjectKey = getQuestionSubjectId(question) ?? chapterMap.get(chapterKey)?.subjectId;
+const enrichQuestion = (question, chapterMap, subjectMap, defaultBankSubject, defaultBankChapter) => {
+  const rawChapterKey = getQuestionChapterId(question);
+  const rawSubjectKey = getQuestionSubjectId(question) ?? chapterMap.get(rawChapterKey)?.subjectId;
+
+  const chapter = chapterMap.get(rawChapterKey) ?? (rawChapterKey ? question?.chapter : defaultBankChapter);
+  const subject = subjectMap.get(rawSubjectKey) ?? (rawSubjectKey ? question?.subject : defaultBankSubject);
 
   return {
     ...question,
-    chapterId: chapterKey,
-    subjectId: subjectKey,
-    chapter: question?.chapter ?? chapterMap.get(chapterKey),
-    subject: question?.subject ?? subjectMap.get(subjectKey),
+    chapterId: chapter?.chapterId ?? rawChapterKey ?? defaultBankChapter?.chapterId,
+    subjectId: subject?.subjectId ?? rawSubjectKey ?? defaultBankSubject?.subjectId,
+    chapter: chapter ?? defaultBankChapter,
+    subject: subject ?? defaultBankSubject,
     skills: normalizeQuestionSkills(question?.skills ?? question?.questionSkills),
   };
 };
@@ -139,7 +142,10 @@ const loadQuestionsFromChapters = (chapterList, allQuestions, selectedSubjectId,
   }
 
   const chapterIds = new Set(chaptersToLoad.map((chapter) => chapter.chapterId));
-  const questions = (allQuestions || []).filter((question) => chapterIds.has(getQuestionChapterId(question)));
+  const questions = (allQuestions || []).filter((question) => {
+    const chapId = getQuestionChapterId(question);
+    return !chapId || chapterIds.has(chapId);
+  });
 
   return {
     chapters: normalizedChapters,
@@ -319,6 +325,12 @@ export default function AdminQuestions() {
       );
       const chapterMap = new Map(normalizedChapters.map((chapter) => [chapter.chapterId, chapter]));
       const subjectMap = new Map(normalizedSubjects.map((subject) => [subject.subjectId, subject]));
+      const bankSubject = normalizedSubjects.find(
+        (s) => s.courseCode === "QUESTION_BANK" || s.name === "Ngân hàng câu hỏi",
+      );
+      const bankChapter = normalizedChapters.find(
+        (c) => (c.subjectId === bankSubject?.subjectId || !c.subjectId) && c.name === "Ngân hàng câu hỏi",
+      );
 
       setSubjects(normalizedSubjects);
       setAllChapters(normalizedChapters);
@@ -327,7 +339,11 @@ export default function AdminQuestions() {
           ? normalizedChapters.filter((chapter) => String(chapter.subjectId) === String(subjectId))
           : normalizedChapters,
       );
-      setQuestionRows(questions.map((question) => enrichQuestion(question, chapterMap, subjectMap)));
+      setQuestionRows(
+        questions.map((question) =>
+          enrichQuestion(question, chapterMap, subjectMap, bankSubject, bankChapter),
+        ),
+      );
     } catch (loadError) {
       setError(getErrorMessage(loadError, "Không thể tải ngân hàng câu hỏi."));
     } finally {
@@ -338,6 +354,18 @@ export default function AdminQuestions() {
   useEffect(() => {
     loadQuestionBank();
   }, [loadQuestionBank]);
+
+  const defaultBankSubject = useMemo(
+    () => subjects.find((s) => s.courseCode === "QUESTION_BANK" || s.name === "Ngân hàng câu hỏi"),
+    [subjects],
+  );
+  const defaultBankChapter = useMemo(
+    () =>
+      allChapters.find(
+        (c) => (c.subjectId === defaultBankSubject?.subjectId || !c.subjectId) && c.name === "Ngân hàng câu hỏi",
+      ),
+    [allChapters, defaultBankSubject],
+  );
 
   const chapterMap = useMemo(
     () => new Map(chapters.map((chapter) => [chapter.chapterId, chapter])),
@@ -447,6 +475,8 @@ export default function AdminQuestions() {
         },
         chapterMap,
         subjectMap,
+        defaultBankSubject,
+        defaultBankChapter,
       );
 
       if (!nextQuestion.options?.length) {
@@ -493,6 +523,8 @@ export default function AdminQuestions() {
         },
         chapterMap,
         subjectMap,
+        defaultBankSubject,
+        defaultBankChapter,
       );
 
       return currentRows.map((question) =>
