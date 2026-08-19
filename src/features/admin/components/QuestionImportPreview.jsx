@@ -187,7 +187,12 @@ export default function QuestionImportPreview({
               </div>
 
             {row.contentFormat === "blocknote" ? (
-              <div className="form-field full"><span>Nội dung câu hỏi *</span><RichTextView content={row.content} contentFormat="blocknote" /></div>
+              <div className="form-field full">
+                <span>Nội dung câu hỏi *</span>
+                <div className="question-import-rich-preview">
+                  <RichTextView content={row.content} contentFormat="blocknote" />
+                </div>
+              </div>
             ) : <label className="form-field full">
               <span>Nội dung câu hỏi *</span>
               <textarea
@@ -209,18 +214,24 @@ export default function QuestionImportPreview({
                     key={`${row.id}-${key}`}
                   >
                     <span>{key}</span>
-                    {row.contentFormat === "blocknote" ? <RichTextView content={option.content} contentFormat="blocknote" variant="inline" /> : <input
-                      value={option.content}
-                      placeholder={`Đáp án ${key}`}
-                      onChange={(event) =>
-                        onChangeRow?.(row.id, {
-                          options: row.options.map((item) =>
-                            item.key === key ? { ...item, content: event.target.value } : item,
-                          ),
-                        })
-                      }
-                      disabled={disabled}
-                    />}
+                    {row.contentFormat === "blocknote" ? (
+                      <div className="question-import-option-rich">
+                        <RichTextView content={option.content} contentFormat="blocknote" variant="inline" />
+                      </div>
+                    ) : (
+                      <input
+                        value={option.content}
+                        placeholder={`Đáp án ${key}`}
+                        onChange={(event) =>
+                          onChangeRow?.(row.id, {
+                            options: row.options.map((item) =>
+                              item.key === key ? { ...item, content: event.target.value } : item,
+                            ),
+                          })
+                        }
+                        disabled={disabled}
+                      />
+                    )}
                     <input
                       type="radio"
                       name={`correct-${row.id}`}
@@ -314,15 +325,28 @@ export default function QuestionImportPreview({
                 )}
               </label>
 
-              <label className="form-field">
-                <span>Giải thích</span>
-                <input
-                  value={row.explanation}
-                  placeholder="Có thể để trống"
-                  onChange={(event) => onChangeRow?.(row.id, { explanation: event.target.value })}
-                  disabled={disabled}
-                />
-              </label>
+              {row.contentFormat === "blocknote" ? (
+                <div className="form-field">
+                  <span>Giải thích</span>
+                  <div className="question-import-rich-preview question-import-rich-preview--compact">
+                    {row.explanation ? (
+                      <RichTextView content={row.explanation} contentFormat="blocknote" />
+                    ) : (
+                      <span className="question-import-empty-text">Có thể để trống</span>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <label className="form-field">
+                  <span>Giải thích</span>
+                  <input
+                    value={row.explanation}
+                    placeholder="Có thể để trống"
+                    onChange={(event) => onChangeRow?.(row.id, { explanation: event.target.value })}
+                    disabled={disabled}
+                  />
+                </label>
+              )}
             </div>
 
             <div className="question-import-meta">
