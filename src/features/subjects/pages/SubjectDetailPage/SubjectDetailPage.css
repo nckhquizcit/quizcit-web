@@ -241,6 +241,24 @@
   color: var(--color-text-subtle);
 }
 
+.subject-detail-unlock-hint {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.chapter-skill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.chapter-skill-badge__theta {
+  font-weight: 700;
+  opacity: 0.85;
+}
+
 .content-block__label {
   font-size: var(--fs-xs);
   font-weight: 700;

@@ -11,6 +11,25 @@ export async function getAllChapters() {
   return (chapters || []).map(mapChapter).sort((a, b) => a.displayOrder - b.displayOrder);
 }
 
+/**
+ * Full non-bank chapter catalog for admin UI.
+ * Uses per-subject endpoints so counts/placement stay complete even if
+ * GET /api/chapters is filtered (e.g. view-as user).
+ */
+export async function getAllChaptersForAdmin(subjects = []) {
+  const subjectIds = (subjects || [])
+    .map((subject) => subject?.subjectId ?? subject?.subject_id ?? subject?.id)
+    .filter(Boolean);
+  const results = await Promise.allSettled(subjectIds.map((subjectId) => getChaptersBySubject(subjectId)));
+  const chapters = results.flatMap((result) => (result.status === "fulfilled" ? result.value || [] : []));
+
+  if (chapters.length || !subjectIds.length) {
+    return chapters.sort((a, b) => a.displayOrder - b.displayOrder);
+  }
+
+  return getAllChapters();
+}
+
 export async function getChapterById(chapterId) {
   return mapChapter(await request({ method: "GET", url: `/api/chapters/${chapterId}` }));
 }

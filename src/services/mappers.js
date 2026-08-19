@@ -410,6 +410,7 @@ export function mapQuizResult(raw = {}) {
     percentage,
     overallTheta,
     overallThetaScaled: pickThetaScaled(raw, overallTheta),
+    overallAdvice: pick(raw, ["overallAdvice", "overall_advice", "adviceText", "advice_text"], "") || "",
     submittedAt: pick(raw, ["submittedAt", "submitted_at", "createdAt", "created_at"], null),
     skillResults: toArray(pick(raw, ["skillResults", "skill_results"], [])).map(mapSkillResult),
     questionResults: toArray(pick(raw, ["questionResults", "question_results"], [])).map(mapQuestionResult),

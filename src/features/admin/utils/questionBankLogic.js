@@ -5,24 +5,43 @@ const getSkillId = (skill) => skill?.skillId ?? skill?.id ?? skill?.skill?.skill
 const getSkillName = (skill) =>
   skill?.name ?? skill?.skillName ?? skill?.skill?.name ?? "Kỹ năng chưa đặt tên";
 
+const toIdSet = (ids) => (ids instanceof Set ? ids : new Set([...(ids || [])].map(String)));
+
+export function isUnclassifiedQuestion(question, knownSubjectIds, knownChapterIds) {
+  const subjects = toIdSet(knownSubjectIds);
+  const chapters = toIdSet(knownChapterIds);
+  const subjectId = question?.subjectId;
+  const chapterId = question?.chapterId;
+
+  if (!subjectId) return true;
+  if (!subjects.has(String(subjectId))) return true;
+  if (chapterId && !chapters.has(String(chapterId))) return true;
+  return false;
+}
+
 export function filterQuestionBankQuestions(
   questions = [],
-  { search = "", subjectId = "ALL", difficulty = "ALL", skillId = "ALL" } = {},
+  {
+    search = "",
+    subjectId = "ALL",
+    difficulty = "ALL",
+    skillId = "ALL",
+    knownSubjectIds,
+    knownChapterIds,
+  } = {},
 ) {
   const query = String(search).trim().toLowerCase();
+  const subjects = toIdSet(knownSubjectIds);
+  const chapters = toIdSet(knownChapterIds);
 
   return questions.filter((question) => {
-    const isQuestionBankSubject =
-      question.subject?.courseCode === "QUESTION_BANK" ||
-      question.subject?.name === "Ngân hàng câu hỏi" ||
-      String(question.subjectId) === "QUESTION_BANK" ||
-      !question.subjectId;
+    const unclassified = isUnclassifiedQuestion(question, subjects, chapters);
 
     const matchesSubject =
       subjectId === "ALL" ||
       (subjectId === "QUESTION_BANK"
-        ? isQuestionBankSubject
-        : String(question.subjectId) === String(subjectId));
+        ? unclassified
+        : !unclassified && String(question.subjectId) === String(subjectId));
     const matchesDifficulty =
       difficulty === "ALL" ||
       matchDifficultyPresetKey(question.difficultyB ?? 0) === difficulty;

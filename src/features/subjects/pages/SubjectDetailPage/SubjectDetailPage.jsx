@@ -40,10 +40,17 @@ import {
 import ChatBox from "../../../../components/ChatBox/ChatBox";
 import { getErrorMessage, getStoredUser, isAccessDenied } from "../../../../services/apiClient";
 import { isUserPreviewActive } from "../../../../services/userPreviewMode";
-import { resolveImageUrl } from "../../../../services/mappers";
+import { formatScaledThetaValue, resolveImageUrl } from "../../../../services/mappers";
 import { getTheoryDisplayTitle } from "../../../content/utils/theoryDisplay.js";
 import { isValidAdaptiveQuestionCount } from "../../../quiz/pages/AdaptiveQuizPage/AdaptiveQuizPage.logic.js";
 import "./SubjectDetailPage.css";
+
+// BE so sánh θ raw; 0 = ngưỡng mặc định (scale hiển thị 2.00). Chỉ ẩn khi không phải số.
+const formatRequiredTheta = (value) => {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  return formatScaledThetaValue(n);
+};
 
 export default function SubjectDetailPage() {
   const { subjectId } = useParams();
@@ -132,7 +139,7 @@ export default function SubjectDetailPage() {
       try {
         const enrollments = await getMyEnrollments();
         enrolled = (enrollments || []).some(
-          (item) => (item.subjectId || item.subject_id) === subjectId
+          (item) => String(item.subjectId || item.subject_id) === String(subjectId)
         );
       } catch {
         // Không xác định được thì coi như chưa đăng ký để tránh gọi nội dung khóa.
@@ -354,10 +361,14 @@ export default function SubjectDetailPage() {
       ) : (
         <>
           <div className="subject-detail-stats">
-            <StatTile value={chapters.length} label="Chương" icon={<Layers3 size={18} />} />
+            <StatTile value={chapters.length} label="Chương đã mở" icon={<Layers3 size={18} />} />
             <StatTile value={totalTheories} label="Bài lý thuyết" icon={<BookOpen size={18} />} />
             <StatTile value={totalQuizzes} label="Bài kiểm tra" icon={<ListChecks size={18} />} />
           </div>
+
+          <p className="subject-detail-unlock-hint">
+            Chỉ hiện chương đã mở khóa. Chương còn lại mở khi năng lực kỹ năng đạt ngưỡng yêu cầu.
+          </p>
 
           <Modal
             open={adaptiveOpen}
@@ -416,8 +427,8 @@ export default function SubjectDetailPage() {
 
           {chapters.length === 0 ? (
             <EmptyState
-              title="Chưa có chương nào"
-              description="Môn học này chưa có nội dung chương để hiển thị."
+              title="Chưa mở khóa chương nào"
+              description="Chương sẽ hiện khi bạn đạt ngưỡng năng lực kỹ năng tương ứng, hoặc khi hệ thống mở khóa."
             />
           ) : (
             <div className="subject-detail-body">
@@ -453,13 +464,19 @@ export default function SubjectDetailPage() {
                   {activeChapterSkills.length > 0 && (
                     <div className="chapter-overview-card__skills">
                       <span className="chapter-overview-card__skills-label">
-                        Kỹ năng rèn luyện
+                        Kỹ năng liên quan
                       </span>
-                      {activeChapterSkills.map((skill) => (
-                        <Badge key={skill.skillId} size="sm">
-                          {skill.name}
-                        </Badge>
-                      ))}
+                      {activeChapterSkills.map((skill) => {
+                        const threshold = formatRequiredTheta(skill.requiredTheta);
+                        return (
+                          <Badge key={skill.skillId} size="sm" className="chapter-skill-badge">
+                            {skill.name}
+                            {threshold ? (
+                              <span className="chapter-skill-badge__theta">≥ {threshold}</span>
+                            ) : null}
+                          </Badge>
+                        );
+                      })}
                     </div>
                   )}
                 </Card>

@@ -12,6 +12,7 @@ export {
   deleteChapter,
   getChapterById,
   getAllChapters,
+  getAllChaptersForAdmin,
   getChaptersBySubject,
   updateChapter,
   reorderChapters,

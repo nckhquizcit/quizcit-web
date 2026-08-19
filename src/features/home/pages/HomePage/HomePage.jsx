@@ -116,7 +116,7 @@ export default function HomePage() {
         ...subject,
         enrolled: enrolledIds.has(String(subject.subjectId)),
         chapterCount: chapters.filter(
-          (chapter) => chapter.subjectId === subject.subjectId
+          (chapter) => String(chapter.subjectId) === String(subject.subjectId)
         ).length,
       })),
     [subjects, chapters, enrolledIds]
@@ -207,7 +207,7 @@ export default function HomePage() {
             <StatTile
               icon={<Layers3 size={18} />}
               value={chapters.length}
-              label="Chương khả dụng"
+              label="Chương đã mở"
             />
           </div>
 
@@ -277,7 +277,7 @@ export default function HomePage() {
                   {!subject.enrolled
                     ? "Đăng ký để xem nội dung"
                     : subject.chapterCount > 0
-                      ? `${subject.chapterCount} chương · Lý thuyết và bài kiểm tra`
+                      ? `${subject.chapterCount} chương đã mở · Lý thuyết và bài kiểm tra`
                       : "Chưa mở khóa chương nào"}
                 </p>
                 <span className="home-subject-card__link">

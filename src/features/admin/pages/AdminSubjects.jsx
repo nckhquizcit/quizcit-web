@@ -8,7 +8,7 @@ import SearchBar from "../components/SearchBar";
 import AddSubjectModal from "../components/modals/AddSubjectModal";
 import ConfirmDeleteModal from "../components/modals/ConfirmDeleteModal";
 import EmptyState from "../../../components/ui/EmptyState/EmptyState";
-import { createSubject, deleteSubject, getAllChapters, getSubjects, reorderSubjects } from "../../../services/contentService";
+import { createSubject, deleteSubject, getAllChaptersForAdmin, getSubjects, reorderSubjects } from "../../../services/contentService";
 import { getErrorMessage } from "../../../services/apiClient";
 import { resolveImageUrl } from "../../../services/mappers";
 import { reorderById } from "../utils/displayOrder";
@@ -36,9 +36,12 @@ export default function AdminSubjects() {
       try {
         setLoading(true);
         setLoadError("");
-        const [data = [], chapters = []] = await Promise.all([getSubjects(), getAllChapters()]);
-        const chapterEntries = data.map((subject) => [subject.subjectId,
-          chapters.filter((chapter) => chapter.subjectId === subject.subjectId).length]);
+        const data = (await getSubjects()) || [];
+        const chapters = (await getAllChaptersForAdmin(data)) || [];
+        const chapterEntries = data.map((subject) => [
+          subject.subjectId,
+          chapters.filter((chapter) => String(chapter.subjectId) === String(subject.subjectId)).length,
+        ]);
 
         if (!alive) return;
         setSubjects(data);
@@ -139,7 +142,12 @@ export default function AdminSubjects() {
 
   const saveOrdering = async () => {
     try {
-      await runAction("reorder-subjects", () => reorderSubjects(subjects));
+      const normalizedSubjects = subjects.map((subject, index) => ({
+        ...subject,
+        displayOrder: index + 1,
+      }));
+      setSubjects(normalizedSubjects);
+      await runAction("reorder-subjects", () => reorderSubjects(normalizedSubjects));
       setIsOrdering(false);
       setOrderSnapshot([]);
     } catch {
@@ -308,6 +316,7 @@ export default function AdminSubjects() {
         open={openAddSubject}
         onClose={() => setOpenAddSubject(false)}
         onSubmit={handleCreateSubject}
+        nextDisplayOrder={subjects.length + 1}
       />
 
 

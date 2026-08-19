@@ -5,6 +5,7 @@ import ErrorState from "../../../components/ui/ErrorState/ErrorState";
 import { getChapterById, getSubjectById, updateChapter } from "../../../services/contentService";
 import { getErrorMessage } from "../../../services/apiClient";
 import { useToast } from "../../../components/ui/Toast/Toast";
+import { formatScaledThetaValue } from "../../../services/mappers";
 import { getSkills } from "../../../services/skillService";
 import ChapterSkillsField from "../components/ChapterSkillsField";
 
@@ -84,12 +85,18 @@ export default function AdminChapterEdit() {
 
             {selectedSkills.length > 0 ? (
               <ul className="adm2-condition-list">
-                {selectedSkills.map((skill) => (
-                  <li key={skill.skillId}>
-                    <span>{skill.name}</span>
-                    <strong>≥ {skill.requiredTheta}</strong>
-                  </li>
-                ))}
+                {selectedSkills.map((skill) => {
+                  const raw = Number(skill.requiredTheta);
+                  const rawLabel = Number.isFinite(raw) ? raw : 0;
+                  return (
+                    <li key={skill.skillId}>
+                      <span>{skill.name}</span>
+                      <strong>
+                        ≥ {rawLabel} raw (≈ {formatScaledThetaValue(rawLabel)})
+                      </strong>
+                    </li>
+                  );
+                })}
               </ul>
             ) : (
               <p>Chưa chọn kỹ năng nào cho chương này.</p>
@@ -97,7 +104,9 @@ export default function AdminChapterEdit() {
 
             <div className="adm2-divider" />
             <p className="adm2-note--muted">{selectedSkills.length} kỹ năng đang được áp dụng cho chương này.</p>
-            <p className="adm2-note--muted">Người học cần đạt đủ theta tối thiểu ở từng kỹ năng.</p>
+            <p className="adm2-note--muted">
+              BE so sánh θ raw (−4…4). Học viên thấy thang 0–4 (raw 0 = 2.00).
+            </p>
           </div>
         </aside>
       </div>

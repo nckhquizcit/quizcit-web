@@ -23,13 +23,17 @@ import { getErrorMessage } from "../../../../services/apiClient";
 import SubjectCard from "../../components/SubjectCard";
 import "./SubjectsPage.css";
 
-function buildSubjectCollection(subjects, allChapters) {
+// GET /api/chapters chỉ trả chương user đã mở (unlock/θ), không phải toàn bộ catalog.
+function buildSubjectCollection(subjects, openChapters) {
   return subjects.map((subject) => {
-    const chapters = allChapters.filter((chapter) => chapter.subjectId === subject.subjectId);
+    const chapters = openChapters.filter(
+      (chapter) => String(chapter.subjectId) === String(subject.subjectId),
+    );
     return {
       ...subject,
       subject_id: subject.subjectId,
       course_code: subject.courseCode,
+      openChapterCount: chapters.length,
       chapterCount: chapters.length,
       chapterPreview: chapters.slice(0, 3).map((chapter) => ({
         chapter_id: chapter.chapterId,
@@ -150,13 +154,31 @@ export default function SubjectsPage() {
   };
 
   const enrolledIds = useMemo(
-    () => new Set(enrollments.map((item) => item.subjectId)),
-    [enrollments]
+    () => new Set(enrollments.map((item) => String(item.subjectId || item.subject_id))),
+    [enrollments],
   );
 
+  // Catalog có imageUrl; enrollment DTO không — luôn ưu tiên bản catalog khi merge.
   const mySubjects = useMemo(() => {
-    const byId = new Map(subjectCollection.map((subject) => [subject.subjectId, subject]));
-    return enrollments.map((item) => byId.get(item.subjectId) || item);
+    const byId = new Map(
+      subjectCollection.map((subject) => [String(subject.subjectId), subject]),
+    );
+    return enrollments.map((item) => {
+      const id = String(item.subjectId || item.subject_id);
+      const catalog = byId.get(id);
+      if (!catalog) {
+        return {
+          ...item,
+          subjectId: id,
+          subject_id: id,
+          course_code: item.courseCode || item.course_code,
+        };
+      }
+      return {
+        ...catalog,
+        enrolledAt: item.enrolledAt ?? catalog.enrolledAt ?? null,
+      };
+    });
   }, [enrollments, subjectCollection]);
 
   const filteredSubjects = useMemo(() => {
@@ -192,7 +214,7 @@ export default function SubjectsPage() {
           />
           <StatTile
             value={totalChapters}
-            label="Chương khả dụng"
+            label="Chương đã mở"
             icon={<Layers3 size={18} />}
           />
         </div>
@@ -296,7 +318,7 @@ export default function SubjectsPage() {
                 <SubjectCard
                   key={subject.subject_id}
                   subject={subject}
-                  enrolled={enrolledIds.has(subject.subjectId)}
+                  enrolled={enrolledIds.has(String(subject.subjectId))}
                   onEnroll={handleEnroll}
                   onUnenroll={handleUnenroll}
                 />

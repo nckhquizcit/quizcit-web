@@ -4,7 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import ErrorState from "../../../components/ui/ErrorState/ErrorState";
 import { useToast } from "../../../components/ui/Toast/Toast";
 import { getErrorMessage } from "../../../services/apiClient";
-import { getAllChapters, getSubjects } from "../../../services/contentService";
+import { getAllChaptersForAdmin, getSubjects } from "../../../services/contentService";
 import { createQuestionsBulk } from "../../../services/quizService";
 import AdminPageHeader from "../components/AdminPageHeader";
 import ImportQuestionsModal from "../components/modals/ImportQuestionsModal";
@@ -37,8 +37,9 @@ export default function AdminQuestionImport() {
     try {
       setLoading(true);
       setError("");
-      const [subjectData = [], chapterData = []] = await Promise.all([getSubjects(), getAllChapters()]);
+      const subjectData = (await getSubjects()) || [];
       const normalizedSubjects = subjectData.map(normalizeSubject);
+      const chapterData = (await getAllChaptersForAdmin(normalizedSubjects)) || [];
 
       setSubjects(normalizedSubjects);
       setChapters(chapterData.map((chapter) => normalizeChapter(chapter, chapter.subjectId)));

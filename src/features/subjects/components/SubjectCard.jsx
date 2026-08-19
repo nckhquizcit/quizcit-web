@@ -10,8 +10,9 @@ export default function SubjectCard({ subject, enrolled = false, onEnroll, onUne
   const [busy, setBusy] = useState(false);
   const chapterPreview = subject.chapterPreview || [];
   const targetId = subject.subjectId || subject.subject_id;
-  const chapterCount = subject.chapterCount || 0;
-  const contentLocked = !enrolled && chapterCount === 0;
+  // chapterCount = chương đã mở (API accessible), không phải tổng chương môn.
+  const openChapterCount = subject.openChapterCount ?? subject.chapterCount ?? 0;
+  const contentLocked = !enrolled;
 
   const runAction = async (action) => {
     if (!action || busy) return;
@@ -70,27 +71,32 @@ export default function SubjectCard({ subject, enrolled = false, onEnroll, onUne
               <Lock size={15} />
               Đăng ký để xem nội dung
             </>
-          ) : (
+          ) : openChapterCount > 0 ? (
             <>
               <Layers3 size={15} />
-              {chapterCount} chương
+              {openChapterCount} chương đã mở
+            </>
+          ) : (
+            <>
+              <Lock size={15} />
+              Chưa mở khóa chương
             </>
           )}
         </span>
       </div>
 
-      {chapterPreview.length > 0 && (
+      {enrolled && chapterPreview.length > 0 && (
         <div className="subject-card__chapters">
-          <p className="subject-card__chapters-title">Nội dung chính</p>
+          <p className="subject-card__chapters-title">Chương đã mở</p>
           {chapterPreview.map((chapter) => (
             <div className="subject-card__chapter-item" key={chapter.chapter_id}>
               <BookOpen size={14} />
               <span>{chapter.name}</span>
             </div>
           ))}
-          {chapterCount > chapterPreview.length && (
+          {openChapterCount > chapterPreview.length && (
             <p className="subject-card__chapters-more">
-              + {chapterCount - chapterPreview.length} chương khác
+              + {openChapterCount - chapterPreview.length} chương khác
             </p>
           )}
         </div>
@@ -133,11 +139,10 @@ export default function SubjectCard({ subject, enrolled = false, onEnroll, onUne
             <Button
               variant="ghost"
               fullWidth
-              iconRight={<ArrowRight size={16} />}
               onClick={() => navigate(`/app/subjects/${targetId}`)}
               className="subject-card__cta"
             >
-              Vào học
+              Xem chi tiết
             </Button>
           </>
         )}

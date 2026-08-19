@@ -223,7 +223,10 @@ export function createQuestionImportRow(partial = {}, index = 0) {
   const importedSubjectId = normalizeText(partial.subjectId);
   const importedChapterId = normalizeText(partial.chapterId);
   const importedDifficulty = normalizeText(partial.difficulty);
-  const difficultyB = normalizeImportDifficultyB(partial.difficulty, DEFAULT_DIFFICULTY_B);
+  const hasDifficulty = Boolean(importedDifficulty) || partial.difficultyB !== undefined && partial.difficultyB !== null && partial.difficultyB !== "";
+  const difficultyB = hasDifficulty
+    ? normalizeImportDifficultyB(partial.difficulty ?? partial.difficultyB, DEFAULT_DIFFICULTY_B)
+    : null;
   const row = {
     id: partial.id || `import-question-${Date.now()}-${index}`,
     content: partial.contentFormat === "blocknote" ? String(partial.content || "") : normalizeText(partial.content),

@@ -1,5 +1,12 @@
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
+import { formatScaledThetaValue } from "../../../services/mappers";
+
+const clampRawTheta = (value) => {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+  return Math.min(4, Math.max(-4, n));
+};
 
 export default function ChapterSkillsField({ skills = [], value = [], onChange }) {
   const [search, setSearch] = useState("");
@@ -26,7 +33,7 @@ export default function ChapterSkillsField({ skills = [], value = [], onChange }
   const updateTheta = (skillId, requiredTheta) => {
     onChange?.(
       value.map((item) =>
-        item.skillId === skillId ? { ...item, requiredTheta } : item,
+        item.skillId === skillId ? { ...item, requiredTheta: clampRawTheta(requiredTheta) } : item,
       ),
     );
   };
@@ -36,7 +43,10 @@ export default function ChapterSkillsField({ skills = [], value = [], onChange }
       <div className="chapter-skills-field__header">
         <div>
           <strong>Kỹ năng yêu cầu</strong>
-          <p>Chọn kỹ năng và theta tối thiểu để mở chương.</p>
+          <p>
+            Chọn kỹ năng và θ raw tối thiểu (−4…4) để mở chương. Học viên thấy thang 0–4 (raw 0 =
+            2.00).
+          </p>
         </div>
         <span className="chapter-skills-field__count">{value.length} đã chọn</span>
       </div>
@@ -56,6 +66,9 @@ export default function ChapterSkillsField({ skills = [], value = [], onChange }
       <div className="chapter-skills-field__list">
         {filteredSkills.map((skill) => {
           const selected = selectedById.get(skill.skillId);
+          const scaledPreview = selected
+            ? formatScaledThetaValue(clampRawTheta(selected.requiredTheta))
+            : null;
           return (
             <div className={`chapter-skill-option${selected ? " is-selected" : ""}`} key={skill.skillId}>
               <label className="chapter-skill-option__toggle">
@@ -68,14 +81,19 @@ export default function ChapterSkillsField({ skills = [], value = [], onChange }
               </label>
               {selected && (
                 <label className="chapter-skill-option__theta">
-                  <span>Theta</span>
+                  <span>θ raw</span>
                   <input
-                    aria-label={`Theta yêu cầu ${skill.name}`}
+                    aria-label={`Theta raw yêu cầu ${skill.name}`}
                     type="number"
                     step="0.1"
+                    min={-4}
+                    max={4}
                     value={selected.requiredTheta}
                     onChange={(event) => updateTheta(skill.skillId, Number(event.target.value))}
                   />
+                  <span className="chapter-skill-option__scaled" title="Thang học viên (0–4)">
+                    ≈ {scaledPreview}
+                  </span>
                 </label>
               )}
             </div>

@@ -5,11 +5,11 @@ import SubjectImageField from "../../../../components/ui/SubjectImageField/Subje
 
 import { useEffect, useState } from "react";
 
-export default function AddSubjectModal({ open, onClose, onSubmit }) {
+export default function AddSubjectModal({ open, onClose, onSubmit, nextDisplayOrder = 1 }) {
   const [name, setName] = useState("");
   const [courseCode, setCourseCode] = useState("");
   const [description, setDescription] = useState("");
-  const [displayOrder, setDisplayOrder] = useState("");
+  const displayOrder = nextDisplayOrder;
   const [imageUrl, setImageUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -20,7 +20,6 @@ export default function AddSubjectModal({ open, onClose, onSubmit }) {
     setName("");
     setCourseCode("");
     setDescription("");
-    setDisplayOrder("");
     setImageUrl("");
     setSubmitError("");
     setSubmitting(false);
@@ -41,7 +40,7 @@ export default function AddSubjectModal({ open, onClose, onSubmit }) {
         name,
         courseCode,
         description,
-        displayOrder: displayOrder ? Number(displayOrder) : null,
+        displayOrder,
         imageUrl: imageUrl || null,
       });
       setName("");
@@ -112,17 +111,10 @@ export default function AddSubjectModal({ open, onClose, onSubmit }) {
             onChange={(e) => setDescription(e.target.value)}
           />
         </label>
-        <label className="quiz-field" htmlFor="add-subject-display-order">
+        <div className="quiz-field add-subject-order-note">
           <span>Thứ tự hiển thị</span>
-          <input
-            id="add-subject-display-order"
-            type="number"
-            min="1"
-            placeholder="Thứ tự (để trống để xếp cuối)"
-            value={displayOrder}
-            onChange={(e) => setDisplayOrder(e.target.value)}
-          />
-        </label>
+          <p>Môn mới sẽ tự xếp ở vị trí {nextDisplayOrder}. Kéo thả để sắp xếp lại sau khi thêm.</p>
+        </div>
       </FormModalLayout>
     </Modal>
   );

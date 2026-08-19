@@ -67,8 +67,12 @@ export default function AdminChapters() {
         const [subjectData, chapters = [], questions = []] = await Promise.all([
           getSubjectById(subjectId), getChaptersBySubject(subjectId), getAllQuestions(),
         ]);
-        const entries = chapters.map((chapter) => [chapter.chapterId,
-          questions.filter((question) => getQuestionChapterId(question) === chapter.chapterId).length]);
+        const entries = chapters.map((chapter) => [
+          chapter.chapterId,
+          questions.filter(
+            (question) => String(getQuestionChapterId(question)) === String(chapter.chapterId),
+          ).length,
+        ]);
 
         if (!alive) return;
         setSubject(subjectData);

@@ -1,5 +1,19 @@
 import { request } from "./apiClient";
-import { mapAttempt, mapQuiz, mapQuizResult } from "./mappers";
+import { mapAttempt, mapQuestion, mapQuiz, mapQuizResult } from "./mappers";
+
+function mapAdaptiveState(raw = {}) {
+  if (!raw || typeof raw !== "object") return raw;
+  return {
+    ...raw,
+    attemptId: raw.attemptId ?? raw.attempt_id,
+    quizId: raw.quizId ?? raw.quiz_id,
+    totalQuestion: Number(raw.totalQuestion ?? raw.total_question ?? 0),
+    answeredQuestion: Number(raw.answeredQuestion ?? raw.answered_question ?? 0),
+    page: Number(raw.page ?? 1),
+    completed: Boolean(raw.completed),
+    questions: (raw.questions || []).map(mapQuestion),
+  };
+}
 import { enrichSkillNames, getSkills } from "./skillService";
 import {
   createQuestion,
@@ -93,23 +107,29 @@ export async function getAdaptiveEligibility(subjectId) {
 }
 
 export async function startAdaptiveQuiz(subjectId, totalQuestion) {
-  return request({
-    method: "POST",
-    url: `/api/subjects/${subjectId}/adaptive-attempts`,
-    data: { totalQuestion: Number(totalQuestion) },
-  });
+  return mapAdaptiveState(
+    await request({
+      method: "POST",
+      url: `/api/subjects/${subjectId}/adaptive-attempts`,
+      data: { totalQuestion: Number(totalQuestion) },
+    }),
+  );
 }
 
 export async function getAdaptiveAttempt(attemptId) {
-  return request({ method: "GET", url: `/api/adaptive-attempts/${attemptId}` });
+  return mapAdaptiveState(
+    await request({ method: "GET", url: `/api/adaptive-attempts/${attemptId}` }),
+  );
 }
 
 export async function submitAdaptiveBatch(attemptId, answers) {
-  return request({
-    method: "POST",
-    url: `/api/adaptive-attempts/${attemptId}/answers`,
-    data: { answers },
-  });
+  return mapAdaptiveState(
+    await request({
+      method: "POST",
+      url: `/api/adaptive-attempts/${attemptId}/answers`,
+      data: { answers },
+    }),
+  );
 }
 
 export async function submitAttempt(payload) {

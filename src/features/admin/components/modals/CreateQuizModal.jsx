@@ -108,7 +108,7 @@ export function CreateQuizForm({
         setQuestions(rows || []);
         const availableIds = new Set((rows || []).map((question) => getQuestionId(question)));
         setSelectedQuestionIds(
-          initialQuiz?.chapterId === chapterId
+          String(initialQuiz?.chapterId) === String(chapterId)
             ? initialQuestionIds.filter((id) => availableIds.has(id))
             : [],
         );

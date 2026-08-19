@@ -36,10 +36,11 @@ import {
   updateQuestion,
 } from "../../../services/quizService";
 import { getErrorMessage } from "../../../services/apiClient";
-import { getAllChapters, getSubjects } from "../../../services/contentService";
+import { getAllChaptersForAdmin, getSubjects } from "../../../services/contentService";
 import {
   filterQuestionBankQuestions,
   getQuestionSkillOptions,
+  isUnclassifiedQuestion,
 } from "../utils/questionBankLogic";
 import {
   CUSTOM_DIFFICULTY_KEY,
@@ -49,6 +50,8 @@ import {
 } from "../utils/difficultyLevels";
 
 const QUESTION_PAGE_SIZE = 8;
+const BANK_SUBJECT_STUB = { courseCode: "QUESTION_BANK", name: "Ngân hàng câu hỏi" };
+const BANK_CHAPTER_STUB = { name: "Chưa phân loại" };
 
 const getPaginationRange = (current, total) => {
   const delta = 1;
@@ -112,30 +115,37 @@ const getQuestionSubjectId = (question) =>
   question?.chapter?.subject?.subjectId ??
   question?.chapter?.subject?.id;
 
-const enrichQuestion = (question, chapterMap, subjectMap, defaultBankSubject, defaultBankChapter) => {
+const enrichQuestion = (question, chapterMap, subjectMap) => {
   const rawChapterKey = getQuestionChapterId(question);
   const rawSubjectKey = getQuestionSubjectId(question) ?? chapterMap.get(rawChapterKey)?.subjectId;
-
-  const chapter = chapterMap.get(rawChapterKey) ?? (rawChapterKey ? question?.chapter : defaultBankChapter);
-  const subject = subjectMap.get(rawSubjectKey) ?? (rawSubjectKey ? question?.subject : defaultBankSubject);
+  const chapter = chapterMap.get(rawChapterKey);
+  const subject = subjectMap.get(rawSubjectKey);
+  const unclassified = isUnclassifiedQuestion(
+    { subjectId: rawSubjectKey, chapterId: rawChapterKey },
+    subjectMap.keys(),
+    chapterMap.keys(),
+  );
 
   return {
     ...question,
-    chapterId: chapter?.chapterId ?? rawChapterKey ?? defaultBankChapter?.chapterId,
-    subjectId: subject?.subjectId ?? rawSubjectKey ?? defaultBankSubject?.subjectId,
-    chapter: chapter ?? defaultBankChapter,
-    subject: subject ?? defaultBankSubject,
+    chapterId: rawChapterKey,
+    subjectId: rawSubjectKey,
+    chapter: unclassified ? { ...BANK_CHAPTER_STUB, chapterId: rawChapterKey ?? null } : chapter,
+    subject: unclassified ? { ...BANK_SUBJECT_STUB, subjectId: rawSubjectKey ?? null } : subject,
     skills: normalizeQuestionSkills(question?.skills ?? question?.questionSkills),
   };
 };
 
 const loadQuestionsFromChapters = (chapterList, allQuestions, selectedSubjectId, selectedChapterId) => {
   const normalizedChapters = (chapterList || []).map(normalizeChapter);
+
+  if (!selectedSubjectId && !selectedChapterId) {
+    return { chapters: normalizedChapters, questions: allQuestions || [] };
+  }
+
   const chaptersToLoad = selectedChapterId
     ? normalizedChapters.filter((chapter) => String(chapter.chapterId) === String(selectedChapterId))
-    : selectedSubjectId
-      ? normalizedChapters.filter((chapter) => String(chapter.subjectId) === String(selectedSubjectId))
-      : normalizedChapters;
+    : normalizedChapters.filter((chapter) => String(chapter.subjectId) === String(selectedSubjectId));
 
   if (!chaptersToLoad.length) {
     return { chapters: normalizedChapters, questions: [] };
@@ -144,7 +154,7 @@ const loadQuestionsFromChapters = (chapterList, allQuestions, selectedSubjectId,
   const chapterIds = new Set(chaptersToLoad.map((chapter) => chapter.chapterId));
   const questions = (allQuestions || []).filter((question) => {
     const chapId = getQuestionChapterId(question);
-    return !chapId || chapterIds.has(chapId);
+    return chapId && chapterIds.has(chapId);
   });
 
   return {
@@ -315,10 +325,9 @@ export default function AdminQuestions() {
     try {
       setLoading(true);
       setError("");
-      const [subjectData, allChapters, allQuestions] = await Promise.all([
-        getSubjects(), getAllChapters(), getAllQuestions(),
-      ]);
+      const [subjectData, allQuestions] = await Promise.all([getSubjects(), getAllQuestions()]);
       const normalizedSubjects = (subjectData || []).map(normalizeSubject);
+      const allChapters = await getAllChaptersForAdmin(normalizedSubjects);
       const { chapters: normalizedChapters, questions } = loadQuestionsFromChapters(
         allChapters,
         allQuestions,
@@ -327,12 +336,6 @@ export default function AdminQuestions() {
       );
       const chapterMap = new Map(normalizedChapters.map((chapter) => [chapter.chapterId, chapter]));
       const subjectMap = new Map(normalizedSubjects.map((subject) => [subject.subjectId, subject]));
-      const bankSubject = normalizedSubjects.find(
-        (s) => s.courseCode === "QUESTION_BANK" || s.name === "Ngân hàng câu hỏi",
-      );
-      const bankChapter = normalizedChapters.find(
-        (c) => (c.subjectId === bankSubject?.subjectId || !c.subjectId) && c.name === "Ngân hàng câu hỏi",
-      );
 
       setSubjects(normalizedSubjects);
       setAllChapters(normalizedChapters);
@@ -342,9 +345,7 @@ export default function AdminQuestions() {
           : normalizedChapters,
       );
       setQuestionRows(
-        questions.map((question) =>
-          enrichQuestion(question, chapterMap, subjectMap, bankSubject, bankChapter),
-        ),
+        questions.map((question) => enrichQuestion(question, chapterMap, subjectMap)),
       );
     } catch (loadError) {
       setError(getErrorMessage(loadError, "Không thể tải ngân hàng câu hỏi."));
@@ -357,18 +358,6 @@ export default function AdminQuestions() {
     loadQuestionBank();
   }, [loadQuestionBank]);
 
-  const defaultBankSubject = useMemo(
-    () => subjects.find((s) => s.courseCode === "QUESTION_BANK" || s.name === "Ngân hàng câu hỏi"),
-    [subjects],
-  );
-  const defaultBankChapter = useMemo(
-    () =>
-      allChapters.find(
-        (c) => (c.subjectId === defaultBankSubject?.subjectId || !c.subjectId) && c.name === "Ngân hàng câu hỏi",
-      ),
-    [allChapters, defaultBankSubject],
-  );
-
   const chapterMap = useMemo(
     () => new Map(chapters.map((chapter) => [chapter.chapterId, chapter])),
     [chapters],
@@ -376,6 +365,15 @@ export default function AdminQuestions() {
   const subjectMap = useMemo(
     () => new Map(subjects.map((subject) => [subject.subjectId, subject])),
     [subjects],
+  );
+
+  const knownSubjectIds = useMemo(
+    () => new Set(subjects.map((subject) => String(subject.subjectId)).filter(Boolean)),
+    [subjects],
+  );
+  const knownChapterIds = useMemo(
+    () => new Set(allChapters.map((chapter) => String(chapter.chapterId)).filter(Boolean)),
+    [allChapters],
   );
 
   const skillOptions = useMemo(
@@ -390,8 +388,10 @@ export default function AdminQuestions() {
         subjectId: subjectFilter,
         difficulty: difficultyFilter,
         skillId: skillFilter,
+        knownSubjectIds,
+        knownChapterIds,
       }),
-    [questionRows, searchQuery, subjectFilter, difficultyFilter, skillFilter],
+    [questionRows, searchQuery, subjectFilter, difficultyFilter, skillFilter, knownSubjectIds, knownChapterIds],
   );
 
   const sortedQuestions = useMemo(() => {
@@ -477,8 +477,6 @@ export default function AdminQuestions() {
         },
         chapterMap,
         subjectMap,
-        defaultBankSubject,
-        defaultBankChapter,
       );
 
       if (!nextQuestion.options?.length) {
@@ -525,8 +523,6 @@ export default function AdminQuestions() {
         },
         chapterMap,
         subjectMap,
-        defaultBankSubject,
-        defaultBankChapter,
       );
 
       return currentRows.map((question) =>
@@ -811,11 +807,9 @@ export default function AdminQuestions() {
                                 <strong>{toPreviewText(row.content, row.contentFormat)}</strong>
                                 <div className="question-bank-meta">
                                   <span>
-                                    {row.subject?.courseCode === "QUESTION_BANK" ||
-                                    row.subject?.name === "Ngân hàng câu hỏi" ||
-                                    !row.subject?.name
+                                    {row.subject?.courseCode === "QUESTION_BANK"
                                       ? "Ngân hàng câu hỏi · Chưa phân loại"
-                                      : `${row.subject?.name} · ${row.chapter?.name || "Chưa có chương"}`}
+                                      : `${row.subject?.name || "Không rõ môn"} · ${row.chapter?.name || "Chưa có chương"}`}
                                   </span>
                                 </div>
                               </div>

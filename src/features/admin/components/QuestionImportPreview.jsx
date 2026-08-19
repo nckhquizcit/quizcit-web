@@ -144,7 +144,9 @@ export default function QuestionImportPreview({
           });
         };
 
-        const rowChapters = chapters.filter((chapter) => chapter.subjectId === row.subjectId);
+        const rowChapters = chapters.filter(
+          (chapter) => String(chapter.subjectId) === String(row.subjectId),
+        );
 
         return (
           <details

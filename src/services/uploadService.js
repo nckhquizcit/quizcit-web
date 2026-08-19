@@ -25,11 +25,7 @@ export async function uploadImage(fileOrBlob, folder = "subjects", fileName = "s
   }
 
   try {
-    const response = await apiClient.post("/api/uploads/image", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
+    const response = await apiClient.post("/api/uploads/image", formData);
 
     if (response.data && response.data.data) {
       return response.data.data;

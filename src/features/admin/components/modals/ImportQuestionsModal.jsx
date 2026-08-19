@@ -104,9 +104,11 @@ const toImportPayload = (row) => ({
   content: row.content.trim(),
   explanation: row.explanation?.trim() || "",
   contentFormat: row.contentFormat || "plain",
-  difficultyB: Number.isFinite(Number(row.difficultyB))
-    ? Number(row.difficultyB)
-    : resolveDifficultyB(row.difficulty, DEFAULT_DIFFICULTY_B),
+  difficultyB: row.difficultyB === null || row.difficultyB === ""
+    ? null
+    : Number.isFinite(Number(row.difficultyB))
+      ? Number(row.difficultyB)
+      : resolveDifficultyB(row.difficulty, DEFAULT_DIFFICULTY_B),
   skills: (row.skills || []).map((skill) => ({
     skillId: skill.skillId,
     weight: Number(skill.weight),
@@ -209,13 +211,13 @@ export default function ImportQuestionsModal({
 
     if (chapterRef) {
       const chapterCandidates = subjectId
-        ? allPreviewChapters.filter((item) => item.subjectId === subjectId)
+        ? allPreviewChapters.filter((item) => String(item.subjectId) === String(subjectId))
         : allPreviewChapters;
       const matchedChapter =
         findByIdOrName(chapterCandidates, chapterRef, "chapterId") ||
         findByIdOrName(allPreviewChapters, chapterRef, "chapterId");
 
-      if (matchedChapter && (!subjectId || matchedChapter.subjectId === subjectId)) {
+      if (matchedChapter && (!subjectId || String(matchedChapter.subjectId) === String(subjectId))) {
         chapterId = matchedChapter.chapterId;
         subjectId ||= matchedChapter.subjectId;
       } else {
@@ -223,8 +225,10 @@ export default function ImportQuestionsModal({
       }
     }
 
-    const selectedChapter = allPreviewChapters.find((item) => item.chapterId === chapterId);
-    if (subjectId && selectedChapter && selectedChapter.subjectId !== subjectId) {
+    const selectedChapter = allPreviewChapters.find(
+      (item) => String(item.chapterId) === String(chapterId),
+    );
+    if (subjectId && selectedChapter && String(selectedChapter.subjectId) !== String(subjectId)) {
       mappingErrors.push("Chương đã chọn không thuộc môn học của dòng này.");
     }
 
@@ -315,7 +319,7 @@ export default function ImportQuestionsModal({
     let cancelled = false;
 
     const fallbackChapters = normalizedInitialChapters.filter(
-      (item) => item.subjectId === defaultSubjectId,
+      (item) => String(item.subjectId) === String(defaultSubjectId),
     );
 
     const loadChapters = async () => {
@@ -331,14 +335,18 @@ export default function ImportQuestionsModal({
 
         setAvailableChapters(nextChapters);
         setDefaultChapterId((currentChapterId) => {
-          const hasCurrent = nextChapters.some((item) => item.chapterId === currentChapterId);
+          const hasCurrent = nextChapters.some(
+            (item) => String(item.chapterId) === String(currentChapterId),
+          );
           return hasCurrent ? currentChapterId : "";
         });
       } catch {
         if (!cancelled) {
           setAvailableChapters(fallbackChapters);
           setDefaultChapterId((currentChapterId) => {
-            const hasCurrent = fallbackChapters.some((item) => item.chapterId === currentChapterId);
+            const hasCurrent = fallbackChapters.some(
+              (item) => String(item.chapterId) === String(currentChapterId),
+            );
             return hasCurrent ? currentChapterId : "";
           });
         }
@@ -582,8 +590,12 @@ export default function ImportQuestionsModal({
 
   const validCount = rows.filter((row) => !row.errors?.length).length;
   const invalidCount = rows.length - validCount;
-  const selectedSubject = normalizedSubjects.find((item) => item.subjectId === defaultSubjectId);
-  const selectedChapter = allPreviewChapters.find((item) => item.chapterId === defaultChapterId);
+  const selectedSubject = normalizedSubjects.find(
+    (item) => String(item.subjectId) === String(defaultSubjectId),
+  );
+  const selectedChapter = allPreviewChapters.find(
+    (item) => String(item.chapterId) === String(defaultChapterId),
+  );
   const templateContext = {
     subjectName: selectedSubject?.name,
     chapterName: selectedChapter?.name,

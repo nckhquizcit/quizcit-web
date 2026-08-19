@@ -72,7 +72,7 @@ export function parseQuestionsFromAiken(input = "") {
 
 export function detectGift(input = "") {
   const value = String(input);
-  return /(?:^|\n)\s*(?:\$CATEGORY\s*:|::[^:\n]+::)/i.test(value)
+  return /(?:^|\n)\s*(?:\$CATEGORY\s*:|::[^\n]*::)/i.test(value)
     || /\{[\s\S]*(?:^|[^\\])[=~](?:[^}\\]|\\.)*\}/m.test(value);
 }
 
@@ -122,7 +122,7 @@ export function parseQuestionsFromGift(input = "") {
   return splitGiftQuestions(input).map((entry, index) => {
     let source = entry.text.replace(/^\s*\/\/.*$/gm, "").trim();
     let title = "";
-    const titleMatch = source.match(/^::([^:]+)::/);
+    const titleMatch = source.match(/^::(.+?)::/);
     if (titleMatch) {
       title = unescapeGift(titleMatch[1]);
       source = source.slice(titleMatch[0].length).trim();
