@@ -29,6 +29,13 @@
 
 /* .import-questions-modal-shell được style tập trung trong Admin.css */
 
+
+.admin-modal-title {
+  margin: 0 44px 0 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--admin-text, #111827);
+}
 .modal-close {
   position: absolute;
   top: 12px;

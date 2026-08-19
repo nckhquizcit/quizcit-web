@@ -17,6 +17,7 @@ export default function DataTable({
   loading = false,
   searchable = true,
   searchPlaceholder = "Tìm kiếm...",
+  searchAriaLabel,
   searchKeys = null,
   pageSize = 10,
   emptyState = null,
@@ -31,7 +32,12 @@ export default function DataTable({
   onRowDragOver,
   onRowDrop,
   onRowDragEnd,
+  paginationMode = "client",
+  page: serverPage = 0,
+  totalElements,
+  onPageChange,
 }) {
+  const isServer = paginationMode === "server";
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState(initialSort);
   const [page, setPage] = useState(1);
@@ -40,7 +46,7 @@ export default function DataTable({
   // go back to page 1. Adjust state during render per React docs — sort-order
   // changes keep the same length and are unaffected.
   const [prevRowsLength, setPrevRowsLength] = useState(rows.length);
-  if (rows.length !== prevRowsLength) {
+  if (!isServer && rows.length !== prevRowsLength) {
     setPrevRowsLength(rows.length);
     setPage(1);
   }
@@ -73,15 +79,28 @@ export default function DataTable({
     });
   }, [filtered, sort, columns]);
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
-  const safePage = Math.min(page, totalPages);
-  const paged = useMemo(
-    () => sorted.slice((safePage - 1) * pageSize, safePage * pageSize),
-    [sorted, safePage, pageSize],
-  );
+  const serverTotal = Number(totalElements) || 0;
+  const totalPages = isServer
+    ? Math.max(1, Math.ceil(serverTotal / pageSize))
+    : Math.max(1, Math.ceil(sorted.length / pageSize));
+  const safePage = isServer
+    ? Math.min(Math.max(0, serverPage) + 1, totalPages)
+    : Math.min(page, totalPages);
+  const paged = useMemo(() => {
+    if (isServer) return sorted;
+    return sorted.slice((safePage - 1) * pageSize, safePage * pageSize);
+  }, [isServer, sorted, safePage, pageSize]);
+
+  const goToPage = (nextPage) => {
+    if (isServer) {
+      onPageChange?.(nextPage - 1);
+      return;
+    }
+    setPage(nextPage);
+  };
 
   const toggleSort = (key) => {
-    setPage(1);
+    if (!isServer) setPage(1);
     setSort((prev) => {
       if (!prev || prev.key !== key) return { key, dir: "asc" };
       if (prev.dir === "asc") return { key, dir: "desc" };
@@ -91,8 +110,13 @@ export default function DataTable({
 
   const onSearch = (e) => {
     setQuery(e.target.value);
-    setPage(1);
+    if (!isServer) setPage(1);
   };
+
+  const countTotal = isServer ? serverTotal : sorted.length;
+  const showPager = !loading && countTotal > pageSize;
+  const rangeStart = countTotal === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const rangeEnd = Math.min(safePage * pageSize, countTotal);
 
   const tableClassName = `data-table data-table--${density}`;
 
@@ -108,6 +132,7 @@ export default function DataTable({
                 value={query}
                 onChange={onSearch}
                 placeholder={searchPlaceholder}
+                aria-label={searchAriaLabel || searchPlaceholder}
               />
             </div>
           )}
@@ -204,16 +229,16 @@ export default function DataTable({
         )}
       </div>
 
-      {!loading && sorted.length > pageSize && (
+      {showPager && (
         <div className="data-table__pagination">
           <span className="data-table__count">
-            {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, sorted.length)} / {sorted.length}
+            {rangeStart}–{rangeEnd} / {countTotal}
           </span>
           <div className="data-table__pager">
             <button
               type="button"
               disabled={safePage <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              onClick={() => goToPage(Math.max(1, safePage - 1))}
               aria-label="Trang trước"
             >
               <ChevronLeft size={16} />
@@ -224,7 +249,7 @@ export default function DataTable({
             <button
               type="button"
               disabled={safePage >= totalPages}
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              onClick={() => goToPage(Math.min(totalPages, safePage + 1))}
               aria-label="Trang sau"
             >
               <ChevronRight size={16} />

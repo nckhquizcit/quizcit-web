@@ -7,6 +7,7 @@ import AddTheoryModal from "../components/modals/AddTheoryModal";
 import EditTheoryModal from "../components/modals/EditTheoryModal";
 import TheoryContent from "../../content/components/TheoryContent";
 import AdminPageHeader from "../components/AdminPageHeader";
+import AdminPageState from "../components/AdminPageState";
 import SearchBar from "../components/SearchBar";
 import {
   createChapter,
@@ -252,19 +253,19 @@ export default function AdminChapters() {
   };
 
   const isMutating = Boolean(pendingAction);
-
-  if (loading) return <div className="admin-page-state">Đang tải danh sách chương...</div>;
-  if (loadError) return <div className="admin-page-state error">{loadError}</div>;
-  if (!subject) return <div className="admin-page-state error">Không tìm thấy môn học.</div>;
-
   const expandedChapterData = subjectChapters.find((c) => c.chapterId === expandedChapter);
+  const pageError = loadError || (!loading && !subject ? "Không tìm thấy môn học." : "");
 
   return (
     <>
       <AdminPageHeader
-        breadcrumb={["Tổng quan", "Môn học", subject.name]}
-        title={`${subject.name} · Chương`}
-        subtitle={`${subjectChapters.length} chương · quản lý lý thuyết, kỹ năng và câu hỏi.`}
+        breadcrumb={["Tổng quan", "Môn học", subject?.name || "Chương"]}
+        title={subject ? `${subject.name} · Chương` : "Chương"}
+        subtitle={
+          subject
+            ? `${subjectChapters.length} chương · quản lý lý thuyết, kỹ năng và câu hỏi.`
+            : "Quản lý lý thuyết, kỹ năng và câu hỏi."
+        }
         onBack={() => navigate("/admin/subjects")}
         action={<div className="display-order-actions">
           <button
@@ -286,6 +287,11 @@ export default function AdminChapters() {
         </div>}
       />
 
+      <AdminPageState
+        loading={loading}
+        error={pageError || null}
+        errorTitle="Không tải được chương"
+      >
       <SearchBar placeholder="Tìm chương..." value={search} onChange={setSearch} />
 
       {actionError && <div className="admin-page-state error">{actionError}</div>}
@@ -488,6 +494,7 @@ export default function AdminChapters() {
           );
         })}
       </div>
+      </AdminPageState>
 
       <AddChapterModal
         open={openAddChapter}

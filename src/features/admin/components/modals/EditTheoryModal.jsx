@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import FormModalLayout from "../ui/FormModalLayout";
 import Modal from "../ui/Modal";
 import { getErrorMessage } from "../../../../services/apiClient";
 import TheoryEditor from "../../../content/components/TheoryEditor";
 import { isTheoryContentEmpty } from "../../../content/components/theoryContentUtils";
 
-function EditTheoryForm({ theory, onClose, onSubmit }) {
+function EditTheoryForm({ theory, onClose, onSubmit, titleId }) {
   const [content, setContent] = useState(theory?.content || "");
   const [contentFormat, setContentFormat] = useState(theory?.contentFormat || "plain");
   const [submitting, setSubmitting] = useState(false);
@@ -27,6 +27,7 @@ function EditTheoryForm({ theory, onClose, onSubmit }) {
 
   return (
     <FormModalLayout
+      titleId={titleId}
       title="Sửa lý thuyết"
       subtitle="Chỉnh sửa nội dung lý thuyết"
       actions={
@@ -60,15 +61,17 @@ function EditTheoryForm({ theory, onClose, onSubmit }) {
 }
 
 export default function EditTheoryModal({ open, onClose, theory, onSubmit }) {
+  const titleId = useId();
   if (!theory) return null;
 
   return (
-    <Modal open={open} onClose={onClose} containerClassName="theory-editor-modal">
+    <Modal open={open} onClose={onClose} containerClassName="theory-editor-modal" labelledById={titleId}>
       <EditTheoryForm
         key={`${theory.theoryId || theory.id}-${open ? "open" : "closed"}`}
         theory={theory}
         onClose={onClose}
         onSubmit={onSubmit}
+        titleId={titleId}
       />
     </Modal>
   );

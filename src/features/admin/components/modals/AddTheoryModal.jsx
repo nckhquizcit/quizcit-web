@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import Modal from "../ui/Modal";
 import FormModalLayout from "../ui/FormModalLayout";
 import { getErrorMessage } from "../../../../services/apiClient";
@@ -13,6 +13,7 @@ export default function AddTheoryModal({ open, onClose, chapter, onSubmit }) {
   const [contentFormat, setContentFormat] = useState(THEORY_FORMAT_BLOCKNOTE);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const titleId = useId();
 
   useEffect(() => {
     if (open) return;
@@ -46,8 +47,9 @@ export default function AddTheoryModal({ open, onClose, chapter, onSubmit }) {
   if (!chapter) return null;
 
   return (
-    <Modal open={open} onClose={handleClose} containerClassName="theory-editor-modal">
+    <Modal open={open} onClose={handleClose} containerClassName="theory-editor-modal" labelledById={titleId}>
       <FormModalLayout
+        titleId={titleId}
         title="Thêm lý thuyết"
         subtitle={`Chương: ${chapter.name}`}
         actions={

@@ -1,29 +1,19 @@
-import { useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { useId, useState } from "react";
+import Modal from "../ui/Modal";
 import "./modal.css";
 
 export default function ConfirmActionModal({ isOpen, onClose, onConfirm, user, message }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const titleId = useId();
 
-  useEffect(() => {
-    if (!isOpen || isSubmitting) return undefined;
-    const handleKeyDown = (event) => {
-      if (event.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, isSubmitting, onClose]);
-
-  if (!isOpen || !user) return null;
+  if (!user) {
+    return <Modal open={false} onClose={onClose} labelledById={titleId} />;
+  }
 
   const username = user.username || user.displayName || user.fullName || "";
 
   const handleClose = () => {
     if (!isSubmitting) onClose();
-  };
-
-  const handleOverlayClick = (event) => {
-    if (event.target === event.currentTarget) handleClose();
   };
 
   const handleConfirm = async () => {
@@ -37,32 +27,27 @@ export default function ConfirmActionModal({ isOpen, onClose, onConfirm, user, m
   };
 
   return (
-    <div className="modal-overlay" onClick={handleOverlayClick}>
-      <div className="modal-container">
-        <div className="modal-header">
-          <h3>Xác nhận hành động</h3>
-          <button className="close-btn" onClick={handleClose} type="button" aria-label="Đóng" disabled={isSubmitting}>
-            <X size={18} />
-          </button>
-        </div>
-        <div className="modal-body">
-          <p>
-            {message || (
-              <>
-                Bạn có muốn khóa người dùng "<strong>{username}</strong>" không?
-              </>
-            )}
-          </p>
-        </div>
-        <div className="modal-footer">
-          <button className="modal-btn primary" onClick={handleConfirm} disabled={isSubmitting}>
-            Có
-          </button>
-          <button className="modal-btn secondary" onClick={handleClose} disabled={isSubmitting}>
-            Không
-          </button>
-        </div>
+    <Modal open={isOpen} onClose={handleClose} labelledById={titleId}>
+      <div className="modal-header">
+        <h3 id={titleId}>Xác nhận hành động</h3>
       </div>
-    </div>
+      <div className="modal-body">
+        <p>
+          {message || (
+            <>
+              Bạn có muốn khóa người dùng "<strong>{username}</strong>" không?
+            </>
+          )}
+        </p>
+      </div>
+      <div className="modal-footer">
+        <button className="modal-btn primary" onClick={handleConfirm} disabled={isSubmitting}>
+          Có
+        </button>
+        <button className="modal-btn secondary" onClick={handleClose} disabled={isSubmitting}>
+          Không
+        </button>
+      </div>
+    </Modal>
   );
 }

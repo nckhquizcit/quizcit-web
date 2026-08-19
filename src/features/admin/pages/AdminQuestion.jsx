@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ChevronDown,
@@ -164,10 +164,11 @@ const loadQuestionsFromChapters = (chapterList, allQuestions, selectedSubjectId,
 };
 
 function DeleteQuestionModal({ open, question, onCancel, onConfirm, onClose }) {
+  const titleId = useId();
   return (
-    <Modal open={open} onClose={onClose}>
+    <Modal open={open} onClose={onClose} labelledById={titleId}>
       <div className="question-modal delete-question-modal">
-        <h2>Xóa câu hỏi</h2>
+        <h2 id={titleId}>Xóa câu hỏi</h2>
         <p>Bạn có muốn xóa câu hỏi này không?</p>
 
         {question && (
@@ -193,12 +194,13 @@ function DeleteQuestionModal({ open, question, onCancel, onConfirm, onClose }) {
 }
 
 function QuestionSkillsModal({ open, question, onClose }) {
+  const titleId = useId();
   const skills = normalizeQuestionSkills(question?.skills ?? question?.questionSkills);
 
   return (
-    <Modal open={open} onClose={onClose}>
+    <Modal open={open} onClose={onClose} labelledById={titleId}>
       <div className="question-modal question-skills-modal">
-        <h2>Danh sách kỹ năng</h2>
+        <h2 id={titleId}>Danh sách kỹ năng</h2>
         <p>{toPreviewText(question?.content, question?.contentFormat) || "Câu hỏi"}</p>
 
         <div className="question-skill-popup-list">
@@ -230,6 +232,7 @@ function QuestionSkillsModal({ open, question, onClose }) {
 }
 
 function PlacementModal({ open, title, description, subjects, chapters, onCancel, onConfirm }) {
+  const titleId = useId();
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
   const [selectedChapterId, setSelectedChapterId] = useState("");
 
@@ -246,9 +249,9 @@ function PlacementModal({ open, title, description, subjects, chapters, onCancel
   const canSubmit = Boolean(selectedSubjectId && selectedChapterId);
 
   return (
-    <Modal open={open} onClose={onCancel}>
+    <Modal open={open} onClose={onCancel} labelledById={titleId}>
       <div className="question-modal placement-modal">
-        <h2>{title}</h2>
+        <h2 id={titleId}>{title}</h2>
         {description && <p>{description}</p>}
 
         <label className="placement-field">
@@ -666,6 +669,7 @@ export default function AdminQuestions() {
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   placeholder="Tìm nội dung, môn, chương..."
+                  aria-label="Tìm nội dung, môn, chương"
                 />
               </label>
 

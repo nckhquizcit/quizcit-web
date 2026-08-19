@@ -1,6 +1,6 @@
 .data-table {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: var(--admin-surface, var(--color-surface));
+  border: 1px solid var(--admin-border, var(--color-border));
   border-radius: var(--admin-radius-surface, 8px);
   box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.04));
   overflow: hidden;
@@ -11,7 +11,7 @@
   align-items: center;
   gap: 12px;
   padding: 16px;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--admin-border, var(--color-border));
   flex-wrap: wrap;
 }
 
@@ -22,15 +22,15 @@
   flex: 1 1 260px;
   max-width: 360px;
   padding: 8px 12px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--admin-border, var(--color-border));
   border-radius: 999px;
-  background: var(--color-surface-2);
-  color: var(--color-text-muted);
+  background: var(--admin-bg, var(--color-surface-2));
+  color: var(--admin-muted, var(--color-text-muted));
   transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 .data-table__search:focus-within {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-soft);
+  border-color: var(--admin-primary, var(--color-primary));
+  box-shadow: 0 0 0 3px var(--admin-primary-soft, var(--color-primary-soft));
 }
 .data-table__search input {
   flex: 1;
@@ -38,7 +38,7 @@
   outline: none;
   background: transparent;
   font-size: 14px;
-  color: var(--color-text);
+  color: var(--admin-text, var(--color-text));
 }
 
 .data-table__toolbar-extra {
@@ -51,7 +51,7 @@
 
 .data-table__summary {
   margin-left: auto;
-  color: var(--color-text-muted);
+  color: var(--admin-muted, var(--color-text-muted));
   font-size: 13px;
   font-weight: 650;
 }
@@ -82,9 +82,9 @@
   font-size: 12.5px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--color-text-muted);
-  background: var(--color-surface-2);
-  border-bottom: 1px solid var(--color-border);
+  color: var(--admin-muted, var(--color-text-muted));
+  background: var(--admin-bg, var(--color-surface-2));
+  border-bottom: 1px solid var(--admin-border, var(--color-border));
   white-space: nowrap;
 }
 
@@ -93,7 +93,7 @@
   user-select: none;
 }
 .data-table__table th.is-sortable:hover {
-  color: var(--color-text);
+  color: var(--admin-text, var(--color-text));
 }
 
 .th-inner {
@@ -108,15 +108,15 @@
 
 .data-table__table tbody td {
   padding: 14px 16px;
-  border-bottom: 1px solid var(--color-border);
-  color: var(--color-text);
+  border-bottom: 1px solid var(--admin-border, var(--color-border));
+  color: var(--admin-text, var(--color-text));
   vertical-align: middle;
 }
 .data-table__table tbody tr:last-child td {
   border-bottom: none;
 }
 .data-table__table tbody tr:hover td {
-  background: var(--color-surface-2);
+  background: var(--admin-bg, var(--color-surface-2));
 }
 
 .data-table__empty {
@@ -129,12 +129,12 @@
   justify-content: space-between;
   gap: 12px;
   padding: 12px 16px;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--admin-border, var(--color-border));
   flex-wrap: wrap;
 }
 .data-table__count {
   font-size: 13px;
-  color: var(--color-text-muted);
+  color: var(--admin-muted, var(--color-text-muted));
 }
 .data-table__pager {
   display: flex;
@@ -147,10 +147,10 @@
   justify-content: center;
   width: 32px;
   height: 32px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--admin-border, var(--color-border));
   border-radius: 8px;
-  background: var(--color-surface);
-  color: var(--color-text);
+  background: var(--admin-surface, var(--color-surface));
+  color: var(--admin-text, var(--color-text));
   cursor: pointer;
   transition: background 0.18s ease;
 }
@@ -163,7 +163,7 @@
 }
 .data-table__page {
   font-size: 13px;
-  color: var(--color-text-muted);
+  color: var(--admin-muted, var(--color-text-muted));
   min-width: 96px;
   text-align: center;
 }

@@ -38,8 +38,8 @@
   width: 30px;
   height: 30px;
   border-radius: 8px;
-  background: var(--color-primary-soft);
-  color: var(--color-primary-600);
+  background: var(--admin-primary-soft, var(--color-primary-soft));
+  color: var(--admin-primary, var(--color-primary-600));
   flex-shrink: 0;
 }
 
@@ -47,7 +47,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--color-text-muted);
+  color: var(--admin-muted, var(--color-text-muted));
   font-size: 14px;
 }
 
@@ -69,7 +69,7 @@
 
 .quiz-picker {
   margin-top: 20px;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--admin-border, var(--color-border));
   padding-top: 16px;
 }
 
@@ -83,7 +83,7 @@
 .quiz-random-input {
   width: 150px;
   height: 38px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--admin-border, var(--color-border));
   border-radius: 10px;
   padding: 0 12px;
 }
@@ -98,7 +98,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--color-text-muted);
+  color: var(--admin-muted, var(--color-text-muted));
   font-size: 14px;
   padding: 12px 0;
 }
@@ -417,4 +417,13 @@
 
 .quiz-inline-empty {
   color: var(--admin-muted, #5f6f82);
+}
+
+
+.quiz-filter-bar .quiz-field select,
+.quiz-filter-bar .quiz-field input,
+.quiz-filter-search input {
+  min-height: var(--admin-control-h, 40px);
+  border-radius: var(--admin-radius-control, 8px);
+  font-size: 14px;
 }

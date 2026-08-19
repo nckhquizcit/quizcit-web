@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { LoaderCircle, Search, Shuffle } from "lucide-react";
 import Modal from "../ui/Modal";
 import FormModalLayout from "../ui/FormModalLayout";
@@ -36,7 +36,10 @@ export function CreateQuizForm({
   onUpdated,
   showQuestions = true,
   variant = "modal",
+  titleId: titleIdProp,
 }) {
+  const generatedTitleId = useId();
+  const titleId = titleIdProp || generatedTitleId;
   const isEdit = Boolean(initialQuiz);
   const handleCancel = onCancel || onClose;
   const [subjectId, setSubjectId] = useState(defaultSubjectId);
@@ -348,6 +351,7 @@ export function CreateQuizForm({
 
   return (
     <FormModalLayout
+        titleId={titleId}
         title={isEdit ? "Chỉnh sửa đề thi" : "Tạo đề thi mới"}
         subtitle={isEdit ? "Cập nhật thông tin và danh sách câu hỏi" : "Chọn môn học, chương và các câu hỏi để tạo đề thi"}
         actions={
@@ -658,9 +662,10 @@ function CreateQuizFormPage({
 }
 
 export default function CreateQuizModal({ open, onClose, ...props }) {
+  const titleId = useId();
   return (
-    <Modal open={open} onClose={onClose} containerClassName="quiz-modal">
-      <CreateQuizForm open={open} onClose={onClose} onCancel={onClose} {...props} />
+    <Modal open={open} onClose={onClose} containerClassName="quiz-modal" labelledById={titleId}>
+      <CreateQuizForm open={open} onClose={onClose} onCancel={onClose} titleId={titleId} {...props} />
     </Modal>
   );
 }

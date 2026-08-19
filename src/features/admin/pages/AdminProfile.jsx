@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BookOpen, ClipboardList, Eye, HelpCircle, LogOut, Shield, Users } from "lucide-react";
 import AdminPageHeader from "../components/AdminPageHeader";
+import Skeleton from "../../../components/ui/Skeleton/Skeleton";
 import { adminProfileService } from "../services/profileService.js";
 import { getStoredUser } from "../../../services/apiClient";
 import { enterUserPreview } from "../../../services/userPreviewMode";
@@ -103,7 +104,8 @@ export default function AdminProfile() {
     "Quản trị viên";
   const username = admin?.username || storedUser?.username || "—";
   const email = admin?.email || storedUser?.email || "—";
-  const formatStat = (value) => (loading ? "..." : numberFormatter.format(value ?? 0));
+  const formatStat = (value) =>
+    loading ? <Skeleton height={22} width={56} /> : numberFormatter.format(value ?? 0);
 
   const handlePreviewAsUser = () => {
     enterUserPreview("/admin/profile");
@@ -220,15 +222,15 @@ export default function AdminProfile() {
         </section>
 
         <section className="admin-card admin-card--permission">
-          <span className="adm2-chip adm2-chip--emerald">Quyền hệ thống</span>
+          <span className="adm2-chip adm2-chip--emerald">Quyền mặc định của vai trò Quản trị</span>
 
           <div className="admin-permissionBody">
             <div className="admin-permissionBadge" aria-hidden="true">
               <IconShield className="admin-icon admin-icon--shieldWhite" />
             </div>
-            <div className="admin-permissionTitle">Quản trị viên hệ thống</div>
+            <div className="admin-permissionTitle">Quyền mặc định của vai trò Quản trị</div>
             <div className="admin-permissionSub">
-              Toàn quyền quản lý nội dung, câu hỏi, đề thi, kỹ năng và tài khoản user.
+              Đây là quyền đi kèm vai trò, không phải trình chỉnh sửa RBAC.
             </div>
 
             <div className="adm2-divider" />

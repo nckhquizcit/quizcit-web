@@ -386,7 +386,7 @@
   background: var(--admin-primary-soft, #e9fbf3);
   color: #047857;
   font-size: 32px;
-  font-weight: 780;
+  font-weight: 700;
 }
 
 .adm2-profile-hero__body {
@@ -401,7 +401,7 @@
 .adm2-profile-hero__name {
   margin: 0;
   font-size: 20px;
-  font-weight: 780;
+  font-weight: 700;
   color: var(--admin-text, #0f172a);
 }
 

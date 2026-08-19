@@ -188,8 +188,7 @@
 .submit-btn:hover,
 .danger-btn:hover {
   opacity: 0.9;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 .submit-btn:disabled,
@@ -253,7 +252,7 @@
 .modal-header h3 {
   color: var(--admin-text, #0f172a);
   font-size: 20px;
-  font-weight: 780;
+  font-weight: 700;
 }
 
 .modal-body {
@@ -274,7 +273,7 @@
 
 .form-group label {
   color: var(--admin-text, #0f172a);
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .form-group input,
@@ -301,7 +300,7 @@
   min-height: 40px;
   padding: 0 14px;
   border-radius: var(--admin-radius-control, 8px);
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .submit-btn,

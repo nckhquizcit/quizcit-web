@@ -3,7 +3,7 @@ import FormModalLayout from "../ui/FormModalLayout";
 import { getErrorMessage } from "../../../../services/apiClient";
 import SubjectImageField from "../../../../components/ui/SubjectImageField/SubjectImageField";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 export default function AddSubjectModal({ open, onClose, onSubmit, nextDisplayOrder = 1 }) {
   const [name, setName] = useState("");
@@ -13,6 +13,7 @@ export default function AddSubjectModal({ open, onClose, onSubmit, nextDisplayOr
   const [imageUrl, setImageUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const titleId = useId();
 
   useEffect(() => {
     if (open) return;
@@ -56,8 +57,9 @@ export default function AddSubjectModal({ open, onClose, onSubmit, nextDisplayOr
   };
 
   return (
-    <Modal open={open} onClose={handleClose}>
+    <Modal open={open} onClose={handleClose} labelledById={titleId}>
       <FormModalLayout
+        titleId={titleId}
         title="Thêm môn học mới"
         subtitle="Nhập thông tin môn học để thêm vào hệ thống"
         actions={

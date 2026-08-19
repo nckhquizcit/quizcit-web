@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Eye, EyeOff, Plus, Search, X } from "lucide-react";
 
 import Modal from "../ui/Modal";
@@ -204,7 +204,11 @@ export function QuestionForm({
   subjects = EMPTY_LIST,
   chapters = EMPTY_LIST,
   variant = "modal",
+  titleId: titleIdProp,
 }) {
+  const generatedTitleId = useId();
+  const titleId = titleIdProp || generatedTitleId;
+
   const isEdit = mode === "edit";
   const isPageVariant = variant === "page";
   const handleCancel = onCancel || onClose;
@@ -950,7 +954,7 @@ export function QuestionForm({
             <span className="question-builder-kicker">
               {isEdit ? "Chỉnh sửa câu hỏi" : "Câu hỏi mới"}
             </span>
-            <h2>{isEdit ? "Cập nhật câu hỏi" : "Thêm câu hỏi mới"}</h2>
+            <h2 id={titleId}>{isEdit ? "Cập nhật câu hỏi" : "Thêm câu hỏi mới"}</h2>
             <p>
               {isEdit
                 ? "Chỉnh sửa nội dung, đáp án và giải thích của câu hỏi"
@@ -1408,9 +1412,10 @@ function QuestionFormPage({
 }
 
 export default function AddQuestionModal({ open, onClose, ...props }) {
+  const titleId = useId();
   return (
-    <Modal open={open} onClose={onClose}>
-      <QuestionForm open={open} onClose={onClose} onCancel={onClose} {...props} />
+    <Modal open={open} onClose={onClose} labelledById={titleId}>
+      <QuestionForm open={open} onClose={onClose} onCancel={onClose} titleId={titleId} {...props} />
     </Modal>
   );
 }

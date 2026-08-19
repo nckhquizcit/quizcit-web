@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import AdminPageHeader from "../components/AdminPageHeader";
+import AdminPageState from "../components/AdminPageState";
 import ErrorState from "../../../components/ui/ErrorState/ErrorState";
 import SubjectImageField from "../../../components/ui/SubjectImageField/SubjectImageField";
 import { getChaptersBySubject, getSubjectById, updateSubject } from "../../../services/contentService";
@@ -52,9 +53,12 @@ export default function AdminSubjectEdit() {
       backLabel="Danh sách môn"
     />
 
-    {error && <ErrorState description={error} />}
-    {!form && !error && <div className="admin-page-state">Đang tải môn học...</div>}
-
+    {form && error && <ErrorState description={error} />}
+    <AdminPageState
+      loading={!form && !error}
+      error={!form ? (error || null) : null}
+      errorTitle="Không tải được môn học"
+    >
     {form && (
       <div className="adm2-form-grid">
         <div className="admin-section-card adm2-card-pad">
@@ -131,5 +135,6 @@ export default function AdminSubjectEdit() {
         </aside>
       </div>
     )}
+    </AdminPageState>
   </>;
 }

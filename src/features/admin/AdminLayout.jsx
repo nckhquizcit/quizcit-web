@@ -14,6 +14,23 @@ export default function AdminLayout() {
     if (isUserPreviewActive(getStoredUser())) clearUserPreview();
   }, []);
 
+  useEffect(() => {
+    if (!mobileOpen) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") setMobileOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [mobileOpen]);
+
   return (
     <ToastProvider>
       <div className="admin-layout">
@@ -32,7 +49,10 @@ export default function AdminLayout() {
         />
 
         <div className="admin-main">
-          <AdminNavbar onOpenMenu={() => setMobileOpen(true)} />
+          <AdminNavbar
+            mobileOpen={mobileOpen}
+            onOpenMenu={() => setMobileOpen(true)}
+          />
 
           <div className="admin-content">
             <Outlet />

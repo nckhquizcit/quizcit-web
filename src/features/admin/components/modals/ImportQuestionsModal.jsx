@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { CheckCircle2, Download, FileText, FileUp, ListChecks, Upload } from "lucide-react";
 
 import QuestionImportPreview from "../QuestionImportPreview";
@@ -132,6 +132,7 @@ export default function ImportQuestionsModal({
   onSubmit,
   variant = "modal",
 }) {
+  const titleId = useId();
   const normalizedSubjects = useMemo(() => subjects.map(normalizeSubject), [subjects]);
   const normalizedInitialChapters = useMemo(
     () => chapters.map((item) => normalizeChapter(item, normalizeId(getSubjectId(subject)))),
@@ -608,7 +609,7 @@ export default function ImportQuestionsModal({
             <Upload size={20} />
           </span>
           <div>
-            <h2>Import câu hỏi</h2>
+            <h2 id={titleId}>Import câu hỏi</h2>
             <p>Chuẩn hóa dữ liệu trước khi lưu vào ngân hàng câu hỏi.</p>
           </div>
           <div className="question-import-header__meta" aria-label="Định dạng hỗ trợ">
@@ -918,7 +919,7 @@ export default function ImportQuestionsModal({
   }
 
   return (
-    <Modal open={open} onClose={handleClose} containerClassName="import-questions-modal-shell">
+    <Modal open={open} onClose={handleClose} containerClassName="import-questions-modal-shell" labelledById={titleId}>
       {content}
     </Modal>
   );

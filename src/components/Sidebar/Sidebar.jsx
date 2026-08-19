@@ -62,6 +62,7 @@ export default function Sidebar({ type = "USER", mobileOpen = false, onClose, us
 
   return (
     <aside
+      id={isAdmin ? "admin-sidebar" : undefined}
       className={`sidebar-wrapper ${variant} ${isMinimized ? "minimized" : ""} ${
         mobileOpen ? "is-mobile-open" : ""
       }`}

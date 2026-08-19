@@ -1,12 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ChevronLeft,
-  ChevronRight,
   KeyRound,
   Lock,
   Shield,
-  ShieldAlert,
-  ShieldCheck,
   Trash2,
   Unlock,
   Users,
@@ -105,13 +101,6 @@ export default function AdminUsers() {
     }),
     [items],
   );
-
-  const statTiles = [
-    { key: "total", label: "Tổng tài khoản", icon: <Users size={18} />, tone: "gray", value: pageInfo.totalElements },
-    { key: "verified", label: `${STATUS_LABELS.VERIFIED} (trang hiện tại)`, icon: <ShieldCheck size={18} />, tone: "emerald", value: pageStats.verified },
-    { key: "unverified", label: `${STATUS_LABELS.UNVERIFIED} (trang hiện tại)`, icon: <ShieldAlert size={18} />, tone: "amber", value: pageStats.unverified },
-    { key: "banned", label: "Đã khóa (trang hiện tại)", icon: <Lock size={18} />, tone: "red", value: pageStats.banned },
-  ];
 
   const closeConfirmModal = () => {
     setIsConfirmModalOpen(false);
@@ -280,16 +269,21 @@ export default function AdminUsers() {
       />
 
       <div className="adm2-stat-row">
-        {statTiles.map((tile) => (
-          <div className="adm2-stat-tile" key={tile.key}>
-            <span className={`adm2-stat-tile__icon adm2-stat-tile__icon--${tile.tone}`}>{tile.icon}</span>
-            <div className="adm2-stat-tile__body">
-              <span className="adm2-stat-tile__value">{tile.value}</span>
-              <span className="adm2-stat-tile__label">{tile.label}</span>
-            </div>
+        <div className="adm2-stat-tile">
+          <span className="adm2-stat-tile__icon adm2-stat-tile__icon--gray">
+            <Users size={18} />
+          </span>
+          <div className="adm2-stat-tile__body">
+            <span className="adm2-stat-tile__value">{pageInfo.totalElements}</span>
+            <span className="adm2-stat-tile__label">Tổng tài khoản</span>
           </div>
-        ))}
+        </div>
       </div>
+      {!loading && !error && (
+        <p className="adm2-user-scope-note">
+          Trong trang này: {pageStats.verified} đã xác thực, {pageStats.unverified} chưa xác thực, {pageStats.banned} đã khóa.
+        </p>
+      )}
 
       {error ? (
         <ErrorState description={error} onRetry={() => loadUsers(page)} />
@@ -301,7 +295,13 @@ export default function AdminUsers() {
             getRowKey={(user) => user.userId}
             loading={loading}
             pageSize={PAGE_SIZE}
+            paginationMode="server"
+            page={page}
+            totalElements={pageInfo.totalElements}
+            onPageChange={(nextPage) => loadUsers(nextPage)}
+            searchable
             searchPlaceholder="Tìm username/email trong trang này..."
+            searchAriaLabel="Tìm username hoặc email trong trang này"
             searchKeys={["username", "email"]}
             emptyState={
               <EmptyState
@@ -315,6 +315,7 @@ export default function AdminUsers() {
                 className="filter-select"
                 value={filterStatus}
                 onChange={(event) => setFilterStatus(event.target.value)}
+                aria-label="Lọc trạng thái"
               >
                 <option value="ALL">Tất cả trạng thái</option>
                 <option value="VERIFIED">Đã xác thực</option>
@@ -327,30 +328,6 @@ export default function AdminUsers() {
           <p className="adm2-user-scope-note">
             Tìm kiếm, bộ lọc và sắp xếp áp dụng trong trang hiện tại ({PAGE_SIZE} người dùng/trang).
           </p>
-
-          <div className="adm2-user-pager">
-            <button
-              type="button"
-              className="adm2-user-pager__btn"
-              disabled={loading || pageInfo.first}
-              onClick={() => loadUsers(page - 1)}
-            >
-              <ChevronLeft size={16} />
-              Trước
-            </button>
-            <span className="adm2-user-pager__page">
-              Trang {page + 1}/{pageInfo.totalPages || 1}
-            </span>
-            <button
-              type="button"
-              className="adm2-user-pager__btn"
-              disabled={loading || pageInfo.last}
-              onClick={() => loadUsers(page + 1)}
-            >
-              Sau
-              <ChevronRight size={16} />
-            </button>
-          </div>
         </>
       )}
 

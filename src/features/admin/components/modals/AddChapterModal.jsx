@@ -2,7 +2,7 @@ import Modal from "../ui/Modal";
 import FormModalLayout from "../ui/FormModalLayout";
 import { getErrorMessage } from "../../../../services/apiClient";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { getSkills } from "../../services/skillService";
 import ChapterSkillsField from "../ChapterSkillsField";
 
@@ -13,6 +13,7 @@ export default function AddChapterModal({ open, onClose, subject, onSubmit }) {
   const [submitError, setSubmitError] = useState("");
   const [skills, setSkills] = useState([]);
   const [selectedSkills, setSelectedSkills] = useState([]);
+  const titleId = useId();
 
   useEffect(() => {
     if (open) getSkills().then(setSkills).catch(() => setSkills([]));
@@ -51,8 +52,9 @@ export default function AddChapterModal({ open, onClose, subject, onSubmit }) {
   if (!subject) return null;
 
   return (
-    <Modal open={open} onClose={handleClose}>
+    <Modal open={open} onClose={handleClose} labelledById={titleId}>
       <FormModalLayout
+        titleId={titleId}
         title="Thêm chương mới"
         subtitle={`Thêm chương vào "${subject.name}"`}
         infoBox={

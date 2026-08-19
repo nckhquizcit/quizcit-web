@@ -88,5 +88,33 @@
   --z-modal: 100;
   --z-toast: 110; /* toast phải nổi trên modal */
 
+  /* Admin density — cockpit (aliases onto global palette) */
+  --admin-bg: var(--color-surface-2);
+  --admin-surface: var(--color-surface);
+  --admin-surface-muted: var(--color-surface-2);
+  --admin-surface-strong: var(--color-surface-3);
+  --admin-border: var(--color-border);
+  --admin-border-strong: var(--color-border-strong);
+  --admin-text: var(--color-text);
+  --admin-muted: var(--color-text-muted);
+  --admin-subtle: var(--color-text-subtle);
+  --admin-primary: var(--color-primary);
+  --admin-primary-hover: var(--color-primary-hover);
+  --admin-primary-soft: var(--color-primary-soft);
+  --admin-danger: var(--color-error);
+  --admin-danger-soft: var(--color-error-soft);
+  --admin-warning: var(--color-warning-strong);
+  --admin-warning-soft: var(--color-warning-soft);
+  --admin-info: var(--color-info);
+  --admin-info-soft: var(--color-info-soft);
+  --admin-radius-control: var(--radius-sm);
+  --admin-radius-surface: var(--radius-sm);
+  --admin-shadow-xs: 0 1px 1px rgba(15, 23, 42, 0.04);
+  --admin-shadow-sm: 0 8px 20px rgba(15, 23, 42, 0.06);
+  --admin-focus: 0 0 0 3px rgba(16, 185, 129, 0.18);
+  --admin-fs-body: var(--fs-sm);
+  --admin-fs-title: var(--fs-lg);
+  --admin-control-h: 36px;
+
   /* Breakpoints (reference): sm 640, md 768, lg 1024, xl 1280 */
 }

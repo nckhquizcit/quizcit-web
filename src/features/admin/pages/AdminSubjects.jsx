@@ -4,6 +4,7 @@ import { ChevronRight, Plus, BookOpen, Check, GripVertical, ListOrdered, Pencil,
 
 import "../Admin.css";
 import AdminPageHeader from "../components/AdminPageHeader";
+import AdminPageState from "../components/AdminPageState";
 import SearchBar from "../components/SearchBar";
 import AddSubjectModal from "../components/modals/AddSubjectModal";
 import ConfirmDeleteModal from "../components/modals/ConfirmDeleteModal";
@@ -186,10 +187,13 @@ export default function AdminSubjects() {
         }
       />
 
-      {loading && <div className="admin-page-state">Đang tải danh sách môn học...</div>}
-      {loadError && <div className="admin-page-state error">{loadError}</div>}
       {actionError && <div className="admin-page-state error">{actionError}</div>}
-      {!loading && !loadError && filteredSubjects.length === 0 && (
+      <AdminPageState
+        loading={loading}
+        error={loadError || null}
+        errorTitle="Không tải được môn học"
+      >
+      {filteredSubjects.length === 0 && (
         subjects.length > 0 ? (
           <EmptyState
             icon={<BookOpen size={28} />}
@@ -206,7 +210,7 @@ export default function AdminSubjects() {
       )}
 
       {/* ===== SUBJECT GRID ===== */}
-      {!loading && !loadError && filteredSubjects.length > 0 && (
+      {filteredSubjects.length > 0 && (
       <div className="subject-grid">
         {filteredSubjects.map((subject) => {
           const isVisible = subject.visible !== false;
@@ -310,6 +314,7 @@ export default function AdminSubjects() {
         })}
       </div>
       )}
+      </AdminPageState>
 
       {/* ===== MODALS ===== */}
       <AddSubjectModal

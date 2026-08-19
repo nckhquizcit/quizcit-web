@@ -340,9 +340,8 @@
 }
 
 .sidebar-wrapper--admin .sidebar-brand__mark {
-  border-radius: 8px;
   background: #10b981;
-  box-shadow: none;
+  color: #fff;
 }
 
 .sidebar-wrapper--admin .title-text h2 {
@@ -407,4 +406,13 @@
 .sidebar-wrapper--admin .sidebar-user__menu,
 .sidebar-wrapper--admin .sidebar-user__menu-item {
   border-radius: 8px;
+}
+
+
+.sidebar-wrapper--admin .sidebar-item:focus-visible,
+.sidebar-wrapper--admin .sidebar-collapse-btn:focus-visible,
+.sidebar-wrapper--admin .sidebar-mobile-close:focus-visible,
+.sidebar-wrapper--admin .open-sidebar-container:focus-visible {
+  outline: 2px solid var(--admin-focus, #10b981);
+  outline-offset: 2px;
 }

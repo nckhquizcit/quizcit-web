@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import FormModalLayout from "../ui/FormModalLayout";
 import Modal from "../ui/Modal";
 
@@ -7,7 +7,7 @@ const INITIAL_FORM = {
   description: "",
 };
 
-function SkillFormContent({ mode, initialData, onClose, onSubmit, isSubmitting }) {
+function SkillFormContent({ mode, initialData, onClose, onSubmit, isSubmitting, titleId }) {
   const [formData, setFormData] = useState({
     name: initialData?.name || INITIAL_FORM.name,
     description: initialData?.description || INITIAL_FORM.description,
@@ -39,6 +39,7 @@ function SkillFormContent({ mode, initialData, onClose, onSubmit, isSubmitting }
   return (
     <form onSubmit={handleSubmit}>
       <FormModalLayout
+        titleId={titleId}
         title={isEdit ? "Chỉnh sửa kỹ năng" : "Thêm kỹ năng"}
         subtitle="Dữ liệu dùng cho adaptive và báo cáo theta."
         actions={
@@ -92,9 +93,10 @@ export default function SkillFormModal({
   isSubmitting = false,
 }) {
   const formKey = `${mode}-${initialData?.skillId || initialData?.id || "new"}-${open ? "open" : "closed"}`;
+  const titleId = useId();
 
   return (
-    <Modal open={open} onClose={onClose}>
+    <Modal open={open} onClose={onClose} labelledById={titleId}>
       <SkillFormContent
         key={formKey}
         mode={mode}
@@ -102,6 +104,7 @@ export default function SkillFormModal({
         onClose={onClose}
         onSubmit={onSubmit}
         isSubmitting={isSubmitting}
+        titleId={titleId}
       />
     </Modal>
   );
