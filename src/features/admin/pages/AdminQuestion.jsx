@@ -248,11 +248,13 @@ function PlacementModal({ open, title, description, subjects, chapters, onCancel
             onChange={(event) => handleSubjectChange(event.target.value)}
           >
             <option value="">Chọn môn học</option>
-            {subjects.map((subject) => (
-              <option key={subject.subjectId} value={subject.subjectId}>
-                {subject.name}
-              </option>
-            ))}
+            {subjects
+              .filter((subject) => subject.courseCode !== "QUESTION_BANK" && subject.name !== "Ngân hàng câu hỏi")
+              .map((subject) => (
+                <option key={subject.subjectId} value={subject.subjectId}>
+                  {subject.name}
+                </option>
+              ))}
           </select>
         </label>
 
