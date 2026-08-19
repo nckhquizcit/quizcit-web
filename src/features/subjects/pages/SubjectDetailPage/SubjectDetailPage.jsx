@@ -40,6 +40,7 @@ import {
 import ChatBox from "../../../../components/ChatBox/ChatBox";
 import { getErrorMessage, getStoredUser, isAccessDenied } from "../../../../services/apiClient";
 import { isUserPreviewActive } from "../../../../services/userPreviewMode";
+import { resolveImageUrl } from "../../../../services/mappers";
 import { getTheoryDisplayTitle } from "../../../content/utils/theoryDisplay.js";
 import { isValidAdaptiveQuestionCount } from "../../../quiz/pages/AdaptiveQuizPage/AdaptiveQuizPage.logic.js";
 import "./SubjectDetailPage.css";
@@ -303,16 +304,27 @@ export default function SubjectDetailPage() {
       </Link>
 
       <header className="subject-detail-header">
-        <div className="subject-detail-header__main">
-          <Badge variant="primary">{subjectCourseCode}</Badge>
-          <h1>{subjectName}</h1>
-          {subjectDescription && <p>{subjectDescription}</p>}
-        </div>
-        {!contentUnavailable && (
-          <Button variant="primary" onClick={handleOpenAdaptive}>
-            Bài kiểm tra thích ứng
-          </Button>
+        {subject?.imageUrl && (
+          <div className="subject-detail-header__cover">
+            <img
+              src={resolveImageUrl(subject.imageUrl)}
+              alt={subjectName}
+              className="subject-detail-header__cover-img"
+            />
+          </div>
         )}
+        <div className="subject-detail-header__content">
+          <div className="subject-detail-header__main">
+            <Badge variant="primary">{subjectCourseCode}</Badge>
+            <h1>{subjectName}</h1>
+            {subjectDescription && <p>{subjectDescription}</p>}
+          </div>
+          {!contentUnavailable && (
+            <Button variant="primary" onClick={handleOpenAdaptive}>
+              Bài kiểm tra thích ứng
+            </Button>
+          )}
+        </div>
       </header>
 
       {contentBlocked ? (

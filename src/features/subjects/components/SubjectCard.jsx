@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ArrowRight, BookOpen, Layers3, Lock, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Badge, Button, Card } from "../../../components/ui";
+import { resolveImageUrl } from "../../../services/mappers";
 import "./SubjectCard.css";
 
 export default function SubjectCard({ subject, enrolled = false, onEnroll, onUnenroll }) {
@@ -24,6 +25,17 @@ export default function SubjectCard({ subject, enrolled = false, onEnroll, onUne
 
   return (
     <Card className="subject-card" padding="lg">
+      {subject.imageUrl ? (
+        <div className="subject-card__cover">
+          <img
+            src={resolveImageUrl(subject.imageUrl)}
+            alt={subject.name}
+            className="subject-card__cover-img"
+            loading="lazy"
+          />
+        </div>
+      ) : null}
+
       <div className="subject-card__header">
         <div className="subject-card__heading">
           {(subject.course_code || enrolled) && (

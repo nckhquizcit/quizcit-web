@@ -22,6 +22,7 @@ import { getErrorMessage, getStoredUser } from "../../../../services/apiClient";
 import {
   formatScaledThetaValue,
   getAbilityLevel,
+  resolveImageUrl,
   thetaRawToPercent,
 } from "../../../../services/mappers";
 import "./HomePage.css";
@@ -256,6 +257,16 @@ export default function HomePage() {
                   navigate(`/app/subjects/${subject.subjectId}`)
                 }
               >
+                {subject.imageUrl && (
+                  <div className="home-subject-card__cover">
+                    <img
+                      src={resolveImageUrl(subject.imageUrl)}
+                      alt={subject.name}
+                      className="home-subject-card__cover-img"
+                      loading="lazy"
+                    />
+                  </div>
+                )}
                 {subject.courseCode && (
                   <Badge variant="primary" size="sm">
                     {subject.courseCode}

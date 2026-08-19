@@ -1,6 +1,7 @@
 import Modal from "../ui/Modal";
 import FormModalLayout from "../ui/FormModalLayout";
 import { getErrorMessage } from "../../../../services/apiClient";
+import SubjectImageField from "../../../../components/ui/SubjectImageField/SubjectImageField";
 
 import { useEffect, useState } from "react";
 
@@ -9,6 +10,7 @@ export default function AddSubjectModal({ open, onClose, onSubmit }) {
   const [courseCode, setCourseCode] = useState("");
   const [description, setDescription] = useState("");
   const [displayOrder, setDisplayOrder] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
@@ -19,6 +21,7 @@ export default function AddSubjectModal({ open, onClose, onSubmit }) {
     setCourseCode("");
     setDescription("");
     setDisplayOrder("");
+    setImageUrl("");
     setSubmitError("");
     setSubmitting(false);
   }, [open]);
@@ -34,11 +37,18 @@ export default function AddSubjectModal({ open, onClose, onSubmit }) {
     try {
       setSubmitting(true);
       setSubmitError("");
-      await onSubmit?.({ name, courseCode, description, displayOrder: displayOrder ? Number(displayOrder) : null });
+      await onSubmit?.({
+        name,
+        courseCode,
+        description,
+        displayOrder: displayOrder ? Number(displayOrder) : null,
+        imageUrl: imageUrl || null,
+      });
       setName("");
       setCourseCode("");
       setDescription("");
       setDisplayOrder("");
+      setImageUrl("");
     } catch (error) {
       setSubmitError(getErrorMessage(error, "Không thể lưu môn học. Vui lòng thử lại."));
     } finally {
@@ -67,6 +77,11 @@ export default function AddSubjectModal({ open, onClose, onSubmit }) {
         }
       >
         {submitError && <div className="modal-inline-error">{submitError}</div>}
+        <SubjectImageField
+          value={imageUrl}
+          onChange={setImageUrl}
+          disabled={submitting}
+        />
         <label className="quiz-field" htmlFor="add-subject-name">
           <span>Tên môn học</span>
           <input

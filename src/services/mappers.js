@@ -110,11 +110,24 @@ function normalizeVietnameseDisplayText(value) {
   );
 }
 
+export function resolveImageUrl(url) {
+  if (!url || typeof url !== "string") return "";
+  const trimmed = url.trim();
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("data:") || trimmed.startsWith("blob:")) {
+    return trimmed;
+  }
+  const envBaseUrl = (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE_URL) || "http://localhost:8080";
+  const baseUrl = envBaseUrl.replace(/\/$/, "");
+  const path = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+  return `${baseUrl}${path}`;
+}
+
 export function mapSubject(raw = {}) {
   const subjectId = pick(raw, ["subjectId", "subject_id", "id"]);
   const courseCode = pick(raw, ["courseCode", "course_code", "code"], "");
   // Danh sách môn đã đăng ký không kèm cờ hiển thị, không được suy ra là true.
   const visible = pick(raw, ["visible", "isVisible", "is_visible"]);
+  const imageUrl = pick(raw, ["imageUrl", "image_url", "thumbnailUrl", "thumbnail_url"], "");
 
   return {
     ...raw,
@@ -123,6 +136,8 @@ export function mapSubject(raw = {}) {
     subject_id: subjectId,
     courseCode,
     course_code: courseCode,
+    imageUrl,
+    image_url: imageUrl,
     name: normalizeVietnameseDisplayText(pick(raw, ["name"], "")),
     description: normalizeVietnameseDisplayText(pick(raw, ["description"], "")),
     visible: visible === undefined ? undefined : Boolean(visible),

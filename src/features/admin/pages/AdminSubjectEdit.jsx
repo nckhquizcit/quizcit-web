@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import AdminPageHeader from "../components/AdminPageHeader";
 import ErrorState from "../../../components/ui/ErrorState/ErrorState";
+import SubjectImageField from "../../../components/ui/SubjectImageField/SubjectImageField";
 import { getChaptersBySubject, getSubjectById, updateSubject } from "../../../services/contentService";
 import { getErrorMessage } from "../../../services/apiClient";
 import { useToast } from "../../../components/ui/Toast/Toast";
@@ -58,6 +59,12 @@ export default function AdminSubjectEdit() {
       <div className="adm2-form-grid">
         <div className="admin-section-card adm2-card-pad">
           <form className="standalone-edit-form" onSubmit={save}>
+            <SubjectImageField
+              value={form.imageUrl || ""}
+              onChange={(url) => setField("imageUrl", url)}
+              disabled={saving}
+            />
+
             <label className="quiz-field">
               <span>Tên môn học</span>
               <input value={form.name} onChange={(e) => setField("name", e.target.value)} maxLength={200} required />

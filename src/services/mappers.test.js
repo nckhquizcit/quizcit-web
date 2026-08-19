@@ -6,7 +6,9 @@ import {
   getAbilityLevel,
   mapAbilityHistory,
   mapQuestion,
+  mapSubject,
   mapUserSkillAbility,
+  resolveImageUrl,
   scaleThetaForDisplay,
 } from "./mappers.js";
 import { toPreviewText } from "../components/richtext/richTextUtils.js";
@@ -70,3 +72,25 @@ describe("ability score display", () => {
     assert.equal(getAbilityLevel(2.5).label, "Xuất sắc");
   });
 });
+
+describe("subject mapping and image URL resolution", () => {
+  it("maps imageUrl properly from camelCase or snake_case", () => {
+    assert.equal(
+      mapSubject({ subjectId: "s1", imageUrl: "/api/uploads/subjects/test.webp" }).imageUrl,
+      "/api/uploads/subjects/test.webp"
+    );
+    assert.equal(
+      mapSubject({ subject_id: "s2", image_url: "/api/uploads/subjects/test2.webp" }).imageUrl,
+      "/api/uploads/subjects/test2.webp"
+    );
+  });
+
+  it("resolves relative and absolute image URLs", () => {
+    assert.equal(resolveImageUrl(""), "");
+    assert.equal(resolveImageUrl(null), "");
+    assert.equal(resolveImageUrl("https://cdn.example.com/img.jpg"), "https://cdn.example.com/img.jpg");
+    assert.equal(resolveImageUrl("data:image/png;base64,..."), "data:image/png;base64,...");
+    assert.ok(resolveImageUrl("/api/uploads/subjects/img.webp").includes("/api/uploads/subjects/img.webp"));
+  });
+});
+

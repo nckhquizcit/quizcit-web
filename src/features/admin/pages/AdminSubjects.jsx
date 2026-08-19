@@ -10,6 +10,7 @@ import ConfirmDeleteModal from "../components/modals/ConfirmDeleteModal";
 import EmptyState from "../../../components/ui/EmptyState/EmptyState";
 import { createSubject, deleteSubject, getAllChapters, getSubjects, reorderSubjects } from "../../../services/contentService";
 import { getErrorMessage } from "../../../services/apiClient";
+import { resolveImageUrl } from "../../../services/mappers";
 import { reorderById } from "../utils/displayOrder";
 
 export default function AdminSubjects() {
@@ -226,6 +227,17 @@ export default function AdminSubjects() {
             }}
           >
             {isOrdering && <span className="display-order-drag-handle" title="Kéo để đổi thứ tự" aria-label="Kéo để đổi thứ tự"><GripVertical size={17} /></span>}
+
+            {subject.imageUrl ? (
+              <div className="adm2-subject-card-cover">
+                <img
+                  src={resolveImageUrl(subject.imageUrl)}
+                  alt={subject.name}
+                  className="adm2-subject-card-cover-img"
+                  loading="lazy"
+                />
+              </div>
+            ) : null}
 
             <div className="adm2-subject-card-head">
               <div className="adm2-icon-square" title={subject.courseCode}>{subject.courseCode}</div>

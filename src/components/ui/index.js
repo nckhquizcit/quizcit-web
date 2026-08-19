@@ -10,4 +10,6 @@ export { default as EmptyState } from "./EmptyState/EmptyState";
 export { default as ErrorState } from "./ErrorState/ErrorState";
 export { default as Modal } from "./Modal/Modal";
 export { default as StatTile } from "./StatTile/StatTile";
+export { default as ImageCropModal } from "./ImageCropModal/ImageCropModal";
+export { default as SubjectImageField } from "./SubjectImageField/SubjectImageField";
 export { ToastProvider, useToast } from "./Toast/Toast";
