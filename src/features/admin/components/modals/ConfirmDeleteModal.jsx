@@ -4,7 +4,15 @@ import { Trash2, X } from "lucide-react";
 import { getErrorMessage } from "../../../../services/apiClient";
 import "./modal.css";
 
-export default function ConfirmDeleteModal({ open, onClose, title, message, itemName, onConfirm }) {
+export default function ConfirmDeleteModal({
+  open,
+  onClose,
+  title,
+  message,
+  itemName,
+  confirmText = "Có, xóa hẳn",
+  onConfirm,
+}) {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
@@ -91,7 +99,7 @@ export default function ConfirmDeleteModal({ open, onClose, title, message, item
             onClick={handleConfirm}
             disabled={submitting}
           >
-            {submitting ? "Đang xóa..." : "Có, xóa hẳn"}
+            {submitting ? "Đang xóa..." : confirmText}
           </button>
         </div>
       </div>

@@ -136,7 +136,12 @@ export default function SkillDetailPage() {
 
   const currentSkillId = normalizeSkillId(skillId);
   const ability = abilities.find((row) => normalizeSkillId(row.skillId) === currentSkillId);
-  const skillName = getSkillDisplayName(nameById, currentSkillId, ability?.name);
+  const latestHistoryFallback = ascendingHistories.at(-1);
+  const skillName = getSkillDisplayName(
+    nameById,
+    currentSkillId,
+    ability?.name || latestHistoryFallback?.name || latestHistoryFallback?.skillName,
+  );
   const description = descriptionById.get(currentSkillId) || "";
 
   const backLink = (

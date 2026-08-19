@@ -188,8 +188,9 @@ export default function AdminSkills() {
         open={Boolean(deletingSkill)}
         onClose={() => setDeletingSkill(null)}
         title="Xóa kỹ năng"
-        message={`Bạn có muốn xóa kỹ năng "${deletingSkill?.name}" không?`}
+        message="Bạn có chắc chắn muốn xóa kỹ năng này không? Kỹ năng đã xóa sẽ bị ẩn khỏi danh sách và không thể chọn trong các câu hỏi hay chương mới."
         itemName={deletingSkill?.name}
+        confirmText="Xác nhận xóa"
         onConfirm={handleDeleteSkill}
       />
     </>
