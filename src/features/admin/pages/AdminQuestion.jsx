@@ -684,12 +684,23 @@ export default function AdminQuestions() {
                   onChange={(event) => setSubjectFilter(event.target.value)}
                   aria-label="Lọc theo môn học"
                 >
-                  <option value="ALL">Tất cả môn</option>
-                  {subjects.map((subject) => (
-                    <option key={subject.subjectId} value={subject.subjectId}>
-                      {subject.name}
-                    </option>
-                  ))}
+                  <option value="ALL" style={{ fontWeight: "bold" }}>
+                    Tất cả môn
+                  </option>
+                  <option value="QUESTION_BANK" style={{ fontWeight: "bold" }}>
+                    Ngân hàng câu hỏi
+                  </option>
+                  {subjects
+                    .filter(
+                      (subject) =>
+                        subject.courseCode !== "QUESTION_BANK" &&
+                        subject.name !== "Ngân hàng câu hỏi",
+                    )
+                    .map((subject) => (
+                      <option key={subject.subjectId} value={subject.subjectId}>
+                        {subject.name}
+                      </option>
+                    ))}
                 </select>
                 <select
                   className="question-bank-select"
@@ -800,7 +811,11 @@ export default function AdminQuestions() {
                                 <strong>{toPreviewText(row.content, row.contentFormat)}</strong>
                                 <div className="question-bank-meta">
                                   <span>
-                                    {row.subject?.name || "Chưa có môn"} · {row.chapter?.name || "Chưa có chương"}
+                                    {row.subject?.courseCode === "QUESTION_BANK" ||
+                                    row.subject?.name === "Ngân hàng câu hỏi" ||
+                                    !row.subject?.name
+                                      ? "Ngân hàng câu hỏi · Chưa phân loại"
+                                      : `${row.subject?.name} · ${row.chapter?.name || "Chưa có chương"}`}
                                   </span>
                                 </div>
                               </div>

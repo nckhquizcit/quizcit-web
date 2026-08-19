@@ -40,6 +40,19 @@ describe("filterQuestionBankQuestions", () => {
       [questions[1]],
     );
   });
+
+  it("filters by QUESTION_BANK subject for unclassified questions", () => {
+    const unclassifiedQuestion = {
+      subjectId: null,
+      subject: { courseCode: "QUESTION_BANK", name: "Ngân hàng câu hỏi" },
+      content: "Câu hỏi chưa phân loại",
+    };
+    const all = [...questions, unclassifiedQuestion];
+    assert.deepEqual(
+      filterQuestionBankQuestions(all, { subjectId: "QUESTION_BANK" }),
+      [unclassifiedQuestion],
+    );
+  });
 });
 
 describe("getQuestionSkillOptions", () => {

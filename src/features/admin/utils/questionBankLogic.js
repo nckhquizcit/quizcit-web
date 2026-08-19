@@ -12,7 +12,17 @@ export function filterQuestionBankQuestions(
   const query = String(search).trim().toLowerCase();
 
   return questions.filter((question) => {
-    const matchesSubject = subjectId === "ALL" || String(question.subjectId) === String(subjectId);
+    const isQuestionBankSubject =
+      question.subject?.courseCode === "QUESTION_BANK" ||
+      question.subject?.name === "Ngân hàng câu hỏi" ||
+      String(question.subjectId) === "QUESTION_BANK" ||
+      !question.subjectId;
+
+    const matchesSubject =
+      subjectId === "ALL" ||
+      (subjectId === "QUESTION_BANK"
+        ? isQuestionBankSubject
+        : String(question.subjectId) === String(subjectId));
     const matchesDifficulty =
       difficulty === "ALL" ||
       matchDifficultyPresetKey(question.difficultyB ?? 0) === difficulty;
