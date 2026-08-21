@@ -8,8 +8,8 @@ import {
   validateQuestionImportRow,
 } from "./questionImportParser.js";
 
-test("validateQuestionImportRow requires difficulty by default", () => {
-  const rowWithoutDiff = {
+test("validateQuestionImportRow requires difficulty and skills by default", () => {
+  const rowWithoutDiffAndSkills = {
     content: "Câu hỏi test",
     options: [{ key: "A", content: "Đúng" }, { key: "B", content: "Sai" }],
     correctKey: "A",
@@ -17,18 +17,22 @@ test("validateQuestionImportRow requires difficulty by default", () => {
     chapterId: "chap-1",
     difficultyB: null,
     difficulty: "",
+    skills: [],
   };
 
-  const validation = validateQuestionImportRow(rowWithoutDiff);
+  const validation = validateQuestionImportRow(rowWithoutDiffAndSkills);
   assert.equal(validation.errors.includes("Chưa nhập độ khó câu hỏi."), true);
+  assert.equal(validation.errors.includes("Chưa gắn kỹ năng cho câu hỏi."), true);
 
-  const rowWithDiff = {
-    ...rowWithoutDiff,
+  const rowWithDiffAndSkills = {
+    ...rowWithoutDiffAndSkills,
     difficultyB: 1.05,
     difficulty: "CUSTOM",
+    skills: [{ skillId: "sk-1", name: "Kỹ năng 1", weight: "1", primary: true }],
   };
-  const validResult = validateQuestionImportRow(rowWithDiff);
+  const validResult = validateQuestionImportRow(rowWithDiffAndSkills);
   assert.equal(validResult.errors.includes("Chưa nhập độ khó câu hỏi."), false);
+  assert.equal(validResult.errors.includes("Chưa gắn kỹ năng cho câu hỏi."), false);
 });
 
 test("createQuestionImportRow leaves difficulty null when not provided", () => {

@@ -144,7 +144,7 @@ function parseCsvSkills(skillValue = "", weightValue = "", primaryValue = "") {
   });
 }
 
-export function validateQuestionImportRow(row, { requireSubject = true, requireChapter = true, requireDifficulty = true } = {}) {
+export function validateQuestionImportRow(row, { requireSubject = true, requireChapter = true, requireDifficulty = true, requireSkills = true } = {}) {
   const errors = [];
   const warnings = [];
   const content = normalizeText(row?.content);
@@ -187,6 +187,10 @@ export function validateQuestionImportRow(row, { requireSubject = true, requireC
 
   if (requireDifficulty && !hasDifficulty) {
     errors.push("Chưa nhập độ khó câu hỏi.");
+  }
+
+  if (requireSkills && skills.length === 0) {
+    errors.push("Chưa gắn kỹ năng cho câu hỏi.");
   }
 
   if (skills.length > 0) {

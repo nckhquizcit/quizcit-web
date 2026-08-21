@@ -1,13 +1,18 @@
 import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import {
   AlertCircle,
+  Archive,
   CheckCircle2,
   Download,
+  FileCode2,
+  FileSpreadsheet,
   FileText,
   FileUp,
   Info,
   ListChecks,
+  PackageCheck,
   SlidersHorizontal,
+  Sparkles,
   Upload,
 } from "lucide-react";
 
@@ -27,13 +32,25 @@ import { detectMoodleXml, parseQuestionsFromMoodleXml } from "../../utils/moodle
 import { detectAiken, detectGift, parseQuestionsFromAiken, parseQuestionsFromGift } from "../../utils/moodleTextParser";
 import { isImportReferenceDataReady } from "../../utils/questionImportMapping";
 import { getImportSkillsForChapter } from "../../utils/questionImportPreviewLogic";
-import { downloadQuestionImportTemplate } from "../../utils/questionImportTemplate";
+import {
+  downloadImportZipPackage,
+  downloadQuestionImportTemplate,
+} from "../../utils/questionImportTemplate";
 import {
   CUSTOM_DIFFICULTY_KEY,
   matchDifficultyPresetKey,
   parseDifficultyArray,
   resolveDifficultyB,
 } from "../../utils/difficultyLevels";
+import { parseSkillArray } from "../../utils/skillMappingParser";
+
+const FORMAT_OPTIONS = [
+  { key: "csv", label: "CSV (.csv)", ext: ".csv", icon: FileSpreadsheet },
+  { key: "text", label: "Văn bản (.txt)", ext: ".txt", icon: FileText },
+  { key: "moodle", label: "Moodle XML (.xml)", ext: ".xml", icon: FileCode2 },
+  { key: "gift", label: "GIFT (.gift)", ext: ".gift", icon: FileText },
+  { key: "aiken", label: "Aiken (.aiken)", ext: ".aiken", icon: FileText },
+];
 
 const SUPPORTED_FILE_EXTENSIONS = [".txt", ".csv", ".xml", ".gift", ".aiken"];
 
@@ -144,18 +161,23 @@ export default function ImportQuestionsModal({
     [chapters, subject],
   );
 
+  const [selectedFormat, setSelectedFormat] = useState("csv");
   const [activeTab, setActiveTab] = useState("text");
   const [sourceText, setSourceText] = useState("");
-  const [sourceType, setSourceType] = useState("auto");
   const [sourceName, setSourceName] = useState("");
   const [difficultyText, setDifficultyText] = useState("");
   const [difficultyFileName, setDifficultyFileName] = useState("");
   const [difficultyFileLoading, setDifficultyFileLoading] = useState(false);
+  const [skillText, setSkillText] = useState("");
+  const [skillFileName, setSkillFileName] = useState("");
+  const [skillFileLoading, setSkillFileLoading] = useState(false);
 
   const [targetSubjectId, setTargetSubjectId] = useState("");
   const [targetChapterId, setTargetChapterId] = useState("");
+  const [defaultSkillId, setDefaultSkillId] = useState("");
   const [availableChapters, setAvailableChapters] = useState([]);
   const [loadingChapters, setLoadingChapters] = useState(false);
+  const [downloadingZip, setDownloadingZip] = useState(false);
 
   const [rows, setRows] = useState([]);
   const [parseMessage, setParseMessage] = useState("");
@@ -177,10 +199,42 @@ export default function ImportQuestionsModal({
     return [...byId.values()];
   }, [availableChapters, normalizedInitialChapters]);
 
+  const currentChapterSkills = useMemo(() => {
+    if (!targetChapterId || targetSubjectId === "QUESTION_BANK") return [];
+    return getImportSkillsForChapter(allPreviewChapters, targetChapterId);
+  }, [allPreviewChapters, targetChapterId, targetSubjectId]);
+
+  const allSubjectSkills = useMemo(() => {
+    if (!targetSubjectId || targetSubjectId === "QUESTION_BANK") return [];
+    const subjectChapters = allPreviewChapters.filter(
+      (c) => String(c.subjectId) === String(targetSubjectId),
+    );
+    const bySkillId = new Map();
+    subjectChapters.forEach((chap) => {
+      (chap.skills || []).forEach((skill) => {
+        if (skill?.skillId && !bySkillId.has(skill.skillId)) {
+          bySkillId.set(skill.skillId, {
+            skillId: skill.skillId,
+            name: skill.name,
+            chapterName: chap.name,
+            chapterId: chap.chapterId,
+            description: skill.description || "",
+          });
+        }
+      });
+    });
+    return [...bySkillId.values()];
+  }, [allPreviewChapters, targetSubjectId]);
+
   const parsedDifficultyInfo = useMemo(() => {
     if (!difficultyText.trim()) return null;
     return parseDifficultyArray(difficultyText);
   }, [difficultyText]);
+
+  const parsedSkillInfo = useMemo(() => {
+    if (!skillText.trim()) return null;
+    return parseSkillArray(skillText, currentChapterSkills.length ? currentChapterSkills : allSubjectSkills);
+  }, [allSubjectSkills, currentChapterSkills, skillText]);
 
   const resolveImportedRow = useCallback((row) => {
     const isBank = targetSubjectId === "QUESTION_BANK";
@@ -210,7 +264,20 @@ export default function ImportQuestionsModal({
       ? matchDifficultyPresetKey(difficultyB) || CUSTOM_DIFFICULTY_KEY
       : (row.manualDifficulty || row.difficulty || "");
 
-    const sourceSkills = row.skills || [];
+    let sourceSkills = row.skills || [];
+    if (!sourceSkills.length && defaultSkillId) {
+      const defSkill = (currentChapterSkills || []).find((s) => s.skillId === defaultSkillId) ||
+        (allSubjectSkills || []).find((s) => s.skillId === defaultSkillId);
+      if (defSkill) {
+        sourceSkills = [{
+          skillId: defSkill.skillId,
+          name: defSkill.name,
+          weight: "1",
+          primary: true,
+        }];
+      }
+    }
+
     const chapterSkills = isBank ? [] : getImportSkillsForChapter(allPreviewChapters, chapterId);
     const equalWeight = equalSkillWeight(sourceSkills.length);
     const hasPrimary = sourceSkills.some((skill) => skill.primary);
@@ -247,7 +314,7 @@ export default function ImportQuestionsModal({
       mappingErrors,
       serverError: "",
     };
-  }, [allPreviewChapters, targetChapterId, targetSubjectId]);
+  }, [allPreviewChapters, allSubjectSkills, currentChapterSkills, defaultSkillId, targetChapterId, targetSubjectId]);
 
   const handleApplyDifficultyArray = (difficultyValues = []) => {
     setSaveResult(null);
@@ -276,6 +343,7 @@ export default function ImportQuestionsModal({
         requireSubject: true,
         requireChapter: true,
         requireDifficulty: true,
+        requireSkills: true,
       });
 
       return {
@@ -291,13 +359,17 @@ export default function ImportQuestionsModal({
     const routeSubjectId = normalizeId(getSubjectId(subject));
     const routeChapterId = normalizeId(getChapterId(chapter));
 
+    setSelectedFormat("csv");
     setActiveTab("text");
     setSourceText("");
-    setSourceType("auto");
     setSourceName("");
     setDifficultyText("");
     setDifficultyFileName("");
     setDifficultyFileLoading(false);
+    setSkillText("");
+    setSkillFileName("");
+    setSkillFileLoading(false);
+    setDefaultSkillId("");
     setRows([]);
     setParseMessage("");
     setFormError("");
@@ -400,6 +472,7 @@ export default function ImportQuestionsModal({
 
   const handleSubjectChange = (nextSubjectId) => {
     setTargetSubjectId(nextSubjectId);
+    setDefaultSkillId("");
     setFormError("");
     if (nextSubjectId === "QUESTION_BANK") {
       setTargetChapterId("QUESTION_BANK");
@@ -413,6 +486,7 @@ export default function ImportQuestionsModal({
 
   const handleChapterChange = (nextChapterId) => {
     setTargetChapterId(nextChapterId);
+    setDefaultSkillId("");
     setFormError("");
   };
 
@@ -438,17 +512,12 @@ export default function ImportQuestionsModal({
     const reader = new FileReader();
     setFileLoading(true);
     setSourceName(file.name);
-    setSourceType(
-      extension === ".xml"
-        ? "moodle"
-        : extension === ".gift"
-          ? "gift"
-          : extension === ".aiken"
-            ? "aiken"
-            : extension === ".csv"
-              ? "csv"
-              : "auto",
-    );
+
+    if (extension === ".xml") setSelectedFormat("moodle");
+    else if (extension === ".gift") setSelectedFormat("gift");
+    else if (extension === ".aiken") setSelectedFormat("aiken");
+    else if (extension === ".csv") setSelectedFormat("csv");
+    else if (extension === ".txt") setSelectedFormat("text");
 
     reader.onload = () => {
       setSourceText(String(reader.result || ""));
@@ -497,6 +566,60 @@ export default function ImportQuestionsModal({
     reader.readAsText(file, "utf-8");
   };
 
+  const handleSkillFileChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setFormError("");
+    const reader = new FileReader();
+    setSkillFileLoading(true);
+    setSkillFileName(file.name);
+
+    reader.onload = () => {
+      const content = String(reader.result || "");
+      setSkillText(content);
+      const parsed = parseSkillArray(content, currentChapterSkills.length ? currentChapterSkills : allSubjectSkills);
+      if (parsed.mappings.length > 0) {
+        setParseMessage(`Đã đọc file mảng kỹ năng (${parsed.mappings.length} câu).`);
+      }
+      setSkillFileLoading(false);
+      event.target.value = "";
+    };
+
+    reader.onerror = () => {
+      setSkillText("");
+      setFormError("Không thể đọc file kỹ năng. Vui lòng thử lại.");
+      setSkillFileLoading(false);
+      event.target.value = "";
+    };
+
+    reader.readAsText(file, "utf-8");
+  };
+
+  const handleDownloadZip = async () => {
+    try {
+      setDownloadingZip(true);
+      const selSub = normalizedSubjects.find((s) => String(s.subjectId) === String(targetSubjectId)) || {
+        name: "MonHoc",
+      };
+      const selChap = allPreviewChapters.find((c) => String(c.chapterId) === String(targetChapterId)) || {
+        name: "Chuong",
+      };
+
+      await downloadImportZipPackage({
+        format: selectedFormat,
+        subject: selSub,
+        chapter: selChap,
+        allSubjectSkills,
+        chapterSkills: currentChapterSkills,
+      });
+    } catch (err) {
+      setFormError("Không thể tạo file zip mẫu. Vui lòng thử lại.");
+    } finally {
+      setDownloadingZip(false);
+    }
+  };
+
   const handleParse = () => {
     const text = sourceText.trim();
 
@@ -527,9 +650,7 @@ export default function ImportQuestionsModal({
       return;
     }
 
-    const effectiveSourceType = sourceType === "auto"
-      ? (detectMoodleXml(text) ? "moodle" : detectAiken(text) ? "aiken" : detectGift(text) ? "gift" : detectCsvImport(text) ? "csv" : "text")
-      : sourceType;
+    const effectiveSourceType = selectedFormat || (detectMoodleXml(text) ? "moodle" : detectAiken(text) ? "aiken" : detectGift(text) ? "gift" : detectCsvImport(text) ? "csv" : "text");
 
     let parsedRows;
     try {
@@ -560,8 +681,19 @@ export default function ImportQuestionsModal({
       }
     }
 
+    let skillMappings = [];
+    if (skillText.trim()) {
+      const skillResult = parseSkillArray(skillText, currentChapterSkills.length ? currentChapterSkills : allSubjectSkills);
+      skillMappings = skillResult.mappings;
+      if (skillResult.invalidTokens.length > 0) {
+        setFormError(`Phát hiện kỹ năng không hợp lệ: ${skillResult.invalidTokens.join(", ")}`);
+        return;
+      }
+    }
+
     const rowsWithDefaults = parsedRows.map((row, index) => {
       let nextRow = { ...row };
+
       if (index < diffValues.length) {
         const val = diffValues[index];
         nextRow.difficultyB = val;
@@ -569,17 +701,24 @@ export default function ImportQuestionsModal({
         nextRow.manualDifficultyB = val;
         nextRow.manualDifficulty = matchDifficultyPresetKey(val) || CUSTOM_DIFFICULTY_KEY;
       }
+
+      if (index < skillMappings.length && skillMappings[index].length > 0) {
+        nextRow.skills = skillMappings[index];
+      }
+
       return resolveImportedRow(nextRow);
     });
 
     setRows(validateRows(rowsWithDefaults));
 
-    let msg = `${parsedRows.length} câu được nhận diện (dạng ${effectiveSourceType.toUpperCase()}).`;
+    let msg = `${parsedRows.length} câu được nhận diện (${effectiveSourceType.toUpperCase()}).`;
     if (diffValues.length > 0) {
-      msg += ` Đã gán độ khó cho ${Math.min(diffValues.length, parsedRows.length)}/${parsedRows.length} câu từ mảng.`;
-      if (diffValues.length < parsedRows.length) {
-        msg += ` (${parsedRows.length - diffValues.length} câu còn lại cần nhập độ khó).`;
-      }
+      msg += ` Gán ${Math.min(diffValues.length, parsedRows.length)} độ khó.`;
+    }
+    if (skillMappings.length > 0) {
+      msg += ` Gán ${Math.min(skillMappings.length, parsedRows.length)} mảng kỹ năng.`;
+    } else if (defaultSkillId) {
+      msg += " Đã áp dụng kỹ năng mặc định.";
     }
     setParseMessage(msg);
   };
@@ -630,12 +769,12 @@ export default function ImportQuestionsModal({
     setSaveResult(null);
 
     if (!validRows.length) {
-      setFormError("Không có câu hỏi hợp lệ để lưu. Vui lòng bổ sung độ khó hoặc sửa lỗi trong preview.");
+      setFormError("Không có câu hỏi hợp lệ để lưu. Vui lòng bổ sung độ khó, kỹ năng và sửa lỗi trong preview.");
       return;
     }
 
     if (invalidCount > 0 && !allowPartialSave) {
-      setFormError("Hãy nhập đủ độ khó và sửa hết lỗi, hoặc tích chọn chỉ lưu các câu hợp lệ.");
+      setFormError("Hãy nhập đủ độ khó/kỹ năng và sửa hết lỗi, hoặc tích chọn chỉ lưu các câu hợp lệ.");
       return;
     }
 
@@ -695,10 +834,6 @@ export default function ImportQuestionsModal({
   const selectedChapter = allPreviewChapters.find(
     (item) => String(item.chapterId) === String(targetChapterId),
   );
-  const templateContext = {
-    subjectName: targetSubjectId === "QUESTION_BANK" ? "Ngân hàng câu hỏi" : selectedSubject?.name,
-    chapterName: targetSubjectId === "QUESTION_BANK" ? "Chưa phân loại" : selectedChapter?.name,
-  };
 
   const isScopeReady = Boolean(
     targetSubjectId && (targetSubjectId === "QUESTION_BANK" || targetChapterId),
@@ -713,26 +848,55 @@ export default function ImportQuestionsModal({
           </span>
           <div>
             <h2 id={titleId}>Import câu hỏi</h2>
-            <p>Chọn môn học/chương, tải câu hỏi và mảng độ khó trước khi phân tích.</p>
+            <p>Quy trình chuẩn hóa câu hỏi, mảng độ khó và phân bổ kỹ năng (Theta &amp; Skills).</p>
           </div>
           <div className="question-import-header__meta" aria-label="Định dạng hỗ trợ">
-            <span>.txt</span>
-            <span>.csv</span>
-            <span>.xml</span>
-            <span>.gift</span>
-            <span>.aiken</span>
+            <span>CSV</span>
+            <span>TXT</span>
+            <span>Moodle XML</span>
+            <span>GIFT</span>
+            <span>Aiken</span>
           </div>
         </div>
       )}
 
       <div className="question-import-workspace">
-        {/* BƯỚC 1: CHỌN MÔN HỌC VÀ CHƯƠNG */}
-        <div className="admin-section-card adm2-card-pad question-import-scope-section">
+        {/* BƯỚC 1: CHỌN FORMAT */}
+        <div className="admin-section-card adm2-card-pad question-import-step-card">
           <div className="adm2-section-heading">
             <div className="question-import-step-badge">1</div>
             <div>
-              <h3>Chọn phạm vi lưu câu hỏi *</h3>
-              <p>Bắt buộc chọn môn học và chương trước khi phân tích nội dung.</p>
+              <h3>Chọn định dạng câu hỏi *</h3>
+              <p>Chọn chuẩn định dạng câu hỏi bạn muốn sử dụng để import.</p>
+            </div>
+          </div>
+
+          <div className="question-import-format-selector" role="radiogroup" aria-label="Định dạng câu hỏi">
+            {FORMAT_OPTIONS.map((fmt) => {
+              const Icon = fmt.icon;
+              const active = selectedFormat === fmt.key;
+              return (
+                <button
+                  type="button"
+                  key={fmt.key}
+                  className={active ? "question-import-format-btn active" : "question-import-format-btn"}
+                  onClick={() => setSelectedFormat(fmt.key)}
+                >
+                  <Icon size={18} />
+                  <span>{fmt.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* BƯỚC 2: CHỌN MÔN HỌC & CHƯƠNG */}
+        <div className="admin-section-card adm2-card-pad question-import-step-card">
+          <div className="adm2-section-heading">
+            <div className="question-import-step-badge">2</div>
+            <div>
+              <h3>Chọn phạm vi lưu (Môn học &amp; Chương) *</h3>
+              <p>Mỗi câu hỏi bắt buộc thuộc một môn học và chương (hoặc Ngân hàng câu hỏi chưa phân loại).</p>
             </div>
           </div>
 
@@ -793,13 +957,70 @@ export default function ImportQuestionsModal({
           )}
         </div>
 
-        {/* BƯỚC 2: NGUỒN DỮ LIỆU CÂU HỎI & MẢNG ĐỘ KHÓ */}
+        {/* BƯỚC 3: CHỌN KỸ NĂNG & NÚT LẤY MẪU ZIP (Chỉ hiển thị sau khi đã chọn môn & chương) */}
+        {isScopeReady && (
+          <div className="admin-section-card adm2-card-pad question-import-step-card question-import-skill-scope-card">
+            <div className="adm2-section-heading">
+              <div className="question-import-step-badge">3</div>
+              <div className="question-import-step-heading-main">
+                <div>
+                  <h3>Kỹ năng mặc định &amp; Bộ file mẫu (.zip)</h3>
+                  <p>Mỗi câu hỏi bắt buộc có ít nhất 1 kỹ năng chính và tổng trọng số = 1.0.</p>
+                </div>
+                <button
+                  type="button"
+                  className="add-btn question-import-zip-download-btn"
+                  onClick={handleDownloadZip}
+                  disabled={downloadingZip}
+                >
+                  <Archive size={16} />
+                  {downloadingZip ? "Đang tạo ZIP..." : `Tải bộ file mẫu ${selectedFormat.toUpperCase()} (.zip)`}
+                </button>
+              </div>
+            </div>
+
+            <div className="question-import-skill-setup">
+              <label className="form-field">
+                <span>Gán nhanh kỹ năng mặc định cho các câu chưa có kỹ năng:</span>
+                <select
+                  value={defaultSkillId}
+                  onChange={(event) => setDefaultSkillId(event.target.value)}
+                  disabled={submitting}
+                >
+                  <option value="">-- Không gán tự động (Dùng file/mảng kỹ năng hoặc nhập tay) --</option>
+                  {currentChapterSkills.map((s) => (
+                    <option value={s.skillId} key={s.skillId}>
+                      {s.name} (Trọng số: 1.0 - Chính)
+                    </option>
+                  ))}
+                  {!currentChapterSkills.length && allSubjectSkills.map((s) => (
+                    <option value={s.skillId} key={s.skillId}>
+                      {s.name} ({s.chapterName})
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="question-import-zip-info-box">
+                <PackageCheck size={18} />
+                <div>
+                  <strong>Gói ZIP mẫu bao gồm 5 file hoàn chỉnh:</strong>
+                  <span>
+                    1. File câu hỏi mẫu ({selectedFormat.toUpperCase()}) · 2. Danh sách toàn bộ Skills của môn ({allSubjectSkills.length} kỹ năng) · 3. File độ khó mẫu · 4. File mảng kỹ năng mẫu · 5. Hướng dẫn chi tiết.
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* BƯỚC 4: NGUỒN DỮ LIỆU (3 ĐẦU VÀO ĐỒNG THỜI: CÂU HỎI, ĐỘ KHÓ, SKILLS) */}
         <div className="admin-section-card adm2-card-pad question-import-source-section">
           <div className="adm2-section-heading">
-            <div className="question-import-step-badge">2</div>
+            <div className="question-import-step-badge">{isScopeReady ? "4" : "3"}</div>
             <div>
-              <h3>Nội dung câu hỏi &amp; Mảng độ khó</h3>
-              <p>Dán hoặc tải file câu hỏi kèm mảng độ khó (Theta) cùng lúc rồi bấm Phân tích.</p>
+              <h3>Nguồn dữ liệu câu hỏi, mảng độ khó &amp; kỹ năng</h3>
+              <p>Tải lên hoặc dán đồng thời cả 3 nguồn rồi bấm Phân tích nội dung.</p>
             </div>
           </div>
 
@@ -819,95 +1040,91 @@ export default function ImportQuestionsModal({
                 onClick={() => setActiveTab("file")}
               >
                 <FileUp size={16} />
-                Upload file
-              </button>
-            </div>
-            <div className="question-import-template-links">
-              <button type="button" className="adm2-link-arrow" onClick={() => downloadQuestionImportTemplate("txt")}>
-                <Download size={14} />
-                Tải mẫu TXT
-              </button>
-              <button
-                type="button"
-                className="adm2-link-arrow"
-                onClick={() => downloadQuestionImportTemplate("csv", templateContext)}
-              >
-                <Download size={14} />
-                Tải mẫu CSV
-              </button>
-              <button type="button" className="adm2-link-arrow" onClick={() => downloadQuestionImportTemplate("moodle")}>
-                <Download size={14} />
-                Mẫu Moodle XML
-              </button>
-              <button type="button" className="adm2-link-arrow" onClick={() => downloadQuestionImportTemplate("gift")}>
-                <Download size={14} />
-                Mẫu GIFT
-              </button>
-              <button type="button" className="adm2-link-arrow" onClick={() => downloadQuestionImportTemplate("aiken")}>
-                <Download size={14} />
-                Mẫu Aiken
+                Upload file (3 file)
               </button>
             </div>
           </div>
 
           {activeTab === "text" && (
-            <div className="question-import-dual-grid">
-              {/* Cột trái: Nội dung câu hỏi */}
-              <div className="question-import-dual-col">
-                <label className="form-field">
-                  <span>Kiểu nội dung câu hỏi</span>
-                  <select value={sourceType} onChange={(event) => setSourceType(event.target.value)}>
-                    <option value="auto">Tự nhận diện TXT/CSV/Moodle/GIFT/Aiken</option>
-                    <option value="text">Văn bản thường (TXT)</option>
-                    <option value="csv">Bảng CSV</option>
-                    <option value="moodle">Moodle XML</option>
-                    <option value="gift">GIFT format</option>
-                    <option value="aiken">Aiken format</option>
-                  </select>
-                </label>
-                <label className="form-field full">
-                  <span>Nội dung câu hỏi *</span>
-                  <textarea
-                    className="adm2-mono-textarea question-import-textarea"
-                    value={sourceText}
-                    placeholder="Dán nội dung câu hỏi theo chuẩn TXT, CSV, Moodle XML, GIFT hoặc Aiken tại đây..."
-                    onChange={(event) => {
-                      setSourceText(event.target.value);
-                      setSourceName("");
-                    }}
-                  />
-                </label>
+            <div className="question-import-triple-grid">
+              {/* Cột 1: Câu hỏi */}
+              <div className="question-import-triple-col">
+                <div className="question-import-col-head">
+                  <span className="form-field-label">1. Nội dung câu hỏi ({selectedFormat.toUpperCase()}) *</span>
+                </div>
+                <textarea
+                  className="adm2-mono-textarea question-import-textarea"
+                  value={sourceText}
+                  placeholder={`Dán nội dung câu hỏi theo chuẩn ${selectedFormat.toUpperCase()} tại đây...`}
+                  onChange={(event) => {
+                    setSourceText(event.target.value);
+                    setSourceName("");
+                  }}
+                />
               </div>
 
-              {/* Cột phải: Mảng độ khó */}
-              <div className="question-import-dual-col">
+              {/* Cột 2: Mảng độ khó */}
+              <div className="question-import-triple-col">
                 <div className="question-import-col-head">
-                  <span className="form-field-label">Mảng độ khó / Theta (Tùy chọn)</span>
+                  <span className="form-field-label">2. Mảng độ khó / Theta (Tùy chọn)</span>
                   <button
                     type="button"
                     className="adm2-link-arrow sample-btn"
                     onClick={() => setDifficultyText("[1, 1.05, 2, 3, -2]")}
                   >
-                    Dán mẫu [1, 1.05, 2, 3, -2]
+                    Dán mẫu
                   </button>
                 </div>
-                <label className="form-field full">
-                  <textarea
-                    className="adm2-mono-textarea question-import-textarea difficulty-textarea"
-                    value={difficultyText}
-                    placeholder="Dán mảng độ khó theo thứ tự câu hỏi:&#10;Ví dụ: [1, 1.05, 2, 3, -2]&#10;Hoặc danh sách: 1, 1.05, 2, 3, -2&#10;Hoặc mỗi dòng 1 số."
-                    onChange={(event) => {
-                      setDifficultyText(event.target.value);
-                      setDifficultyFileName("");
-                    }}
-                  />
-                </label>
+                <textarea
+                  className="adm2-mono-textarea question-import-textarea difficulty-textarea"
+                  value={difficultyText}
+                  placeholder="Dán mảng độ khó:&#10;[1, 1.05, 2, 3, -2]&#10;hoặc 1, 1.05, 2, 3, -2&#10;hoặc mỗi dòng 1 số."
+                  onChange={(event) => {
+                    setDifficultyText(event.target.value);
+                    setDifficultyFileName("");
+                  }}
+                />
                 {parsedDifficultyInfo && (
                   <div className={parsedDifficultyInfo.isValid ? "question-import-diff-badge ok" : "question-import-diff-badge warn"}>
-                    <Info size={14} />
+                    <Info size={13} />
                     <span>
-                      Đã nhận diện: <strong>{parsedDifficultyInfo.values.length}</strong> giá trị độ khó
+                      {parsedDifficultyInfo.values.length} giá trị độ khó
                       {parsedDifficultyInfo.invalidTokens.length > 0 && ` (Lỗi: ${parsedDifficultyInfo.invalidTokens.join(", ")})`}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Cột 3: Mảng kỹ năng */}
+              <div className="question-import-triple-col">
+                <div className="question-import-col-head">
+                  <span className="form-field-label">3. Mảng kỹ năng &amp; Trọng số (Tùy chọn)</span>
+                  <button
+                    type="button"
+                    className="adm2-link-arrow sample-btn"
+                    onClick={() => {
+                      const sName = currentChapterSkills[0]?.name || "Kỹ năng 1";
+                      setSkillText(JSON.stringify([[{ skillName: sName, weight: 1, primary: true }]], null, 2));
+                    }}
+                  >
+                    Dán mẫu
+                  </button>
+                </div>
+                <textarea
+                  className="adm2-mono-textarea question-import-textarea skill-textarea"
+                  value={skillText}
+                  placeholder='Dán JSON mảng kỹ năng:&#10;[[{"skillName":"Kỹ năng 1","weight":1,"primary":true}]]&#10;Hoặc text từng dòng:&#10;Kỹ năng 1: 1.0'
+                  onChange={(event) => {
+                    setSkillText(event.target.value);
+                    setSkillFileName("");
+                  }}
+                />
+                {parsedSkillInfo && (
+                  <div className={parsedSkillInfo.isValid ? "question-import-diff-badge ok" : "question-import-diff-badge warn"}>
+                    <Info size={13} />
+                    <span>
+                      {parsedSkillInfo.mappings.length} câu có kỹ năng
+                      {parsedSkillInfo.invalidTokens.length > 0 && ` (Lỗi: ${parsedSkillInfo.invalidTokens.join(", ")})`}
                     </span>
                   </div>
                 )}
@@ -916,12 +1133,12 @@ export default function ImportQuestionsModal({
           )}
 
           {activeTab === "file" && (
-            <div className="question-import-dual-grid">
+            <div className="question-import-triple-grid">
               {/* File câu hỏi */}
               <div className="quiz-import-zone question-import-file-zone">
-                <Upload size={32} />
+                <Upload size={30} />
                 <strong>1. File câu hỏi *</strong>
-                <span>Hỗ trợ .txt, .csv, Moodle XML (.xml), GIFT (.gift), Aiken (.aiken)</span>
+                <span>Chuẩn {selectedFormat.toUpperCase()} ({SUPPORTED_FILE_EXTENSIONS.join(", ")})</span>
                 <label>
                   <FileUp size={16} />
                   Chọn file câu hỏi
@@ -933,9 +1150,9 @@ export default function ImportQuestionsModal({
 
               {/* File mảng độ khó */}
               <div className="quiz-import-zone question-import-file-zone">
-                <SlidersHorizontal size={32} />
-                <strong>2. File mảng độ khó (Tùy chọn)</strong>
-                <span>Hỗ trợ file .json, .txt, .csv chứa mảng hoặc danh sách số độ khó</span>
+                <SlidersHorizontal size={30} />
+                <strong>2. File mảng độ khó</strong>
+                <span>File .json, .txt, .csv chứa danh sách số độ khó</span>
                 <label>
                   <FileUp size={16} />
                   Chọn file độ khó
@@ -945,7 +1162,26 @@ export default function ImportQuestionsModal({
                 {difficultyFileLoading && <em>Đang đọc file độ khó...</em>}
                 {parsedDifficultyInfo && (
                   <span className="file-diff-count">
-                    ({parsedDifficultyInfo.values.length} giá trị độ khó)
+                    ({parsedDifficultyInfo.values.length} giá trị)
+                  </span>
+                )}
+              </div>
+
+              {/* File mảng kỹ năng */}
+              <div className="quiz-import-zone question-import-file-zone">
+                <Sparkles size={30} />
+                <strong>3. File mảng kỹ năng</strong>
+                <span>File .json, .txt, .csv chứa kỹ năng và trọng số</span>
+                <label>
+                  <FileUp size={16} />
+                  Chọn file kỹ năng
+                  <input type="file" accept=".txt,.json,.csv" onChange={handleSkillFileChange} />
+                </label>
+                {skillFileName && <em>Đã chọn: {skillFileName}</em>}
+                {skillFileLoading && <em>Đang đọc file kỹ năng...</em>}
+                {parsedSkillInfo && (
+                  <span className="file-diff-count">
+                    ({parsedSkillInfo.mappings.length} câu)
                   </span>
                 )}
               </div>
@@ -970,7 +1206,7 @@ export default function ImportQuestionsModal({
             {!isScopeReady && (
               <span className="question-import-scope-warn">
                 <AlertCircle size={15} />
-                Vui lòng chọn môn học và chương ở Bước 1 trước khi phân tích.
+                Vui lòng chọn môn học và chương ở Bước 2 trước khi phân tích.
               </span>
             )}
           </div>
@@ -979,12 +1215,12 @@ export default function ImportQuestionsModal({
           {formError && <div className="modal-inline-error">{formError}</div>}
         </div>
 
-        {/* BƯỚC 3: XEM TRƯỚC VÀ CHỈNH SỬA TRƯỚC KHI LƯU */}
+        {/* BƯỚC 5: XEM TRƯỚC VÀ CHỈNH SỬA TRƯỚC KHI LƯU */}
         <div className="admin-section-card adm2-card-pad question-import-preview-section">
           <div className="question-import-preview-head">
             <div className="adm2-section-heading">
-              <h3>Xem trước import</h3>
-              <p>{rows.length} câu trong bản xem trước</p>
+              <h3>Xem trước import ({rows.length} câu)</h3>
+              <p>Kiểm tra nội dung, đáp án, độ khó và kỹ năng trước khi lưu.</p>
             </div>
             <div className="question-import-preview-badges">
               <span className="adm2-chip adm2-chip--emerald">{validCount} HỢP LỆ</span>
@@ -1023,7 +1259,7 @@ export default function ImportQuestionsModal({
                 }}
               />
               <span>
-                Chỉ lưu <strong>{validCount} câu hợp lệ</strong>, giữ lại {invalidCount} câu lỗi/chưa có độ khó để sửa sau.
+                Chỉ lưu <strong>{validCount} câu hợp lệ</strong>, giữ lại {invalidCount} câu lỗi/chưa có độ khó/kỹ năng để sửa sau.
               </span>
             </label>
           )}
@@ -1071,7 +1307,7 @@ export default function ImportQuestionsModal({
           )}
 
           <div className="adm2-note adm2-note--muted question-import-footnote">
-            Mỗi câu hỏi bắt buộc phải có độ khó (Theta). Độ khó có thể nhập từ mảng, file hoặc chỉnh sửa trực tiếp từng câu.
+            Mỗi câu hỏi bắt buộc phải có độ khó (Theta) và ít nhất một kỹ năng chính với tổng trọng số = 1.0.
           </div>
         </div>
       </div>
