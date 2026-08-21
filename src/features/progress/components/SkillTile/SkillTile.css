@@ -49,8 +49,19 @@
 .skill-tile__level {
   font-size: var(--fs-xs);
   font-weight: 700;
-  color: var(--color-primary-700);
   flex-shrink: 0;
+}
+.skill-tile__level--danger {
+  color: var(--color-error-strong);
+}
+.skill-tile__level--warning {
+  color: var(--color-warning-strong);
+}
+.skill-tile__level--info {
+  color: var(--color-info);
+}
+.skill-tile__level--success {
+  color: var(--color-success-strong);
 }
 .skill-tile__arrow {
   flex-shrink: 0;

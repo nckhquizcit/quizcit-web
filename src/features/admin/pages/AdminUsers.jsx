@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { changePassword, changeUserRole, deleteUser, getUsers, updateUserStatus } from "../../../services/userService";
 import { getErrorMessage, getStoredUser } from "../../../services/apiClient";
+import { resolveImageUrl } from "../../../services/mappers";
 import AdminPageHeader from "../components/AdminPageHeader";
 import DataTable from "../components/ui/DataTable";
 import RowActions from "../components/ui/RowActions";
@@ -157,14 +158,14 @@ export default function AdminUsers() {
     }
   };
 
-  const handleDeleteUser = async () => {
+  const handleDeleteUser = async (hard) => {
     if (!deletingUser?.userId) return;
     if (String(deletingUser.userId) === currentUserId) {
       toast.error(SELF_LOCKOUT_MESSAGE);
       setDeletingUser(null);
       return;
     }
-    await deleteUser(deletingUser.userId);
+    await deleteUser(deletingUser.userId, hard);
     setDeletingUser(null);
     toast.success("Đã xóa người dùng.");
     loadUsers(items.length <= 1 && page > 0 ? page - 1 : page);
@@ -177,7 +178,13 @@ export default function AdminUsers() {
       sortable: true,
       render: (user) => (
         <div className="adm2-user-cell">
-          <span className="adm2-user-avatar">{getInitials(user.username)}</span>
+          <span className="adm2-user-avatar">
+            {user.avatarUrl ? (
+              <img src={resolveImageUrl(user.avatarUrl)} alt="" />
+            ) : (
+              getInitials(user.username)
+            )}
+          </span>
           <div className="adm2-user-cell__body">
             <strong>{user.username}</strong>
             <span className="adm2-user-cell__sub">User #{user.userId}</span>

@@ -39,8 +39,8 @@ export default function AdminQuizEdit() {
     void Promise.resolve().then(load);
   }, [load]);
 
-  const handleDeleteQuiz = async () => {
-    await deleteQuiz(quizId);
+  const handleDeleteQuiz = async (hard) => {
+    await deleteQuiz(quizId, hard);
     toast.success("Đã xóa đề thi.");
     navigate(returnPath);
   };

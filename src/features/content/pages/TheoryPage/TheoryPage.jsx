@@ -190,7 +190,7 @@ export default function TheoryPage() {
             <span className="theory-chat__avatar">AI</span>
             <div className="theory-chat__title">
               <strong>Trợ giảng QuizCIT</strong>
-              <small>Chỉ hỗ trợ nội dung bài</small>
+              <small>Giải đáp theo bài học hiện tại</small>
             </div>
           </header>
 
@@ -200,7 +200,7 @@ export default function TheoryPage() {
             error={chatError}
             listRef={listRef}
             emptyTitle="Có câu hỏi về bài học?"
-            emptyDescription="Hỏi trợ giảng để được giải thích dựa trên nội dung bài học này."
+            emptyDescription="Nhập câu hỏi để được giải thích dựa trên nội dung bài đang học."
           />
 
           <ChatComposer
@@ -209,7 +209,7 @@ export default function TheoryPage() {
             loading={chatLoading}
             onSend={handleSend}
             inputRef={chatInputRef}
-            placeholder="Hỏi về bài học..."
+            placeholder="Nhập câu hỏi về bài học..."
             hint="Enter để gửi · Shift + Enter để xuống dòng"
           />
         </div>

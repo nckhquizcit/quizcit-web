@@ -78,7 +78,9 @@ export default function ChatMessages({
     <div className="chatbox-messages" ref={attachList} aria-live="polite">
       {messages.length === 0 && (
         <div className="chatbox-empty">
-          <Bot size={30} />
+          <span className="chatbox-empty__icon" aria-hidden="true">
+            <Bot size={24} />
+          </span>
           <strong>{emptyTitle}</strong>
           <p>{emptyDescription}</p>
         </div>

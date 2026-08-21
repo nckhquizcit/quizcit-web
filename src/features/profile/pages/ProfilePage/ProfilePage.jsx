@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Edit2, Eye, EyeOff, KeyRound, LogOut, Mail } from "lucide-react";
+import { Camera, Edit2, Eye, EyeOff, KeyRound, LogOut, Mail, Trash2 } from "lucide-react";
 import { getErrorMessage, getStoredUser, setStoredUser } from "../../../../services/apiClient";
 import {
   changeCurrentUserPassword,
@@ -13,6 +13,9 @@ import {
   verifyOldEmail,
 } from "../../../../services/emailChangeService";
 import { logout } from "../../../../services/authService";
+import { resolveImageUrl } from "../../../../services/mappers";
+import { uploadImage } from "../../../../services/uploadService";
+import ImageCropModal from "../../../../components/ui/ImageCropModal/ImageCropModal";
 import {
   Badge,
   Button,
@@ -52,7 +55,10 @@ export default function ProfilePage() {
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [profileError, setProfileError] = useState("");
   const [activeModal, setActiveModal] = useState(null);
-  const [editForm, setEditForm] = useState({ displayName: "" });
+  const [editForm, setEditForm] = useState({ displayName: "", avatarUrl: null });
+  const [avatarCropSource, setAvatarCropSource] = useState("");
+  const [avatarCropOpen, setAvatarCropOpen] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
     password: "",
@@ -72,9 +78,11 @@ export default function ProfilePage() {
   const [newEmail, setNewEmail] = useState("");
   // Modal dùng chung tự focus phần tử đầu tiên; trỏ vào ô nhập chính thay vì nút đóng.
   const editNameInputRef = useRef(null);
+  const avatarInputRef = useRef(null);
   const currentPasswordInputRef = useRef(null);
 
   const loadIdRef = useRef(0);
+  const emailRequestIdRef = useRef(0);
 
   // Tách phần tải hồ sơ thành hàm gọi lại được: effect ban đầu và nút "Thử lại" dùng chung.
   const loadProfile = useCallback(async () => {
@@ -99,6 +107,7 @@ export default function ProfilePage() {
     loadProfile();
     return () => {
       loadIdRef.current += 1;
+      emailRequestIdRef.current += 1;
     };
   }, [loadProfile]);
 
@@ -110,6 +119,7 @@ export default function ProfilePage() {
     setFormError("");
     setEditForm({
       displayName: profileUser?.displayName || profileUser?.username || "",
+      avatarUrl: profileUser?.avatarUrl ?? null,
     });
     setActiveModal("edit");
   }
@@ -125,6 +135,7 @@ export default function ProfilePage() {
   }
 
   async function startEmailChange() {
+    const requestId = ++emailRequestIdRef.current;
     setFormError("");
     setEmailStep(1);
     setEmailChallenge(null);
@@ -134,12 +145,14 @@ export default function ProfilePage() {
 
     try {
       const challenge = await requestEmailChange();
+      if (emailRequestIdRef.current !== requestId) return;
       setEmailChallenge({
         challengeId: challenge?.challengeId,
         email: challenge?.email || profileUser?.email || "",
       });
       setEmailStatus("ready");
     } catch (error) {
+      if (emailRequestIdRef.current !== requestId) return;
       setFormError(getErrorMessage(error, "Không thể gửi mã xác thực. Vui lòng thử lại sau."));
       setEmailStatus("failed");
     }
@@ -151,9 +164,40 @@ export default function ProfilePage() {
   }
 
   function closeModal() {
-    if (isSubmitting) return;
+    if (isSubmitting || avatarUploading) return;
+    emailRequestIdRef.current += 1;
     setActiveModal(null);
     setFormError("");
+  }
+
+  function handleAvatarFile(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setFormError("Vui lòng chọn tập tin ảnh hợp lệ.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setFormError("");
+      setAvatarCropSource(String(reader.result || ""));
+      setAvatarCropOpen(true);
+    };
+    reader.onerror = () => setFormError("Không thể đọc tập tin ảnh đã chọn.");
+    reader.readAsDataURL(file);
+  }
+
+  async function handleAvatarCrop(croppedBlob) {
+    setAvatarUploading(true);
+    setFormError("");
+    try {
+      const uploaded = await uploadImage(croppedBlob, "avatars", "avatar.webp");
+      setEditForm((current) => ({ ...current, avatarUrl: uploaded.url }));
+    } finally {
+      setAvatarUploading(false);
+    }
   }
 
   function handleLogout() {
@@ -180,6 +224,7 @@ export default function ProfilePage() {
     try {
       const updatedUser = await updateCurrentUserProfile({
         displayName: displayNameValue,
+        avatarUrl: editForm.avatarUrl,
       });
       setProfileUser(mergeAndStoreUser(updatedUser));
       toast.success("Đã lưu thay đổi hồ sơ.");
@@ -328,7 +373,13 @@ export default function ProfilePage() {
       {profileError && <p className="profile-inline-error">{profileError}</p>}
 
       <Card as="section" padding="lg" className="profile-header-card">
-        <div className="profile-header-card__avatar">{getInitial(displayName)}</div>
+        <div className="profile-header-card__avatar">
+          {profileUser?.avatarUrl ? (
+            <img src={resolveImageUrl(profileUser.avatarUrl)} alt={`Ảnh đại diện của ${displayName}`} />
+          ) : (
+            getInitial(displayName)
+          )}
+        </div>
         <div className="profile-header-card__body">
           <div className="profile-header-card__top">
             <h2>{displayName}</h2>
@@ -427,6 +478,50 @@ export default function ProfilePage() {
         >
           <form id="profile-edit-form" className="profile-modal-content" onSubmit={submitEdit}>
             {formError && <p className="profile-form-error">{formError}</p>}
+            <div className="profile-avatar-editor">
+              <div className="profile-avatar-editor__preview">
+                {editForm.avatarUrl ? (
+                  <img src={resolveImageUrl(editForm.avatarUrl)} alt="Xem trước ảnh đại diện" />
+                ) : (
+                  getInitial(editForm.displayName)
+                )}
+              </div>
+              <div className="profile-avatar-editor__actions">
+                <strong>Ảnh đại diện</strong>
+                <span>Ảnh vuông, hỗ trợ PNG, JPG và WEBP.</span>
+                <div>
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={handleAvatarFile}
+                    hidden
+                  />
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    type="button"
+                    iconLeft={<Camera size={15} />}
+                    onClick={() => avatarInputRef.current?.click()}
+                    disabled={isSubmitting || avatarUploading}
+                  >
+                    {avatarUploading ? "Đang tải..." : "Chọn ảnh"}
+                  </Button>
+                  {editForm.avatarUrl && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      type="button"
+                      iconLeft={<Trash2 size={15} />}
+                      onClick={() => setEditForm((current) => ({ ...current, avatarUrl: null }))}
+                      disabled={isSubmitting || avatarUploading}
+                    >
+                      Xóa ảnh
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
             <Field label="Tên hiển thị" htmlFor="profile-display-name">
               <Input
                 id="profile-display-name"
@@ -721,6 +816,17 @@ export default function ProfilePage() {
           )}
         </Modal>
       )}
+
+      <ImageCropModal
+        open={avatarCropOpen}
+        imageSrc={avatarCropSource}
+        onClose={() => setAvatarCropOpen(false)}
+        onCropComplete={handleAvatarCrop}
+        aspectRatio={1}
+        targetWidth={512}
+        targetHeight={512}
+        title="Cắt ảnh đại diện"
+      />
     </div>
   );
 }

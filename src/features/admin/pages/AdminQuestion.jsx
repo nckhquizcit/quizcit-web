@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 
 import AddQuestionModal from "../components/modals/AddQuestionModal";
+import ConfirmDeleteModal from "../components/modals/ConfirmDeleteModal";
 import AdminPageHeader from "../components/AdminPageHeader";
 import Modal from "../components/ui/Modal";
 import RowActions from "../components/ui/RowActions";
@@ -162,36 +163,6 @@ const loadQuestionsFromChapters = (chapterList, allQuestions, selectedSubjectId,
     questions,
   };
 };
-
-function DeleteQuestionModal({ open, question, onCancel, onConfirm, onClose }) {
-  const titleId = useId();
-  return (
-    <Modal open={open} onClose={onClose} labelledById={titleId}>
-      <div className="question-modal delete-question-modal">
-        <h2 id={titleId}>Xóa câu hỏi</h2>
-        <p>Bạn có muốn xóa câu hỏi này không?</p>
-
-        {question && (
-          <div className="delete-question-preview">
-            <strong>{toPreviewText(question.content, question.contentFormat)}</strong>
-            <span>
-              {question.subject?.name} • {question.chapter?.name}
-            </span>
-          </div>
-        )}
-
-        <div className="question-modal-actions">
-          <button className="cancel-btn" onClick={onCancel}>
-            Không
-          </button>
-          <button className="danger-btn" onClick={onConfirm}>
-            Có
-          </button>
-        </div>
-      </div>
-    </Modal>
-  );
-}
 
 function QuestionSkillsModal({ open, question, onClose }) {
   const titleId = useId();
@@ -536,8 +507,8 @@ export default function AdminQuestions() {
     toast.success("Đã cập nhật câu hỏi.");
   };
 
-  const handleHardDelete = async () => {
-    await deleteQuestion(deletingQuestion.questionId);
+  const handleDeleteQuestion = async (hard) => {
+    await deleteQuestion(deletingQuestion.questionId, hard);
     setQuestionRows((currentRows) =>
       currentRows.filter((question) => question.questionId !== deletingQuestion.questionId),
     );
@@ -964,12 +935,17 @@ export default function AdminQuestions() {
         subjects={subjects}
         chapters={chapters}
       />
-      <DeleteQuestionModal
+      <ConfirmDeleteModal
         open={Boolean(deletingQuestion)}
-        question={deletingQuestion}
-        onCancel={() => setDeletingQuestion(null)}
-        onConfirm={handleHardDelete}
         onClose={() => setDeletingQuestion(null)}
+        onConfirm={handleDeleteQuestion}
+        title="Xóa câu hỏi"
+        message="Bạn có chắc chắn muốn xóa câu hỏi này?"
+        itemName={
+          deletingQuestion
+            ? toPreviewText(deletingQuestion.content, deletingQuestion.contentFormat)
+            : ""
+        }
       />
       <QuestionSkillsModal
         open={Boolean(skillPreviewQuestion)}

@@ -10,17 +10,19 @@ export default function ConfirmDeleteModal({
   title,
   message,
   itemName,
-  confirmText = "Có, xóa hẳn",
+  confirmText = "Xác nhận xóa",
   onConfirm,
 }) {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [hardDelete, setHardDelete] = useState(false);
   const titleId = useId();
 
   useEffect(() => {
     if (open) {
       setSubmitting(false);
       setSubmitError("");
+      setHardDelete(false);
     }
   }, [open]);
 
@@ -34,7 +36,7 @@ export default function ConfirmDeleteModal({
     try {
       setSubmitting(true);
       setSubmitError("");
-      await onConfirm?.();
+      await onConfirm?.(hardDelete);
       onClose();
     } catch (error) {
       setSubmitError(getErrorMessage(error, "Không thể xóa. Vui lòng thử lại."));
@@ -66,6 +68,22 @@ export default function ConfirmDeleteModal({
             <strong>"{itemName}"</strong>
           </div>
         )}
+        <label className="hard-delete-toggle">
+          <input
+            type="checkbox"
+            checked={hardDelete}
+            onChange={(event) => setHardDelete(event.target.checked)}
+            disabled={submitting}
+          />
+          <span>
+            <strong>Xóa vĩnh viễn</strong>
+            <small>
+              {hardDelete
+                ? "Dữ liệu liên quan có thể bị xóa hoàn toàn và không thể khôi phục."
+                : "Mặc định xóa mềm để giữ lịch sử và dữ liệu liên quan."}
+            </small>
+          </span>
+        </label>
       </div>
 
       <div className="modal-footer danger-footer">
@@ -74,7 +92,7 @@ export default function ConfirmDeleteModal({
           Không, giữ lại
         </button>
         <button className="danger-btn" onClick={handleConfirm} disabled={submitting}>
-          {submitting ? "Đang xóa..." : confirmText}
+          {submitting ? "Đang xóa..." : hardDelete ? "Xóa vĩnh viễn" : confirmText}
         </button>
       </div>
     </Modal>

@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { Suspense, lazy } from "react";
-import { createBrowserRouter, Navigate } from "react-router-dom";
+import { createBrowserRouter, Navigate, useParams } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout.jsx";
 import AuthLayout from "../layouts/AuthLayout.jsx";
 import AdminLayout from "../features/admin/AdminLayout.jsx";
@@ -39,6 +39,7 @@ const AdminQuizEdit = lazy(() => import("../features/admin/pages/AdminQuizEdit.j
 const AdminQuizQuestions = lazy(() => import("../features/admin/pages/AdminQuizQuestions.jsx"));
 const AdminSkills = lazy(() => import("../features/admin/pages/AdminSkills.jsx"));
 const AdminUsers = lazy(() => import("../features/admin/pages/AdminUsers.jsx"));
+const AdminAccess = lazy(() => import("../features/admin/pages/AdminAccess.jsx"));
 const AdminProfile = lazy(() => import("../features/admin/pages/AdminProfile.jsx"));
 
 const LoginPage = lazy(() => import("../features/auth/pages/LoginPage/LoginPage.jsx"));
@@ -66,6 +67,11 @@ function AccessDeniedPage() {
   );
 }
 
+function QuizTakingRoute() {
+  const { quizId } = useParams();
+  return <QuizTakingPage key={quizId} />;
+}
+
 const withSuspense = (element) => <Suspense fallback={<PageLoader />}>{element}</Suspense>;
 
 export const router = createBrowserRouter([
@@ -88,7 +94,7 @@ export const router = createBrowserRouter([
         path: "subjects/:subjectId/theories/:theoryId",
         element: withSuspense(<TheoryPage />),
       },
-      { path: "quiz/:quizId", element: withSuspense(<QuizTakingPage />) },
+      { path: "quiz/:quizId", element: withSuspense(<QuizTakingRoute />) },
       { path: "adaptive/:attemptId", element: withSuspense(<AdaptiveQuizPage />) },
       { path: "quiz/result/:attemptId", element: withSuspense(<QuizResultPage />) },
       { path: "history", element: withSuspense(<HistoryPage />) },
@@ -149,6 +155,7 @@ export const router = createBrowserRouter([
       { path: "quizzes/:quizId/edit/questions", element: withSuspense(<AdminQuizQuestions />) },
       { path: "quizzes", element: withSuspense(<AdminQuizzes />) },
       { path: "users", element: withSuspense(<AdminUsers />) },
+      { path: "access", element: withSuspense(<AdminAccess />) },
       { path: "profile", element: withSuspense(<AdminProfile />) },
     ],
   },

@@ -1,5 +1,6 @@
 import { normalizeContentFormat } from "../components/richtext/richTextUtils";
 import { request } from "./apiClient";
+import { getDeleteParams } from "./apiContracts";
 import { mapQuestion } from "./mappers";
 import { enrichSkillNames, getSkills } from "./skillService";
 
@@ -83,8 +84,12 @@ export async function updateQuestion(questionId, payload) {
   return result ? mapQuestion(result) : mapQuestion({ questionId, ...payload });
 }
 
-export async function deleteQuestion(questionId) {
-  return request({ method: "DELETE", url: `/api/questions/${questionId}` });
+export async function deleteQuestion(questionId, hard = false) {
+  return request({
+    method: "DELETE",
+    url: `/api/questions/${questionId}`,
+    params: getDeleteParams(hard),
+  });
 }
 
 export async function placeQuestion(questionId, subjectId, chapterId) {

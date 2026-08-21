@@ -47,7 +47,6 @@ export default function AddSubjectModal({ open, onClose, onSubmit, nextDisplayOr
       setName("");
       setCourseCode("");
       setDescription("");
-      setDisplayOrder("");
       setImageUrl("");
     } catch (error) {
       setSubmitError(getErrorMessage(error, "Không thể lưu môn học. Vui lòng thử lại."));

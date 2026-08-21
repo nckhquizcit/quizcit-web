@@ -11,6 +11,21 @@
 .progress-bar-fill {
   height: 100%;
   border-radius: inherit;
-  background: var(--color-primary-gradient);
   transition: width 0.4s ease;
+}
+
+.progress-bar-fill--danger {
+  background: var(--color-error);
+}
+
+.progress-bar-fill--warning {
+  background: var(--color-warning);
+}
+
+.progress-bar-fill--info {
+  background: var(--color-info);
+}
+
+.progress-bar-fill--success {
+  background: var(--color-success);
 }

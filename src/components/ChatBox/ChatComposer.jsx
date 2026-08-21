@@ -12,21 +12,23 @@ export default function ChatComposer({
 }) {
   return (
     <form className="chatbox-input-row" onSubmit={onSend}>
-      <textarea
-        ref={inputRef}
-        rows="1"
-        value={draft}
-        onChange={(event) => setDraft(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" && !event.shiftKey) onSend(event);
-        }}
-        placeholder={placeholder}
-      />
+      <div className="chatbox-composer-field">
+        <textarea
+          ref={inputRef}
+          rows="1"
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.shiftKey) onSend(event);
+          }}
+          placeholder={placeholder}
+        />
+        {hint && <small>{hint}</small>}
+      </div>
       {/* Chỉ khóa nút gửi khi đang chờ AI trả lời; vẫn cho gõ tiếp câu hỏi mới. */}
       <button type="submit" disabled={loading || !draft.trim()} aria-label="Gửi câu hỏi">
         <Send size={19} />
       </button>
-      {hint && <small>{hint}</small>}
     </form>
   );
 }

@@ -7,6 +7,7 @@ import {
   ChartColumn,
   Database,
   BookOpenCheck,
+  ShieldCheck,
 } from "lucide-react";
 
 export const USER_SIDEBAR = [
@@ -79,5 +80,11 @@ export const ADMIN_SIDEBAR = [
     label: "Quản lý người dùng",
     path: "/admin/users",
     icon: <User size={20} />,
+  },
+  {
+    id: "admin_access",
+    label: "Vai trò & quyền hạn",
+    path: "/admin/access",
+    icon: <ShieldCheck size={20} />,
   },
 ];

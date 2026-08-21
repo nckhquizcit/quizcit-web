@@ -1,4 +1,5 @@
 import { request } from "./apiClient";
+import { getDeleteParams } from "./apiContracts";
 import { mapAttempt, mapQuestion, mapQuiz, mapQuizResult } from "./mappers";
 
 function mapAdaptiveState(raw = {}) {
@@ -83,8 +84,12 @@ export async function updateQuiz(quizId, payload) {
   return result ? mapQuiz(result) : mapQuiz({ quizId, ...payload });
 }
 
-export async function deleteQuiz(quizId) {
-  return request({ method: "DELETE", url: `/api/quizzes/${quizId}` });
+export async function deleteQuiz(quizId, hard = false) {
+  return request({
+    method: "DELETE",
+    url: `/api/quizzes/${quizId}`,
+    params: getDeleteParams(hard),
+  });
 }
 
 export async function reorderQuizzes(chapterId, quizzes) {

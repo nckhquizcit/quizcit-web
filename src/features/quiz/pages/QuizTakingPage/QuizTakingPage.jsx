@@ -25,6 +25,7 @@ import {
   clampQuizPage,
   getPageNavigationTarget,
   getQuestionNavigationTarget,
+  getResumableQuizDraft,
   getTotalQuizPages,
   QUIZ_PAGE_SIZE,
 } from "./QuizTakingPage.logic.js";
@@ -96,22 +97,18 @@ export default function QuizTakingPage() {
         const durationSeconds = getDurationSeconds(quizData);
         // Giữ nguyên lượt làm và hạn nộp đã lưu để tải lại trang không tạo lượt mới
         // và không cấp thêm thời gian.
-        const draftDeadlineAt = Number(draft?.deadlineAt);
-        const canResumeDraft =
-          Boolean(draft?.attemptId) &&
-          (!draft.quizId || draft.quizId === quizId) &&
-          (durationSeconds === 0 ||
-            (Number.isFinite(draftDeadlineAt) && draftDeadlineAt - Date.now() > 0));
-        const attemptData = canResumeDraft
-          ? { attemptId: draft.attemptId }
+        const resumableDraft = getResumableQuizDraft(draft, quizId, durationSeconds);
+        const draftDeadlineAt = Number(resumableDraft?.deadlineAt);
+        const attemptData = resumableDraft
+          ? { attemptId: resumableDraft.attemptId }
           : await startQuiz(quizId, currentUser.userId);
-        const deadlineAt = canResumeDraft && Number.isFinite(draftDeadlineAt)
+        const deadlineAt = resumableDraft && Number.isFinite(draftDeadlineAt)
           ? draftDeadlineAt
           : Date.now() + durationSeconds * 1000;
         const loadedQuestions = Array.isArray(questionsData)
           ? questionsData
           : [];
-        const draftPage = Number(draft?.currentPage ?? 0);
+        const draftPage = Number(resumableDraft?.currentPage ?? 0);
         const safeDraftPage = clampQuizPage(
           draftPage,
           getTotalQuizPages(loadedQuestions.length, PAGE_SIZE),
@@ -137,11 +134,11 @@ export default function QuizTakingPage() {
         timerStartedRef.current = durationSeconds > 0;
         autoSubmittedRef.current = false;
 
-        if (draft) {
-          if (draft.answers) {
-            setAnswers(draft.answers);
+        if (resumableDraft) {
+          if (resumableDraft.answers) {
+            setAnswers(resumableDraft.answers);
           }
-          setFlaggedQuestionIds(new Set(draft.flaggedQuestionIds || []));
+          setFlaggedQuestionIds(new Set(resumableDraft.flaggedQuestionIds || []));
         }
       } catch (loadError) {
         startedRef.current = false;

@@ -22,6 +22,7 @@ import {
   SkeletonCard,
 } from "../../../../components/ui";
 import SkillTile from "../../components/SkillTile/SkillTile";
+import { getProgressTone } from "../../../home/components/progressTone.js";
 import {
   TREND_BADGE_VARIANT,
   TREND_ICON,
@@ -32,6 +33,13 @@ import {
 } from "../../utils/skillProgress";
 import { formatSubmittedAt } from "../../../../utils/dateFormat";
 import "./ProgressPage.css";
+
+const PROGRESS_RING_COLORS = {
+  danger: "var(--color-error)",
+  warning: "var(--color-warning)",
+  info: "var(--color-info)",
+  success: "var(--color-success)",
+};
 
 const HISTORY_LIMIT = 12;
 const SKILL_LIMIT = 4;
@@ -117,6 +125,7 @@ export default function ProgressPage() {
   const hasAverage = averageAbility !== null && abilities.length > 0;
   const averagePercent = hasAverage ? thetaRawToPercent(averageAbility) : 0;
   const averageLevel = hasAverage ? getAbilityLevel(averageAbility) : null;
+  const averageTone = hasAverage ? getProgressTone(averagePercent) : null;
   const visibleHistories = histories.slice(0, HISTORY_LIMIT);
   const visibleAbilities = abilities.slice(0, SKILL_LIMIT);
   const hiddenSkillCount = abilities.length - SKILL_LIMIT;
@@ -136,7 +145,9 @@ export default function ProgressPage() {
           <p className="progress-overview-card__scale">
             Năng lực (θ) ước tính theo thang 0–4, cập nhật sau mỗi bài kiểm tra.
           </p>
-          <p className="progress-overview-card__meta">
+          <p
+            className={`progress-overview-card__meta${averageTone ? ` progress-overview-card__meta--${averageTone}` : ""}`}
+          >
             {hasAverage ? `Mức ${averageLevel.label}` : "Chưa có dữ liệu"}
           </p>
           <div className="progress-overview-card__ring">
@@ -144,6 +155,7 @@ export default function ProgressPage() {
               value={averagePercent}
               size={130}
               stroke={12}
+              color={averageTone ? PROGRESS_RING_COLORS[averageTone] : undefined}
               label={hasAverage ? formatScaledThetaValue(averageAbility) : "—"}
               sublabel="trên 4"
               ariaLabel={

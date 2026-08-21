@@ -1,6 +1,6 @@
 .theory-page {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr) 320px;
+  grid-template-columns: 260px minmax(0, 1fr) 344px;
   gap: var(--space-5);
   align-items: start;
   padding: var(--space-8);
@@ -131,8 +131,8 @@
   top: var(--sticky-top);
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - var(--topbar-h) - var(--space-8) * 2);
-  min-height: 420px;
+  height: clamp(480px, calc(100dvh - var(--topbar-h) - var(--space-8) * 2), 680px);
+  min-height: 0;
 }
 .theory-chat {
   display: flex;
@@ -148,7 +148,8 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-4);
+  min-height: 72px;
+  padding: var(--space-4) var(--space-5);
   border-bottom: 1px solid var(--color-border);
 }
 .theory-chat__avatar {
@@ -181,17 +182,17 @@
   color: var(--color-text-muted);
 }
 .theory-chat .chatbox-messages {
-  padding: var(--space-4);
+  padding: var(--space-5);
 }
 .theory-chat .chatbox-input-row {
-  padding: var(--space-3) var(--space-4) var(--space-4);
+  padding: var(--space-4) var(--space-5);
 }
 
 .theory-page__chat-mobile-fab {
   display: none;
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 1279px) {
   .theory-page {
     grid-template-columns: 1fr;
   }

@@ -216,6 +216,43 @@
   font-weight: 600;
 }
 
+.hard-delete-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid var(--admin-border, #dce4ec);
+  border-radius: var(--admin-radius-control, 8px);
+  text-align: left;
+  cursor: pointer;
+}
+
+.hard-delete-toggle:has(input:checked) {
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+
+.hard-delete-toggle input {
+  margin-top: 3px;
+  accent-color: var(--admin-danger, #dc2626);
+}
+
+.hard-delete-toggle span {
+  display: grid;
+  gap: 3px;
+}
+
+.hard-delete-toggle strong {
+  color: var(--admin-text, #0f172a);
+  font-size: 14px;
+}
+
+.hard-delete-toggle small {
+  color: var(--admin-text-muted, #64748b);
+  line-height: 1.45;
+}
+
 /* Responsive */
 @media (max-width: 640px) {
   .modal-content {

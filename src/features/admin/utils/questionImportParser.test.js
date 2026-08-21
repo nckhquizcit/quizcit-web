@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 
 import {
   createQuestionImportRow,
-  parseQuestionsFromCsv,
   parseQuestionsFromText,
   validateQuestionImportRow,
 } from "./questionImportParser.js";

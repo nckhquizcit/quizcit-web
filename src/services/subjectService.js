@@ -1,4 +1,5 @@
 import { request } from "./apiClient";
+import { getDeleteParams } from "./apiContracts";
 import { mapSubject } from "./mappers";
 
 export async function getSubjects() {
@@ -19,8 +20,12 @@ export async function updateSubject(subjectId, payload) {
   return result ? mapSubject(result) : null;
 }
 
-export async function deleteSubject(subjectId) {
-  return request({ method: "DELETE", url: `/api/subjects/${subjectId}` });
+export async function deleteSubject(subjectId, hard = false) {
+  return request({
+    method: "DELETE",
+    url: `/api/subjects/${subjectId}`,
+    params: getDeleteParams(hard),
+  });
 }
 
 export async function reorderSubjects(subjects) {

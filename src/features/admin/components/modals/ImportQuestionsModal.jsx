@@ -32,10 +32,7 @@ import { detectMoodleXml, parseQuestionsFromMoodleXml } from "../../utils/moodle
 import { detectAiken, detectGift, parseQuestionsFromAiken, parseQuestionsFromGift } from "../../utils/moodleTextParser";
 import { isImportReferenceDataReady } from "../../utils/questionImportMapping";
 import { getImportSkillsForChapter } from "../../utils/questionImportPreviewLogic";
-import {
-  downloadImportZipPackage,
-  downloadQuestionImportTemplate,
-} from "../../utils/questionImportTemplate";
+import { downloadImportZipPackage } from "../../utils/questionImportTemplate";
 import {
   CUSTOM_DIFFICULTY_KEY,
   matchDifficultyPresetKey,
@@ -613,7 +610,7 @@ export default function ImportQuestionsModal({
         allSubjectSkills,
         chapterSkills: currentChapterSkills,
       });
-    } catch (err) {
+    } catch {
       setFormError("Không thể tạo file zip mẫu. Vui lòng thử lại.");
     } finally {
       setDownloadingZip(false);
@@ -828,12 +825,6 @@ export default function ImportQuestionsModal({
 
   const validCount = rows.filter((row) => !row.errors?.length).length;
   const invalidCount = rows.length - validCount;
-  const selectedSubject = normalizedSubjects.find(
-    (item) => String(item.subjectId) === String(targetSubjectId),
-  );
-  const selectedChapter = allPreviewChapters.find(
-    (item) => String(item.chapterId) === String(targetChapterId),
-  );
 
   const isScopeReady = Boolean(
     targetSubjectId && (targetSubjectId === "QUESTION_BANK" || targetChapterId),

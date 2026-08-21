@@ -421,6 +421,7 @@ export const mapAttempt = mapQuizResult;
 
 export function mapUser(raw = {}) {
   const userId = pick(raw, ["userId", "user_id", "id"]);
+  const avatarUrl = pick(raw, ["avatarUrl", "avatar_url"], null);
   return {
     ...raw,
     id: userId,
@@ -429,6 +430,8 @@ export function mapUser(raw = {}) {
     username: pick(raw, ["username"], ""),
     email: pick(raw, ["email"], ""),
     displayName: pick(raw, ["displayName", "display_name"], pick(raw, ["username"], "")),
+    avatarUrl,
+    avatar_url: avatarUrl,
     role: pick(raw, ["role"], "USER"),
     status: pick(raw, ["status"], "UNVERIFIED"),
     createdAt: pick(raw, ["createdAt", "created_at"], null),

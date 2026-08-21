@@ -1,4 +1,5 @@
 import { request } from "./apiClient";
+import { getDeleteParams } from "./apiContracts";
 import { mapSkill } from "./mappers";
 
 export const MISSING_SKILL_NAME = "Kỹ năng chưa đặt tên";
@@ -75,8 +76,12 @@ export async function updateSkill(skillId, payload) {
   return result;
 }
 
-export async function deleteSkill(skillId) {
-  const result = await request({ method: "DELETE", url: `/api/skills/${skillId}` });
+export async function deleteSkill(skillId, hard = false) {
+  const result = await request({
+    method: "DELETE",
+    url: `/api/skills/${skillId}`,
+    params: getDeleteParams(hard),
+  });
   skillCatalogPromise = null;
   return result;
 }

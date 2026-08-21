@@ -1,4 +1,5 @@
 import { request } from "./apiClient";
+import { getDeleteParams } from "./apiContracts";
 import { mapChapter } from "./mappers";
 
 export async function getChaptersBySubject(subjectId) {
@@ -45,8 +46,12 @@ export async function updateChapter(chapterId, payload) {
   return result ? mapChapter(result) : null;
 }
 
-export async function deleteChapter(chapterId) {
-  return request({ method: "DELETE", url: `/api/chapters/${chapterId}` });
+export async function deleteChapter(chapterId, hard = false) {
+  return request({
+    method: "DELETE",
+    url: `/api/chapters/${chapterId}`,
+    params: getDeleteParams(hard),
+  });
 }
 
 export async function reorderChapters(subjectId, chapters) {

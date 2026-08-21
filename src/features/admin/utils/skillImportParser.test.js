@@ -7,7 +7,6 @@ import {
   parseSkillImport,
   summarizeSkillImport,
   validateSkillImportRow,
-  validateSkillRows,
 } from "./skillImportParser.js";
 import {
   createSkillImportCsvContent,

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Cropper from "react-easy-crop";
 import { Check, Minus, Plus, RefreshCw, RotateCw, X } from "lucide-react";
 import getCroppedImg from "../../../utils/cropImage";
@@ -17,12 +17,22 @@ export default function ImageCropModal({
   targetHeight = 450,
   title = "Cắt ảnh môn học",
 }) {
+  const ratioLabel = aspectRatio === 1 ? "1:1" : "16:9";
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setRotation(0);
+    setCroppedAreaPixels(null);
+    setError("");
+  }, [imageSrc, open]);
 
   const handleCropComplete = useCallback((croppedArea, pixels) => {
     setCroppedAreaPixels(pixels);
@@ -32,6 +42,11 @@ export default function ImageCropModal({
     setCrop({ x: 0, y: 0 });
     setZoom(1);
     setRotation(0);
+    setCroppedAreaPixels(null);
+  };
+
+  const handleClose = () => {
+    if (!processing) onClose?.();
   };
 
   const handleApply = async () => {
@@ -60,7 +75,7 @@ export default function ImageCropModal({
   if (!open || !imageSrc) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose} role="presentation">
+    <div className="modal-overlay" onClick={handleClose} role="presentation">
       <div
         className="modal-container image-crop-modal"
         role="dialog"
@@ -71,13 +86,13 @@ export default function ImageCropModal({
           <div>
             <h3>{title}</h3>
             <span className="image-crop-modal__badge">
-              Tỉ lệ cố định 16:9 ({targetWidth} × {targetHeight} px)
+              Tỉ lệ cố định {ratioLabel} ({targetWidth} × {targetHeight} px)
             </span>
           </div>
           <button
             type="button"
             className="modal-close"
-            onClick={onClose}
+            onClick={handleClose}
             aria-label="Đóng"
             disabled={processing}
           >
@@ -164,7 +179,7 @@ export default function ImageCropModal({
           <button
             type="button"
             className="cancel-btn"
-            onClick={onClose}
+            onClick={handleClose}
             disabled={processing}
           >
             Hủy

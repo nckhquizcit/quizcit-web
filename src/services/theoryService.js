@@ -1,4 +1,5 @@
 import { request } from "./apiClient";
+import { getDeleteParams } from "./apiContracts";
 import { mapTheory } from "./mappers";
 
 export async function getTheoriesByChapter(chapterId) {
@@ -26,8 +27,12 @@ export async function updateTheory(theoryId, payload) {
   return result ? mapTheory(result) : null;
 }
 
-export async function deleteTheory(theoryId) {
-  return request({ method: "DELETE", url: `/api/theories/${theoryId}` });
+export async function deleteTheory(theoryId, hard = false) {
+  return request({
+    method: "DELETE",
+    url: `/api/theories/${theoryId}`,
+    params: getDeleteParams(hard),
+  });
 }
 
 export async function reindexTheoriesBySubject(subjectId) {

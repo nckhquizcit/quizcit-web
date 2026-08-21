@@ -25,6 +25,7 @@ export function clearAuthSession() {
   localStorage.removeItem("accessToken");
   localStorage.removeItem("accessTokenExpiresAt");
   localStorage.removeItem("refreshToken");
+  localStorage.removeItem("refreshTokenExpiresAt");
   localStorage.removeItem("user");
   clearUserPreview();
   window.dispatchEvent(new CustomEvent(AUTH_CHANGED_EVENT));
@@ -47,6 +48,9 @@ export function saveAuthSession(auth) {
   }
   if (auth.refreshToken) {
     localStorage.setItem("refreshToken", auth.refreshToken);
+  }
+  if (auth.refreshTokenExpiresAt) {
+    localStorage.setItem("refreshTokenExpiresAt", auth.refreshTokenExpiresAt);
   }
   const user = { ...auth };
   AUTH_TOKEN_FIELDS.forEach((field) => delete user[field]);
@@ -175,13 +179,7 @@ async function refreshAuthSession() {
   if (!auth?.accessToken) {
     throw new ApiError({ status: 401, message: "Phiên đăng nhập đã hết hạn." });
   }
-  localStorage.setItem("accessToken", auth.accessToken);
-  if (auth.expiresAt) {
-    localStorage.setItem("accessTokenExpiresAt", auth.expiresAt);
-  }
-  if (auth.refreshToken) {
-    localStorage.setItem("refreshToken", auth.refreshToken);
-  }
+  saveAuthSession(auth);
   return auth;
 }
 

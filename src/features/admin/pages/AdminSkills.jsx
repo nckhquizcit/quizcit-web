@@ -82,11 +82,11 @@ export default function AdminSkills() {
     }
   };
 
-  const handleDeleteSkill = async () => {
+  const handleDeleteSkill = async (hard) => {
     if (!deletingSkill) return;
 
     const skillId = getSkillId(deletingSkill);
-    await deleteSkill(skillId);
+    await deleteSkill(skillId, hard);
     setSkills((currentRows) => currentRows.filter((skill) => getSkillId(skill) !== skillId));
     setDeletingSkill(null);
     toast.success("Xóa kỹ năng thành công.");

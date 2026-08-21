@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import ProgressBar from "../../../home/components/ProgressBar";
+import { getProgressTone } from "../../../home/components/progressTone.js";
 import {
   formatScaledThetaValue,
   getAbilityLevel,
@@ -12,12 +13,13 @@ export default function SkillTile({ skillId, name, description = "", theta = 0 }
   const thetaRaw = Number(theta ?? 0);
   const level = getAbilityLevel(thetaRaw);
   const percent = thetaRawToPercent(thetaRaw);
+  const tone = getProgressTone(percent);
 
   const content = (
     <>
       <span className="skill-tile__head">
         <span className="skill-tile__name">{name}</span>
-        <span className="skill-tile__level">{level.label}</span>
+        <span className={`skill-tile__level skill-tile__level--${tone}`}>{level.label}</span>
         {skillId && <ChevronRight className="skill-tile__arrow" size={16} aria-hidden="true" />}
       </span>
       {description && <span className="skill-tile__desc">{description}</span>}
@@ -25,7 +27,7 @@ export default function SkillTile({ skillId, name, description = "", theta = 0 }
         {formatScaledThetaValue(thetaRaw)}
         <span>/ 4</span>
       </strong>
-      <ProgressBar value={percent} />
+      <ProgressBar value={percent} tone={tone} />
     </>
   );
 

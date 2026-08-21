@@ -4,6 +4,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { ADMIN_SIDEBAR, USER_SIDEBAR } from "../../constants/menuConfig";
 import { logout } from "../../services/authService";
 import { getStoredUser } from "../../services/apiClient";
+import { resolveImageUrl } from "../../services/mappers";
 import "./Sidebar.css";
 
 function getInitials(name) {
@@ -128,7 +129,13 @@ export default function Sidebar({ type = "USER", mobileOpen = false, onClose, us
 
         <div className="sidebar-footer">
           <div className="sidebar-user" ref={accountRef}>
-            <span className="sidebar-user__avatar">{getInitials(displayName)}</span>
+            <span className="sidebar-user__avatar">
+              {user?.avatarUrl ? (
+                <img src={resolveImageUrl(user.avatarUrl)} alt="" />
+              ) : (
+                getInitials(displayName)
+              )}
+            </span>
             <div className="sidebar-user__info">
               <p className="sidebar-user__name">{displayName}</p>
               <p className="sidebar-user__role">{roleLabel}</p>

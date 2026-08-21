@@ -165,7 +165,7 @@ export function parseDifficultyArray(input = "") {
     }
   }
 
-  const unwrapped = raw.replace(/^[\[\(\{]\s*/, "").replace(/\s*[\]\)\}]$/, "");
+  const unwrapped = raw.replace(/^[[({]\s*/, "").replace(/\s*[\])}]$/, "");
   const tokens = unwrapped
     .split(/[\s,;\n\r\t]+/)
     .map((token) => token.trim().replace(/^["']|["']$/g, ""))

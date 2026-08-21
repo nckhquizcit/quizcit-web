@@ -30,6 +30,24 @@ export const clampQuizPage = (page, totalPages) => {
   return Math.min(Math.max(safePage, 0), safeTotalPages - 1);
 };
 
+export const getResumableQuizDraft = (
+  draft,
+  quizId,
+  durationSeconds,
+  now = Date.now(),
+) => {
+  if (!draft?.attemptId) return null;
+  if (draft.quizId && String(draft.quizId) !== String(quizId)) return null;
+
+  const duration = Number(durationSeconds);
+  if (Number.isFinite(duration) && duration > 0) {
+    const deadlineAt = Number(draft.deadlineAt);
+    if (!Number.isFinite(deadlineAt) || deadlineAt <= now) return null;
+  }
+
+  return draft;
+};
+
 export const getQuestionPage = (index, pageSize = QUIZ_PAGE_SIZE) => {
   const numericIndex = Number(index);
   const safeIndex = Number.isFinite(numericIndex)

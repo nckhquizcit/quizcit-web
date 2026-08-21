@@ -56,6 +56,18 @@
   font-size: var(--fs-xs);
   color: var(--color-text-muted);
 }
+.progress-overview-card__meta--danger {
+  color: var(--color-error-strong);
+}
+.progress-overview-card__meta--warning {
+  color: var(--color-warning-strong);
+}
+.progress-overview-card__meta--info {
+  color: var(--color-info);
+}
+.progress-overview-card__meta--success {
+  color: var(--color-success-strong);
+}
 /* Lề auto giúp vòng năng lực luôn nằm giữa phần trống khi cột phải cao hơn. */
 .progress-overview-card__ring {
   margin: auto 0;

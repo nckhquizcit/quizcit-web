@@ -1,16 +1,17 @@
 import { request } from "./apiClient";
+import { buildProfilePayload, getDeleteParams } from "./apiContracts";
 import { mapUser } from "./mappers";
 
 export async function getCurrentUser() {
   return mapUser(await request({ method: "GET", url: "/api/users/me" }));
 }
 
-// BE chi cho phep doi displayName; email phai qua luong OTP rieng.
-export async function updateCurrentUserProfile({ displayName }) {
+// Email phải qua luồng OTP riêng.
+export async function updateCurrentUserProfile(payload) {
   const result = await request({
     method: "PUT",
     url: "/api/users/me",
-    data: { displayName },
+    data: buildProfilePayload(payload),
   });
   return mapUser(result);
 }
@@ -81,6 +82,10 @@ export async function changeUserRole(userId, role) {
   return result ? mapUser(result) : mapUser({ userId, role });
 }
 
-export async function deleteUser(userId) {
-  return request({ method: "DELETE", url: `/api/users/${userId}` });
+export async function deleteUser(userId, hard = false) {
+  return request({
+    method: "DELETE",
+    url: `/api/users/${userId}`,
+    params: getDeleteParams(hard),
+  });
 }

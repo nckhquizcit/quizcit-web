@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   getPageNavigationTarget,
   getQuestionNavigationTarget,
+  getResumableQuizDraft,
   getTotalQuizPages,
 } from "./QuizTakingPage.logic.js";
 
@@ -38,5 +39,32 @@ describe("QuizTakingPage navigation logic", () => {
       page: 0,
       questionId: null,
     });
+  });
+});
+
+describe("QuizTakingPage draft recovery", () => {
+  const now = 1_700_000_000_000;
+  const draft = {
+    attemptId: "attempt-1",
+    quizId: "quiz-1",
+    deadlineAt: now + 60_000,
+    answers: { q1: "o1" },
+  };
+
+  it("restores only a draft that still belongs to the active attempt window", () => {
+    assert.equal(getResumableQuizDraft(draft, "quiz-1", 600, now), draft);
+    assert.equal(
+      getResumableQuizDraft({ ...draft, deadlineAt: now - 1 }, "quiz-1", 600, now),
+      null,
+    );
+    assert.equal(getResumableQuizDraft(draft, "quiz-2", 600, now), null);
+  });
+
+  it("allows untimed quiz drafts without a deadline", () => {
+    const untimedDraft = { ...draft, deadlineAt: undefined };
+    assert.equal(
+      getResumableQuizDraft(untimedDraft, "quiz-1", 0, now),
+      untimedDraft,
+    );
   });
 });
