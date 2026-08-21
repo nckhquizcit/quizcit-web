@@ -1,5 +1,6 @@
 export {
   createSkill,
+  createSkillsBulk,
   deleteSkill,
   getSkillById,
   getSkills,

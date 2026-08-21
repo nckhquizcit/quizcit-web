@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Brain, Pencil, Plus, Trash2 } from "lucide-react";
+import { Brain, FileSpreadsheet, Pencil, Plus, Trash2 } from "lucide-react";
 
 import "../Admin.css";
 import AdminPageHeader from "../components/AdminPageHeader";
@@ -7,6 +7,7 @@ import DataTable from "../components/ui/DataTable";
 import RowActions from "../components/ui/RowActions";
 import ConfirmDeleteModal from "../components/modals/ConfirmDeleteModal";
 import SkillFormModal from "../components/modals/SkillFormModal";
+import ImportSkillsModal from "../components/modals/ImportSkillsModal";
 import ErrorState from "../../../components/ui/ErrorState/ErrorState";
 import EmptyState from "../../../components/ui/EmptyState/EmptyState";
 import { useToast } from "../../../components/ui/Toast/Toast";
@@ -22,6 +23,7 @@ export default function AdminSkills() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [editingSkill, setEditingSkill] = useState(null);
   const [deletingSkill, setDeletingSkill] = useState(null);
 
@@ -139,10 +141,25 @@ export default function AdminSkills() {
         title="Quản lý kỹ năng"
         subtitle="Kỹ năng dùng để gắn câu hỏi và cập nhật theta."
         action={
-          <button className="add-btn" onClick={() => setIsCreateOpen(true)}>
-            <Plus size={18} />
-            Thêm kỹ năng
-          </button>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <button
+              type="button"
+              className="add-btn"
+              style={{
+                background: "#ffffff",
+                color: "#059669",
+                border: "1px solid #a7f3d0",
+              }}
+              onClick={() => setIsImportOpen(true)}
+            >
+              <FileSpreadsheet size={18} />
+              Nhập từ CSV
+            </button>
+            <button className="add-btn" onClick={() => setIsCreateOpen(true)}>
+              <Plus size={18} />
+              Thêm kỹ năng
+            </button>
+          </div>
         }
       />
 
@@ -182,6 +199,13 @@ export default function AdminSkills() {
         onClose={() => setEditingSkill(null)}
         onSubmit={handleUpdateSkill}
         isSubmitting={isSubmitting}
+      />
+
+      <ImportSkillsModal
+        open={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        existingSkills={skills}
+        onImportSuccess={loadSkills}
       />
 
       <ConfirmDeleteModal

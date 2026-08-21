@@ -51,6 +51,24 @@ export async function createSkill(payload) {
   return result;
 }
 
+export async function createSkillsBulk(items = []) {
+  const result = await request({
+    method: "POST",
+    url: "/api/skills/bulk",
+    data: {
+      items: items.map((item) => ({
+        clientId: item.clientId || item.id || `skill-${Math.random().toString(36).slice(2, 9)}`,
+        skill: {
+          name: String(item.name || "").trim(),
+          description: String(item.description || "").trim(),
+        },
+      })),
+    },
+  });
+  skillCatalogPromise = null;
+  return result;
+}
+
 export async function updateSkill(skillId, payload) {
   const result = mapSkill(await request({ method: "PUT", url: `/api/skills/${skillId}`, data: payload }));
   skillCatalogPromise = null;
