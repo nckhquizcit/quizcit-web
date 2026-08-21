@@ -3,7 +3,9 @@ import { describe, it } from "node:test";
 
 import {
   getDifficultyLabelVi,
+  getDifficultyTone,
   matchDifficultyPresetKey,
+  parseDifficultyArray,
   parseImportDifficultyB,
   resolveDifficultyB,
 } from "./difficultyLevels.js";
@@ -28,5 +30,36 @@ describe("difficultyLevels", () => {
   it("keeps custom numbers outside presets", () => {
     assert.equal(matchDifficultyPresetKey(1.2), "CUSTOM");
     assert.equal(getDifficultyLabelVi(1.2), "Tùy chỉnh (1.2)");
+  });
+
+  it("handles empty or null difficulty correctly", () => {
+    assert.equal(matchDifficultyPresetKey(null), "");
+    assert.equal(matchDifficultyPresetKey(""), "");
+    assert.equal(getDifficultyLabelVi(null), "Chưa có độ khó");
+    assert.equal(getDifficultyTone(null), "empty");
+  });
+
+  it("parses difficulty array in various formats", () => {
+    const jsonResult = parseDifficultyArray("[1, 1.05, 2, 3, -2]");
+    assert.equal(jsonResult.isValid, true);
+    assert.deepEqual(jsonResult.values, [1, 1.05, 2, 3, -2]);
+    assert.deepEqual(jsonResult.invalidTokens, []);
+
+    const commaResult = parseDifficultyArray("1, 1.05, 2, 3, -2");
+    assert.equal(commaResult.isValid, true);
+    assert.deepEqual(commaResult.values, [1, 1.05, 2, 3, -2]);
+
+    const newlineResult = parseDifficultyArray("1\n1.05\n2\n3\n-2");
+    assert.equal(newlineResult.isValid, true);
+    assert.deepEqual(newlineResult.values, [1, 1.05, 2, 3, -2]);
+
+    const invalidResult = parseDifficultyArray("[1, 1.05, abc, -2]");
+    assert.equal(invalidResult.isValid, false);
+    assert.deepEqual(invalidResult.values, [1, 1.05, -2]);
+    assert.deepEqual(invalidResult.invalidTokens, ["abc"]);
+
+    const emptyResult = parseDifficultyArray("");
+    assert.equal(emptyResult.isValid, false);
+    assert.deepEqual(emptyResult.values, []);
   });
 });

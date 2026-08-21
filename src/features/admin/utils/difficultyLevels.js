@@ -67,8 +67,9 @@ export function getDifficultyPreset(key) {
 }
 
 export function matchDifficultyPresetKey(difficultyB) {
+  if (difficultyB === null || difficultyB === undefined || difficultyB === "") return "";
   const value = Number(difficultyB);
-  if (!Number.isFinite(value)) return DEFAULT_DIFFICULTY_KEY;
+  if (!Number.isFinite(value)) return "";
 
   const matched = DIFFICULTY_PRESETS.find(
     (preset) => Math.abs(preset.value - value) <= PRESET_TOLERANCE,
@@ -79,32 +80,122 @@ export function matchDifficultyPresetKey(difficultyB) {
 export function resolveDifficultyB(difficultyKey, customValue = DEFAULT_DIFFICULTY_B) {
   if (difficultyKey === CUSTOM_DIFFICULTY_KEY) {
     const custom = Number(String(customValue).replace(",", "."));
-    return Number.isFinite(custom) ? custom : DEFAULT_DIFFICULTY_B;
+    return Number.isFinite(custom) ? custom : customValue;
   }
 
-  return getDifficultyPreset(difficultyKey)?.value ?? DEFAULT_DIFFICULTY_B;
+  const preset = getDifficultyPreset(difficultyKey);
+  if (preset) return preset.value;
+
+  if (customValue !== undefined) {
+    return Number.isFinite(Number(customValue)) ? Number(customValue) : customValue;
+  }
+
+  return DEFAULT_DIFFICULTY_B;
 }
 
 export function getDifficultyLabelVi(difficultyB) {
+  if (difficultyB === null || difficultyB === undefined || difficultyB === "" || !Number.isFinite(Number(difficultyB))) {
+    return "Chưa có độ khó";
+  }
+
   const key = matchDifficultyPresetKey(difficultyB);
-  if (key !== CUSTOM_DIFFICULTY_KEY) {
+  if (key && key !== CUSTOM_DIFFICULTY_KEY) {
     return getDifficultyPreset(key)?.label ?? "Trung bình";
   }
 
   const value = Number(difficultyB);
-  if (!Number.isFinite(value)) return "Tùy chỉnh";
+  if (!Number.isFinite(value)) return "Chưa có độ khó";
   return `Tùy chỉnh (${value.toFixed(1)})`;
 }
 
 export function getDifficultyTone(difficultyB) {
+  if (difficultyB === null || difficultyB === undefined || difficultyB === "" || !Number.isFinite(Number(difficultyB))) {
+    return "empty";
+  }
+
   const value = Number(difficultyB);
-  if (!Number.isFinite(value)) return "medium";
   if (value <= -1.8) return "very-easy";
   if (value <= -0.6) return "easy";
   if (value < 0.6) return "medium";
   if (value < 1.8) return "fairly-hard";
   if (value < 3) return "hard";
   return "very-hard";
+}
+
+export function parseDifficultyArray(input = "") {
+  if (Array.isArray(input)) {
+    const values = input
+      .map((item) => (typeof item === "number" ? item : Number(String(item).trim().replace(",", "."))))
+      .filter(Number.isFinite);
+    return {
+      values,
+      invalidTokens: [],
+      isValid: values.length > 0,
+    };
+  }
+
+  const raw = String(input ?? "").trim();
+  if (!raw) {
+    return { values: [], invalidTokens: [], isValid: false };
+  }
+
+  if (raw.startsWith("[") && raw.endsWith("]")) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        const values = [];
+        const invalidTokens = [];
+        for (const item of parsed) {
+          const text = String(item).trim().replace(",", ".");
+          const num = Number(text);
+          if (text !== "" && Number.isFinite(num)) {
+            values.push(num);
+          } else {
+            invalidTokens.push(String(item));
+          }
+        }
+        return {
+          values,
+          invalidTokens,
+          isValid: invalidTokens.length === 0 && values.length > 0,
+        };
+      }
+    } catch {
+      // Fallback to token splitting
+    }
+  }
+
+  const unwrapped = raw.replace(/^[\[\(\{]\s*/, "").replace(/\s*[\]\)\}]$/, "");
+  const tokens = unwrapped
+    .split(/[\s,;\n\r\t]+/)
+    .map((token) => token.trim().replace(/^["']|["']$/g, ""))
+    .filter(Boolean);
+
+  const values = [];
+  const invalidTokens = [];
+
+  for (const token of tokens) {
+    const normalized = token.replace(",", ".");
+    const num = Number(normalized);
+    if (
+      token &&
+      Number.isFinite(num) &&
+      /^[+-]?\d*(\.\d+)?$/.test(normalized) &&
+      normalized !== "." &&
+      normalized !== "+" &&
+      normalized !== "-"
+    ) {
+      values.push(num);
+    } else if (token) {
+      invalidTokens.push(token);
+    }
+  }
+
+  return {
+    values,
+    invalidTokens,
+    isValid: invalidTokens.length === 0 && values.length > 0,
+  };
 }
 
 export function parseImportDifficultyB(value, fallback = DEFAULT_DIFFICULTY_B) {

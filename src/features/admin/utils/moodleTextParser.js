@@ -41,6 +41,9 @@ export function parseQuestionsFromAiken(input = "") {
       options: current.options,
       correctKey: answerKey,
       sourceLine: current.sourceLine,
+      sourceType: "aiken",
+      difficulty: "",
+      difficultyB: null,
       mappingErrors: errors,
     }, questions.length);
     questions.push({ ...row, sourceType: "aiken", moodleType: "Aiken", sourceErrors: errors });
@@ -62,8 +65,13 @@ export function parseQuestionsFromAiken(input = "") {
   if (current.questionLines.some((line) => line.trim()) || current.options.length) {
     const errors = ["Thiếu dòng ANSWER cho câu hỏi Aiken."];
     const row = createQuestionImportRow({
-      content: current.questionLines.join("\n").trim(), options: current.options,
-      sourceLine: current.sourceLine, mappingErrors: errors,
+      content: current.questionLines.join("\n").trim(),
+      options: current.options,
+      sourceLine: current.sourceLine,
+      sourceType: "aiken",
+      difficulty: "",
+      difficultyB: null,
+      mappingErrors: errors,
     }, questions.length);
     questions.push({ ...row, sourceType: "aiken", moodleType: "Aiken", sourceErrors: errors });
   }
@@ -189,6 +197,9 @@ export function parseQuestionsFromGift(input = "") {
       options,
       correctKey: IMPORT_OPTION_KEYS[tokens.indexOf(positives[0])] || "",
       sourceLine: entry.sourceLine,
+      sourceType: "gift",
+      difficulty: "",
+      difficultyB: null,
       mappingErrors: errors,
     }, index);
     return {

@@ -18,6 +18,9 @@ import {
 
 const getNameById = (items = [], id, fallback) => {
   if (!id) return fallback;
+  if (id === "QUESTION_BANK") {
+    return fallback === "Chưa chọn môn" ? "Ngân hàng câu hỏi" : "Chưa phân loại";
+  }
 
   const matchedItem = items.find((item) =>
     [item?.subjectId, item?.chapterId, item?.skillId, item?.id]
@@ -287,24 +290,35 @@ export default function QuestionImportPreview({
               )}
 
               <label className="form-field">
-                <span>Độ khó</span>
+                <span>Độ khó *</span>
                 <select
-                  value={row.difficulty}
+                  value={row.difficulty || (row.difficultyB !== null && row.difficultyB !== undefined && row.difficultyB !== "" ? (matchDifficultyPresetKey(row.difficultyB) || CUSTOM_DIFFICULTY_KEY) : "")}
                   onChange={(event) => {
                     const nextKey = event.target.value;
+                    if (!nextKey) {
+                      onChangeRow?.(row.id, {
+                        difficulty: "",
+                        difficultyB: null,
+                        manualDifficulty: "",
+                        manualDifficultyB: "",
+                      });
+                      return;
+                    }
                     onChangeRow?.(row.id, {
                       difficulty: nextKey,
                       difficultyB:
                         nextKey === CUSTOM_DIFFICULTY_KEY
-                          ? Number(row.difficultyB ?? 0)
+                          ? (Number.isFinite(Number(row.difficultyB)) ? Number(row.difficultyB) : 0)
                           : resolveDifficultyB(nextKey),
                     });
                   }}
                   disabled={disabled}
+                  className={row.difficultyB === null || row.difficultyB === undefined || row.difficultyB === "" ? "invalid" : ""}
                 >
+                  <option value="">-- Chọn độ khó --</option>
                   {DIFFICULTY_PRESETS.map((preset) => (
                     <option key={preset.key} value={preset.key}>
-                      {preset.label}
+                      {preset.label} ({preset.value > 0 ? `+${preset.value}` : preset.value})
                     </option>
                   ))}
                   <option value={CUSTOM_DIFFICULTY_KEY}>Tùy chỉnh</option>
@@ -312,7 +326,7 @@ export default function QuestionImportPreview({
                 {row.difficulty === CUSTOM_DIFFICULTY_KEY && (
                   <input
                     type="number"
-                    step="0.1"
+                    step="0.01"
                     value={row.difficultyB ?? ""}
                     onChange={(event) =>
                       onChangeRow?.(row.id, {
@@ -321,7 +335,7 @@ export default function QuestionImportPreview({
                       })
                     }
                     disabled={disabled}
-                    placeholder="Ví dụ: -1.2"
+                    placeholder="Ví dụ: -1.2, 1.05"
                     aria-label="Độ khó tùy chỉnh"
                   />
                 )}

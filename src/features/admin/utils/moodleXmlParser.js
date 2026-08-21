@@ -119,10 +119,14 @@ export function parseQuestionsFromMoodleXml(input = "") {
       options,
       correctKey: correctIndex >= 0 ? IMPORT_OPTION_KEYS[correctIndex] || "" : "",
       sourceLine: sourceIndex + 1,
+      sourceType: "moodle",
+      difficulty: "",
+      difficultyB: null,
       mappingErrors: errors,
     }, rows.length);
     rows.push({
       ...row,
+      sourceType: "moodle",
       contentFormat: "blocknote",
       moodleType: type,
       moodleName: directText(question, ":scope > name > text"),

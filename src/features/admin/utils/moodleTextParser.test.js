@@ -19,6 +19,9 @@ ANSWER: A`;
   const [row] = parseQuestionsFromAiken(source);
   assert.equal(row.content, "Thủ đô Việt Nam là gì?");
   assert.equal(row.correctKey, "A");
+  assert.equal(row.difficultyB, null);
+  assert.equal(row.difficulty, "");
+  assert.equal(row.sourceType, "aiken");
   assert.deepEqual(row.sourceErrors, []);
 });
 
@@ -37,6 +40,9 @@ test("parses GIFT title, category and general feedback", () => {
   assert.equal(row.moodleCategory, "Chương 1");
   assert.equal(row.correctKey, "A");
   assert.equal(row.explanation, "Bốn là đáp án đúng.");
+  assert.equal(row.difficultyB, null);
+  assert.equal(row.difficulty, "");
+  assert.equal(row.sourceType, "gift");
   assert.deepEqual(row.sourceErrors, []);
 });
 
@@ -56,5 +62,8 @@ test("converts GIFT true-false questions to the current option model", () => {
   assert.equal(row.options[0].content, "Đúng");
   assert.equal(row.options[1].content, "Sai");
   assert.equal(row.correctKey, "A");
+  assert.equal(row.difficultyB, null);
+  assert.equal(row.difficulty, "");
+  assert.equal(row.sourceType, "gift");
   assert.deepEqual(row.sourceErrors, []);
 });

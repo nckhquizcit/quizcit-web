@@ -144,7 +144,7 @@ function parseCsvSkills(skillValue = "", weightValue = "", primaryValue = "") {
   });
 }
 
-export function validateQuestionImportRow(row, { requireSubject = true, requireChapter = true } = {}) {
+export function validateQuestionImportRow(row, { requireSubject = true, requireChapter = true, requireDifficulty = true } = {}) {
   const errors = [];
   const warnings = [];
   const content = normalizeText(row?.content);
@@ -177,6 +177,16 @@ export function validateQuestionImportRow(row, { requireSubject = true, requireC
 
   if (requireChapter && !row?.chapterId) {
     errors.push("Chưa chọn chương.");
+  }
+
+  const hasDifficulty =
+    row?.difficultyB !== null &&
+    row?.difficultyB !== undefined &&
+    row?.difficultyB !== "" &&
+    Number.isFinite(Number(row?.difficultyB));
+
+  if (requireDifficulty && !hasDifficulty) {
+    errors.push("Chưa nhập độ khó câu hỏi.");
   }
 
   if (skills.length > 0) {
@@ -223,10 +233,13 @@ export function createQuestionImportRow(partial = {}, index = 0) {
   const importedSubjectId = normalizeText(partial.subjectId);
   const importedChapterId = normalizeText(partial.chapterId);
   const importedDifficulty = normalizeText(partial.difficulty);
-  const hasDifficulty = Boolean(importedDifficulty) || partial.difficultyB !== undefined && partial.difficultyB !== null && partial.difficultyB !== "";
+  const hasDifficulty = Boolean(importedDifficulty) || (partial.difficultyB !== undefined && partial.difficultyB !== null && partial.difficultyB !== "");
   const difficultyB = hasDifficulty
-    ? normalizeImportDifficultyB(partial.difficulty ?? partial.difficultyB, DEFAULT_DIFFICULTY_B)
+    ? normalizeImportDifficultyB(partial.difficulty ?? partial.difficultyB, null)
     : null;
+  const difficulty = difficultyB !== null && Number.isFinite(difficultyB)
+    ? matchDifficultyPresetKey(difficultyB)
+    : (partial.difficulty ? normalizeImportDifficulty(partial.difficulty, "") : "");
   const row = {
     id: partial.id || `import-question-${Date.now()}-${index}`,
     content: partial.contentFormat === "blocknote" ? String(partial.content || "") : normalizeText(partial.content),
@@ -234,7 +247,7 @@ export function createQuestionImportRow(partial = {}, index = 0) {
     options: normalizeOptionList((partial.options || []).map((option) => ({ ...option, contentFormat: partial.contentFormat }))),
     correctKey: correctResult.correctKey,
     explanation: partial.contentFormat === "blocknote" ? String(partial.explanation || "") : normalizeText(partial.explanation),
-    difficulty: matchDifficultyPresetKey(difficultyB),
+    difficulty,
     difficultyB,
     subjectId: importedSubjectId,
     chapterId: importedChapterId,
@@ -244,10 +257,12 @@ export function createQuestionImportRow(partial = {}, index = 0) {
     skills: normalizeImportSkills(partial.skills),
     mappingErrors: partial.mappingErrors || [],
     sourceLine: partial.sourceLine || index + 1,
+    sourceType: partial.sourceType || "",
   };
   const validation = validateQuestionImportRow(row, {
     requireSubject: Boolean(row.subjectId),
     requireChapter: Boolean(row.chapterId),
+    requireDifficulty: row.difficultyB !== null && Number.isFinite(row.difficultyB),
   });
 
   return {
