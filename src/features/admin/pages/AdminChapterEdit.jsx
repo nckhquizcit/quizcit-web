@@ -84,8 +84,8 @@ export default function AdminChapterEdit() {
 
         <aside className="adm2-aside-stack">
           <div className="adm2-card adm2-aside-card">
-            <span className="adm2-chip">Điều kiện</span>
-            <h4>Tất cả điều kiện đều bắt buộc</h4>
+            <span className="adm2-chip">Điều kiện mở chương sau</span>
+            <h4>Yêu cầu hoàn thành chương này</h4>
 
             {selectedSkills.length > 0 ? (
               <ul className="adm2-condition-list">
@@ -103,13 +103,13 @@ export default function AdminChapterEdit() {
                 })}
               </ul>
             ) : (
-              <p>Chưa chọn kỹ năng nào cho chương này.</p>
+              <p>Chưa chọn kỹ năng nào. Chương tiếp theo sẽ mở khóa tự động khi học viên học đến chương này.</p>
             )}
 
             <div className="adm2-divider" />
             <p className="adm2-note--muted">{selectedSkills.length} kỹ năng đang được áp dụng cho chương này.</p>
             <p className="adm2-note--muted">
-              BE so sánh θ raw (−4…4). Học viên thấy thang 0–4 (raw 0 = 2.00).
+              Học viên cần đạt θ raw của tất cả kỹ năng trên để mở khóa chương tiếp theo.
             </p>
           </div>
         </aside>
