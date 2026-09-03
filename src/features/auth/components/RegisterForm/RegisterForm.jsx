@@ -9,6 +9,7 @@ import "./RegisterForm.css";
 
 // BE gioi han REGISTER 5 lan / 900s.
 const RATE_LIMIT_COOLDOWN_SECONDS = 900;
+const USERNAME_REGEX = /^[a-zA-Z0-9._-]+$/;
 
 export default function RegisterForm() {
   const navigate = useNavigate();
@@ -33,7 +34,18 @@ export default function RegisterForm() {
   const handleRegister = async (e) => {
     e.preventDefault();
     if (cooldown > 0) return;
+    setError("");
     setConfirmError("");
+
+    const trimmedUsername = formData.username.trim();
+    if (trimmedUsername.length < 3 || trimmedUsername.length > 50) {
+      setError("Tên đăng nhập phải từ 3 đến 50 ký tự.");
+      return;
+    }
+    if (!USERNAME_REGEX.test(trimmedUsername)) {
+      setError("Tên đăng nhập không được chứa khoảng trắng, dấu tiếng Việt hoặc ký tự đặc biệt.");
+      return;
+    }
     if (formData.password !== formData.confirmPassword) {
       setConfirmError("Mật khẩu nhập lại không khớp.");
       return;
@@ -42,10 +54,10 @@ export default function RegisterForm() {
       setLoading(true);
       setError("");
       const res = await register({
-        username: formData.username,
+        username: trimmedUsername,
         password: formData.password,
         email: formData.email,
-        displayName: formData.username,
+        displayName: trimmedUsername,
       });
       if (!res?.verificationToken) {
         throw new Error("Không nhận được mã xác minh. Vui lòng thử lại.");
@@ -84,6 +96,7 @@ export default function RegisterForm() {
           onChange={handleChange}
           iconLeft={<User size={18} />}
           autoComplete="username"
+          minLength={3}
           maxLength={50}
           required
         />
