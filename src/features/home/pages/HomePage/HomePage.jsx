@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, BookOpen, Layers3 } from "lucide-react";
+import { ArrowRight, BookOpen, GraduationCap, Layers3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   Badge,
@@ -11,6 +11,7 @@ import {
   StatTile,
 } from "../../../../components/ui";
 import ProgressBar from "../../components/ProgressBar";
+import { buildEnrolledSubjects } from "../../utils/homeSubjects";
 import { getAllChapters } from "../../../../services/chapterService";
 import { getMyEnrollments } from "../../../../services/enrollmentService";
 import { getSubjects } from "../../../../services/subjectService";
@@ -43,7 +44,7 @@ function getFirstName(displayName) {
 export default function HomePage() {
   const [subjects, setSubjects] = useState([]);
   const [chapters, setChapters] = useState([]);
-  const [enrolledIds, setEnrolledIds] = useState(() => new Set());
+  const [enrollments, setEnrollments] = useState([]);
   const [skillCount, setSkillCount] = useState(0);
   const [averageTheta, setAverageTheta] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -60,17 +61,17 @@ export default function HomePage() {
     try {
       setLoading(true);
       setError("");
-      // Enrollment loi thi degrade ve rong, khong lam chet trang chu.
+      // Enrollment lỗi thì degrade về rỗng, không làm chết trang chủ.
       const [subjectData = [], chaptersData = [], enrolledData = []] = await Promise.all([
-        getSubjects(), getAllChapters(), getMyEnrollments().catch(() => []),
+        getSubjects(),
+        getAllChapters(),
+        getMyEnrollments().catch(() => []),
       ]);
 
       if (!isCurrent()) return;
       setSubjects(subjectData);
       setChapters(chaptersData.filter(Boolean));
-      setEnrolledIds(
-        new Set(enrolledData.map((subject) => String(subject.subjectId || subject.subject_id))),
-      );
+      setEnrollments(enrolledData);
 
       if (user?.userId) {
         const [abilitiesResult, averageResult] = await Promise.allSettled([
@@ -110,16 +111,9 @@ export default function HomePage() {
   const abilityLevel = hasAbilityData ? getAbilityLevel(averageTheta) : null;
   const abilityProgress = hasAbilityData ? thetaRawToPercent(averageTheta) : 0;
 
-  const subjectsWithChapterCount = useMemo(
-    () =>
-      subjects.map((subject) => ({
-        ...subject,
-        enrolled: enrolledIds.has(String(subject.subjectId)),
-        chapterCount: chapters.filter(
-          (chapter) => String(chapter.subjectId) === String(subject.subjectId)
-        ).length,
-      })),
-    [subjects, chapters, enrolledIds]
+  const enrolledSubjects = useMemo(
+    () => buildEnrolledSubjects(enrollments, subjects, chapters),
+    [enrollments, subjects, chapters]
   );
 
   if (loading) {
@@ -195,11 +189,15 @@ export default function HomePage() {
         </Card>
 
         <Card padding="lg" className="home-content-card">
-          <h2>Nội dung khả dụng</h2>
-          <p className="home-content-card__sub">Dữ liệu từ hệ thống</p>
+          <h2>Nội dung học tập</h2>
+          <p className="home-content-card__sub">Khóa học và tiến độ của bạn</p>
 
           <div className="home-content-card__stats">
-            <StatTile icon={<BookOpen size={18} />} value={subjects.length} label="Môn học" />
+            <StatTile
+              icon={<GraduationCap size={18} />}
+              value={enrolledSubjects.length}
+              label="Môn đã đăng ký"
+            />
             <StatTile
               icon={<Layers3 size={18} />}
               value={chapters.length}
@@ -212,7 +210,7 @@ export default function HomePage() {
             fullWidth
             onClick={() => navigate("/app/subjects")}
           >
-            Xem danh sách môn học
+            Xem tất cả môn học
           </Button>
         </Card>
       </section>
@@ -220,9 +218,9 @@ export default function HomePage() {
       <section className="home-subjects-section">
         <div className="home-subjects-section__header">
           <div>
-            <h2>Danh sách môn học</h2>
+            <h2>Môn học đã đăng ký</h2>
             <p className="home-subjects-section__helper">
-              Chọn môn để xem chương, lý thuyết và bài kiểm tra.
+              Chọn môn để tiếp tục học lý thuyết và làm bài kiểm tra ôn tập.
             </p>
           </div>
           <Button
@@ -231,18 +229,28 @@ export default function HomePage() {
             iconRight={<ArrowRight size={14} />}
             onClick={() => navigate("/app/subjects")}
           >
-            Xem tất cả
+            Xem tất cả môn học
           </Button>
         </div>
 
-        {subjects.length === 0 ? (
+        {enrolledSubjects.length === 0 ? (
           <EmptyState
-            title="Chưa có môn học nào"
-            description="Hệ thống chưa có môn học để hiển thị."
+            icon={<BookOpen size={28} />}
+            title="Bạn chưa đăng ký môn học nào"
+            description="Hãy khám phá danh sách môn học và bấm đăng ký để mở khóa lý thuyết cùng bài kiểm tra ôn tập."
+            action={
+              <Button
+                variant="primary"
+                iconRight={<ArrowRight size={16} />}
+                onClick={() => navigate("/app/subjects")}
+              >
+                Khám phá và đăng ký môn học
+              </Button>
+            }
           />
         ) : (
           <div className="home-subjects-grid">
-            {subjectsWithChapterCount.map((subject) => (
+            {enrolledSubjects.map((subject) => (
               <Card
                 key={subject.subjectId}
                 as="button"
@@ -270,14 +278,12 @@ export default function HomePage() {
                 )}
                 <h3>{subject.name}</h3>
                 <p className="home-subject-card__meta">
-                  {!subject.enrolled
-                    ? "Đăng ký để xem nội dung"
-                    : subject.chapterCount > 0
-                      ? `${subject.chapterCount} chương đã mở · Lý thuyết và bài kiểm tra`
-                      : "Chưa mở khóa chương nào"}
+                  {subject.chapterCount > 0
+                    ? `${subject.chapterCount} chương đã mở · Lý thuyết và bài kiểm tra`
+                    : "Chưa mở khóa chương nào"}
                 </p>
                 <span className="home-subject-card__link">
-                  Xem chi tiết <ArrowRight size={14} />
+                  Vào học ngay <ArrowRight size={14} />
                 </span>
               </Card>
             ))}
