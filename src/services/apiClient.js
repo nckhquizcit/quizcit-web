@@ -82,11 +82,14 @@ export function subscribeToAuthChange(callback) {
   return () => window.removeEventListener(AUTH_CHANGED_EVENT, callback);
 }
 
-function normalizeValidation(data) {
+function normalizeValidation(data, status) {
   if (!data || typeof data !== "object") return null;
   if (data.errors && typeof data.errors === "object") return data.errors;
   if (data.details && typeof data.details === "object") return data.details;
-  if (data.data && typeof data.data === "object") return data.data;
+  // Chi coi data.data la validation errors khi status la 400 (Bad Request) hoac 422
+  if ((status === 400 || status === 422) && data.data && typeof data.data === "object") {
+    return data.data;
+  }
   return null;
 }
 
@@ -106,7 +109,7 @@ function normalizeApiError(error) {
     status,
     message,
     data: data?.data ?? data,
-    validation: normalizeValidation(data),
+    validation: normalizeValidation(data, status),
     originalError: error,
   });
 }

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AtSign, Mail } from "lucide-react";
 import {
@@ -28,12 +28,25 @@ export default function VerifyForm({
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const inputRefs = useRef([]);
+  const autoSentRef = useRef(false);
 
   const trimmedEmail = email.trim();
   const emailValid = trimmedEmail.includes("@");
   const [cooldown, startCooldown] = useCountdown(
     emailValid ? `otp-cooldown:${trimmedEmail.toLowerCase()}` : "",
   );
+
+  useEffect(() => {
+    if (initialEmail && initialEmail !== email) {
+      setEmail(initialEmail);
+    }
+  }, [initialEmail, email]);
+
+  useEffect(() => {
+    if (verificationToken && verificationToken !== token) {
+      setToken(verificationToken);
+    }
+  }, [verificationToken, token]);
 
   const handleChange = (element, index) => {
     if (isNaN(element.value)) return false;
@@ -85,7 +98,7 @@ export default function VerifyForm({
     }
   };
 
-  const handleResend = async () => {
+  const handleResend = useCallback(async () => {
     if (resending || cooldown > 0) return;
     if (!emailValid) {
       setError("Vui lòng nhập email hợp lệ để nhận mã.");
@@ -114,7 +127,16 @@ export default function VerifyForm({
     } finally {
       setResending(false);
     }
-  };
+  }, [cooldown, emailValid, resending, startCooldown, trimmedEmail]);
+
+  useEffect(() => {
+    if (token) {
+      inputRefs.current[0]?.focus();
+    } else if (emailValid && cooldown === 0 && !autoSentRef.current) {
+      autoSentRef.current = true;
+      handleResend();
+    }
+  }, [token, emailValid, cooldown, handleResend]);
 
   return (
     <form className="auth-form verify-form" onSubmit={handleVerify}>

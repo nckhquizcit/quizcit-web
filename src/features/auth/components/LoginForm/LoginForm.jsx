@@ -23,7 +23,6 @@ export default function LoginForm() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-  const [needsVerify, setNeedsVerify] = useState(false);
   const [loading, setLoading] = useState(false);
   const [cooldown, startCooldown] = useCountdown();
 
@@ -35,10 +34,14 @@ export default function LoginForm() {
     }));
   };
 
-  const goToVerify = () => {
+  const goToVerify = (customState = {}) => {
     const identifier = formData.username.trim();
     navigate("/verify", {
-      state: { email: identifier.includes("@") ? identifier : "" },
+      state: {
+        email: customState.email || (identifier.includes("@") ? identifier : ""),
+        verificationToken: customState.verificationToken || "",
+        ...customState,
+      },
     });
   };
 
@@ -60,11 +63,32 @@ export default function LoginForm() {
         startCooldown(RATE_LIMIT_COOLDOWN_SECONDS);
       } else {
         const message = getErrorMessage(apiError, "Đăng nhập thất bại.");
+        const rawMessage = apiError?.message || apiError?.response?.data?.message || "";
+        const emailFromData = apiError?.data?.email || apiError?.response?.data?.data?.email;
+        const tokenFromData =
+          apiError?.data?.verificationToken ||
+          apiError?.response?.data?.data?.verificationToken;
+
         // 403 co the la "chua xac thuc" hoac "bi khoa" (BE chua co ma loi rieng);
-        // chi moi xac thuc khi dung truong hop, tranh day user bi khoa vao vong lap verify.
-        setNeedsVerify(
-          apiError?.status === 403 && message.toLowerCase().includes("chưa xác thực"),
-        );
+        // Chuyen ngay sang trang verify neu tai khoan chua duoc xac thuc.
+        const isUnverified =
+          (apiError?.status === 403 || apiError?.response?.status === 403) &&
+          (Boolean(tokenFromData) ||
+            rawMessage.toLowerCase().includes("chưa xác thực") ||
+            rawMessage.toLowerCase().includes("unverified") ||
+            message.toLowerCase().includes("chưa xác thực") ||
+            message.toLowerCase().includes("unverified"));
+
+        if (isUnverified) {
+          const email =
+            emailFromData ||
+            (formData.username.includes("@") ? formData.username.trim() : "");
+          const verificationToken = tokenFromData || "";
+
+          goToVerify({ email, verificationToken });
+          return;
+        }
+
         setError(message);
       }
     } finally {
@@ -79,20 +103,7 @@ export default function LoginForm() {
         <p>Nhập thông tin để tiếp tục học.</p>
       </div>
 
-      {error && (
-        <div className="auth-form__error-group">
-          <div className="auth-form__error">{error}</div>
-          {needsVerify && (
-            <button
-              type="button"
-              className="auth-form__error-action"
-              onClick={goToVerify}
-            >
-              Xác thực tài khoản
-            </button>
-          )}
-        </div>
-      )}
+      {error && <div className="auth-form__error">{error}</div>}
 
       <Field label="Tên đăng nhập hoặc email" htmlFor="username">
         <Input
