@@ -135,16 +135,13 @@ export default function ProgressPage() {
       <header className="progress-header">
         <h1>Tiến độ</h1>
         <p className="progress-header__desc">
-          Theo dõi năng lực theo từng kỹ năng và các lần hệ thống cập nhật.
+          Theo dõi năng lực theo từng kỹ năng.
         </p>
       </header>
 
       <div className="progress-top-grid">
         <Card as="section" padding="lg" className="progress-overview-card">
           <h2>Năng lực tổng quan</h2>
-          <p className="progress-overview-card__scale">
-            Năng lực (θ) ước tính theo thang 0–4, cập nhật sau mỗi bài kiểm tra.
-          </p>
           <p
             className={`progress-overview-card__meta${averageTone ? ` progress-overview-card__meta--${averageTone}` : ""}`}
           >

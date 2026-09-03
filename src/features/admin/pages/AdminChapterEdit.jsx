@@ -103,13 +103,13 @@ export default function AdminChapterEdit() {
                 })}
               </ul>
             ) : (
-              <p>Chưa chọn kỹ năng nào. Chương tiếp theo sẽ mở khóa tự động khi học viên học đến chương này.</p>
+              <p>Chưa chọn kỹ năng nào. Chương tiếp theo sẽ mở khóa tự động khi sinh viên học đến chương này.</p>
             )}
 
             <div className="adm2-divider" />
             <p className="adm2-note--muted">{selectedSkills.length} kỹ năng đang được áp dụng cho chương này.</p>
             <p className="adm2-note--muted">
-              Học viên cần đạt θ raw của tất cả kỹ năng trên để mở khóa chương tiếp theo.
+              Sinh viên cần đạt θ raw của tất cả kỹ năng trên để mở khóa chương tiếp theo.
             </p>
           </div>
         </aside>

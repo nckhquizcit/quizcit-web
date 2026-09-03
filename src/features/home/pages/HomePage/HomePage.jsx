@@ -192,10 +192,6 @@ export default function HomePage() {
           <Button variant="primary" onClick={() => navigate("/app/progress")}>
             Xem tiến độ
           </Button>
-
-          <p className="home-ability-card__note">
-            Cập nhật sau bài kiểm tra và nhóm 5 câu thích ứng
-          </p>
         </Card>
 
         <Card padding="lg" className="home-content-card">

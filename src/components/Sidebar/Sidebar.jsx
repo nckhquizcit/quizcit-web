@@ -25,8 +25,8 @@ export default function Sidebar({ type = "USER", mobileOpen = false, onClose, us
   const user = userProp ?? getStoredUser();
 
   const displayName =
-    user?.displayName || user?.username || (isAdmin ? "Quản trị viên" : "Học viên");
-  const roleLabel = isAdmin ? "Administrator" : "Học viên";
+    user?.displayName || user?.username || (isAdmin ? "Quản trị viên" : "Sinh viên");
+  const roleLabel = isAdmin ? "Administrator" : "Sinh viên";
   const sectionLabel = isAdmin ? "QUẢN TRỊ" : "KHÔNG GIAN HỌC";
   const brandSubtitle = isAdmin ? "ADMIN CONSOLE" : "Ôn tập trực tuyến";
 

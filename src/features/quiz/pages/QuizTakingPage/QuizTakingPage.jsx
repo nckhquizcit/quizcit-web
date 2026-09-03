@@ -528,7 +528,6 @@ export default function QuizTakingPage() {
             <span className="quiz-info-banner__icon" aria-hidden="true">
               ⓘ
             </span>
-            <span>Không hiển thị đúng sai hoặc lời giải trước khi nộp.</span>
             <span className="quiz-info-banner__hint">
               Phím tắt: 1-4 chọn đáp án, ←/→ chuyển trang.
             </span>
@@ -805,10 +804,6 @@ export default function QuizTakingPage() {
         }
       >
         <div className="submit-confirm-content">
-          <p className="submit-confirm-sub">
-            Kết quả chỉ được chấm sau thao tác này.
-          </p>
-
           <div className="submit-confirm-stats">
             <StatTile value={answeredCount} label="Đã trả lời" tone="success" />
             <StatTile

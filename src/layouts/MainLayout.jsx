@@ -55,8 +55,8 @@ export default function MainLayout() {
     navigate(exitUserPreview());
   };
 
-  const displayName = user?.displayName || user?.username || "Học viên";
-  const initial = displayName.trim().charAt(0).toUpperCase() || "H";
+  const displayName = user?.displayName || user?.username || "Sinh viên";
+  const initial = displayName.trim().charAt(0).toUpperCase() || "S";
   const firstName = getFirstName(displayName) || displayName;
 
   return (

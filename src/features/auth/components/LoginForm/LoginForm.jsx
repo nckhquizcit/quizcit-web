@@ -162,11 +162,6 @@ export default function LoginForm() {
       <p className="auth-form__switch">
         Chưa có tài khoản? <Link to="/register">Đăng ký</Link>
       </p>
-
-      <div className="auth-divider" />
-      <p className="auth-mini-note">
-        Đăng nhập sẽ chuyển theo vai trò User / Admin
-      </p>
     </form>
   );
 }

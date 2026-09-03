@@ -125,7 +125,7 @@ export default function SubjectDetailPage() {
     }
   };
 
-  // Chỉ admin thật (không ở chế độ xem như học viên) hoặc người đã đăng ký mới
+  // Chỉ admin thật (không ở chế độ xem như sinh viên) hoặc người đã đăng ký mới
   // được xem nội dung. BE chỉ chặn ở endpoint bài kiểm tra, còn chương và lý
   // thuyết vẫn trả dữ liệu, nên FE phải tự chặn trước khi gọi.
   const resolveContentAccess = useCallback(async () => {

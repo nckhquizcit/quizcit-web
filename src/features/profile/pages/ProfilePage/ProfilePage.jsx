@@ -113,7 +113,7 @@ export default function ProfilePage() {
 
   const displayName = profileUser?.displayName || profileUser?.username || "Người dùng";
   const isVerified = profileUser?.status === "VERIFIED";
-  const roleLabel = profileUser?.role === "ADMINISTRATOR" ? "Quản trị viên" : "Học viên";
+  const roleLabel = profileUser?.role === "ADMINISTRATOR" ? "Quản trị viên" : "Sinh viên";
 
   function openEditModal() {
     setFormError("");
@@ -547,10 +547,6 @@ export default function ProfilePage() {
                 </Button>
               </div>
             </Field>
-            <p className="profile-info-box">
-              Email không đổi trực tiếp tại đây. Nhấn “Đổi email” để xác thực OTP ở email hiện tại
-              và email mới.
-            </p>
           </form>
         </Modal>
       )}

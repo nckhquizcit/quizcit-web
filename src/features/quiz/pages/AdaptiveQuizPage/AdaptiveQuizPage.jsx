@@ -124,11 +124,6 @@ export default function AdaptiveQuizPage() {
         </div>
       </div>
 
-      <div className="adaptive-subline">
-        <span>Nhóm 5 câu · trả lời đủ rồi nộp để nhận nhóm tiếp theo</span>
-        <span className="adaptive-subline__muted">Không hiển thị đúng/sai trước khi nộp</span>
-      </div>
-
       <div className="quiz-layout">
         <div className="quiz-main">
           {questions.length === 0 && (
@@ -191,17 +186,6 @@ export default function AdaptiveQuizPage() {
             </div>
           )}
         </div>
-
-        <aside className="adaptive-rail">
-          <div className="adaptive-rail__card">
-            <p className="adaptive-rail__title">Cách làm bài kiểm tra thích ứng</p>
-            <p className="adaptive-rail__text">
-              Mỗi nhóm gồm 5 câu. Trả lời đủ rồi nộp để nhận nhóm câu tiếp theo theo
-              năng lực hiện tại.
-            </p>
-            <p className="adaptive-rail__text">Kết quả hiển thị sau khi hoàn thành bài.</p>
-          </div>
-        </aside>
       </div>
 
       {/* Thanh thao tác cố định đáy màn hình, chỉ hiện trên mobile */}
