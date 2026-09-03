@@ -150,7 +150,7 @@ export default function HomePage() {
     <div className="home-page">
       <section className="home-greeting">
         <h1>Chào buổi {greetingPeriod}, {firstName}</h1>
-        <p>Hôm nay bạn muốn tiến thêm một chút ở đâu?</p>
+        <p>Hãy tiếp tục cố gắng nhé</p>
       </section>
 
       <section className="home-overview-row">
