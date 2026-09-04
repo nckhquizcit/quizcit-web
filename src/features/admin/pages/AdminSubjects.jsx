@@ -177,7 +177,7 @@ export default function AdminSubjects() {
 
       {/* ===== SEARCH ===== */}
       <SearchBar
-        placeholder="Tìm kiếm tên hoặc mã môn..."
+        placeholder="Tìm kiếm tên hoặc mã học phần..."
         value={search}
         onChange={setSearch}
         right={

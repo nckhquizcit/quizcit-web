@@ -272,7 +272,7 @@ export default function SubjectsPage() {
                 type="text"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Tìm theo tên môn hoặc mã môn"
+                placeholder="Tìm theo tên học phần hoặc mã học phần"
                 aria-label="Tìm môn học"
               />
               {searchTerm && (

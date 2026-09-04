@@ -83,20 +83,20 @@ export default function AddSubjectModal({ open, onClose, onSubmit, nextDisplayOr
           disabled={submitting}
         />
         <label className="quiz-field" htmlFor="add-subject-name">
-          <span>Tên môn học</span>
+          <span>Tên học phần</span>
           <input
             id="add-subject-name"
-            placeholder="Tên môn học"
+            placeholder="Tên học phần"
             value={name}
             onChange={(e) => setName(e.target.value)}
             maxLength={200}
           />
         </label>
         <label className="quiz-field" htmlFor="add-subject-code">
-          <span>Mã môn học</span>
+          <span>Mã học phần</span>
           <input
             id="add-subject-code"
-            placeholder="Mã môn học"
+            placeholder="Mã học phần"
             value={courseCode}
             onChange={(e) => setCourseCode(e.target.value)}
             maxLength={20}

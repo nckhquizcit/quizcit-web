@@ -18,7 +18,7 @@ const CSV_COLUMN_ALIASES = {
   correctKey: ["correct", "correctanswer", "correctoption", "dapan", "dapandung", "answer"],
   explanation: ["explanation", "explain", "giaithich", "loigiai"],
   difficulty: ["difficulty", "dokho"],
-  subjectId: ["subjectid", "subject", "monhoc", "mon", "tenmonhoc"],
+  subjectId: ["subjectid", "subject", "monhoc", "mon", "tenmonhoc", "hocphan", "tenhocphan", "mahocphan"],
   chapterId: ["chapterid", "chapter", "chuong", "tenchuong"],
   skills: ["skills", "skill", "skillids", "kynang", "dskynang"],
   weights: ["weights", "weight", "skillweights", "trongso", "trongsokynang"],

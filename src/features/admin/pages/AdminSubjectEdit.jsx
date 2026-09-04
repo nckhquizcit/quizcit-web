@@ -70,13 +70,13 @@ export default function AdminSubjectEdit() {
             />
 
             <label className="quiz-field">
-              <span>Tên môn học</span>
+              <span>Tên học phần</span>
               <input value={form.name} onChange={(e) => setField("name", e.target.value)} maxLength={200} required />
             </label>
 
             <div className="adm2-field-row">
               <label className="quiz-field">
-                <span>Mã môn</span>
+                <span>Mã học phần</span>
                 <input value={form.courseCode} onChange={(e) => setField("courseCode", e.target.value)} maxLength={20} required />
               </label>
               <label className="quiz-field">
@@ -111,7 +111,7 @@ export default function AdminSubjectEdit() {
             </div>
 
             <p className="adm2-note adm2-note--muted">
-              <strong>Giới hạn:</strong> Mã môn tối đa 20 ký tự · Tên tối đa 200 ký tự.
+              <strong>Giới hạn:</strong> Mã học phần tối đa 20 ký tự · Tên học phần tối đa 200 ký tự.
             </p>
 
             <div className="modal-footer">
@@ -125,7 +125,7 @@ export default function AdminSubjectEdit() {
           <div className="adm2-card adm2-aside-card">
             <span className="adm2-chip">Ảnh hưởng</span>
             <h4>Môn học có {chapterCount} chương</h4>
-            <p>Đổi tên/mã không làm mất dữ liệu.</p>
+            <p>Đổi tên/mã học phần không làm mất dữ liệu.</p>
             <p>Ẩn môn sẽ ngăn user truy cập mới.</p>
             <div className="adm2-divider" />
             <button type="button" className="adm2-link-arrow" onClick={() => navigate(chaptersPath)}>

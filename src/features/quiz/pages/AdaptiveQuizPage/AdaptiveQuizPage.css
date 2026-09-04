@@ -2,7 +2,7 @@
    .quiz-questions, .quiz-question-card, .options-list) come from
    ../QuizTakingPage/QuizTakingPage.css. */
 
-/* Tên môn dài không được đẩy tràn header trên màn hẹp */
+/* Tên học phần dài không được đẩy tràn header trên màn hẹp */
 .adaptive-quiz-page .quiz-header__info {
   min-width: 0;
 }
