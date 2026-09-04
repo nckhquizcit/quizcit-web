@@ -1,7 +1,9 @@
 import { useState, useCallback, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Cropper from "react-easy-crop";
 import { Check, Minus, Plus, RefreshCw, RotateCw, X } from "lucide-react";
 import getCroppedImg from "../../../utils/cropImage";
+import Button from "../Button/Button";
 import "./ImageCropModal.css";
 
 /**
@@ -33,6 +35,31 @@ export default function ImageCropModal({
     setCroppedAreaPixels(null);
     setError("");
   }, [imageSrc, open]);
+
+  // Ngăn chặn đóng modal cha khi người dùng bấm Escape trong ImageCropModal
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        event.preventDefault();
+        if (!processing) {
+          onClose?.();
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown, true);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown, true);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open, processing, onClose]);
 
   const handleCropComplete = useCallback((croppedArea, pixels) => {
     setCroppedAreaPixels(pixels);
@@ -74,24 +101,25 @@ export default function ImageCropModal({
 
   if (!open || !imageSrc) return null;
 
-  return (
-    <div className="modal-overlay" onClick={handleClose} role="presentation">
+  return createPortal(
+    <div className="image-crop-modal__overlay modal-overlay" onClick={handleClose} role="presentation">
       <div
-        className="modal-container image-crop-modal"
+        className="image-crop-modal modal-container"
         role="dialog"
         aria-modal="true"
+        aria-labelledby="image-crop-modal-title"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="image-crop-modal__header">
           <div>
-            <h3>{title}</h3>
+            <h3 id="image-crop-modal-title">{title}</h3>
             <span className="image-crop-modal__badge">
               Tỉ lệ cố định {ratioLabel} ({targetWidth} × {targetHeight} px)
             </span>
           </div>
           <button
             type="button"
-            className="modal-close"
+            className="image-crop-modal__close-btn modal-close"
             onClick={handleClose}
             aria-label="Đóng"
             disabled={processing}
@@ -176,30 +204,29 @@ export default function ImageCropModal({
         </div>
 
         <div className="image-crop-modal__footer">
-          <button
+          <Button
             type="button"
+            variant="ghost"
             className="cancel-btn"
             onClick={handleClose}
             disabled={processing}
           >
             Hủy
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="primary"
             className="add-btn"
             onClick={handleApply}
             disabled={processing || !croppedAreaPixels}
+            loading={processing}
+            iconLeft={!processing ? <Check size={16} /> : null}
           >
-            {processing ? (
-              "Đang xử lý..."
-            ) : (
-              <>
-                <Check size={16} /> Áp dụng cắt ảnh
-              </>
-            )}
-          </button>
+            Áp dụng cắt ảnh
+          </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

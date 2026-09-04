@@ -6,7 +6,9 @@ export const RBAC_ENDPOINTS = {
 export const getDeleteParams = (hard = false) => ({ hard: Boolean(hard) });
 
 export function buildProfilePayload({ displayName, avatarUrl }) {
-  return avatarUrl === undefined ? { displayName } : { displayName, avatarUrl };
+  return avatarUrl === undefined
+    ? { displayName }
+    : { displayName, avatarUrl: avatarUrl === null ? "" : avatarUrl };
 }
 
 export function buildAiEstimatePayload(questionResults = [], questions = []) {

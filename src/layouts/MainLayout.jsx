@@ -3,7 +3,9 @@ import { Link, Outlet, ScrollRestoration, useLocation, useNavigate } from "react
 import { ArrowLeft, Menu } from "lucide-react";
 import Sidebar from "../components/Sidebar/Sidebar";
 import { ToastProvider } from "../components/ui/Toast/Toast";
-import { getStoredUser, subscribeToAuthChange } from "../services/apiClient";
+import { getStoredUser, setStoredUser, subscribeToAuthChange } from "../services/apiClient";
+import { getCurrentUser } from "../services/userService";
+import { resolveImageUrl } from "../services/mappers";
 import {
   exitUserPreview,
   isUserPreviewActive,
@@ -29,22 +31,29 @@ function resolveTitle(pathname) {
   return found ? found.title : "QuizCIT";
 }
 
-
-function getFirstName(displayName) {
-  const trimmed = (displayName || "").trim();
-  if (!trimmed) return "";
-  const parts = trimmed.split(/\s+/);
-  return parts[parts.length - 1];
-}
-
 export default function MainLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const [user, setUser] = useState(() => getStoredUser());
+  const [avatarError, setAvatarError] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState(() => isUserPreviewActive(user));
 
-  useEffect(() => subscribeToAuthChange(() => setUser(getStoredUser())), []);
+  useEffect(() => subscribeToAuthChange(() => {
+    setUser(getStoredUser());
+    setAvatarError(false);
+  }), []);
+
+  useEffect(() => {
+    getCurrentUser()
+      .then((freshUser) => {
+        if (freshUser) {
+          const stored = getStoredUser() || {};
+          setStoredUser({ ...stored, ...freshUser });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(
     () => subscribeToUserPreview(() => setIsPreviewing(isUserPreviewActive(getStoredUser()))),
@@ -57,7 +66,6 @@ export default function MainLayout() {
 
   const displayName = user?.displayName || user?.username || "Sinh viên";
   const initial = displayName.trim().charAt(0).toUpperCase() || "S";
-  const firstName = getFirstName(displayName) || displayName;
 
   return (
     <ToastProvider>
@@ -122,8 +130,19 @@ export default function MainLayout() {
               onClick={() => navigate("/app/profile")}
               title="Trang cá nhân"
             >
-              <span className="app-topbar__avatar">{initial}</span>
-              <span className="app-topbar__name">{firstName}</span>
+              <span className="app-topbar__avatar">
+                {user?.avatarUrl && !avatarError ? (
+                  <img
+                    src={resolveImageUrl(user.avatarUrl)}
+                    alt=""
+                    className="app-topbar__avatar-img"
+                    onError={() => setAvatarError(true)}
+                  />
+                ) : (
+                  initial
+                )}
+              </span>
+              <span className="app-topbar__name">{displayName}</span>
             </button>
           </header>
 

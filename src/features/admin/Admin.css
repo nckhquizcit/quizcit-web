@@ -210,6 +210,15 @@
   transform: scale(0.98);
 }
 
+.admin-profile-btn__avatar-img {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  display: block;
+}
+
 @media (max-width: 700px) {
   .admin-navbar {
     padding: 0 16px;

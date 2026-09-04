@@ -7,6 +7,7 @@ import { adminProfileService } from "../services/profileService.js";
 import { getStoredUser } from "../../../services/apiClient";
 import { enterUserPreview } from "../../../services/userPreviewMode";
 import { logout } from "../../../services/authService";
+import { resolveImageUrl } from "../../../services/mappers";
 import "./AdminProfile.css";
 
 const emptyStats = {
@@ -127,7 +128,20 @@ export default function AdminProfile() {
       {error && <p className="admin-profile-error">{error}</p>}
 
       <section className="admin-card adm2-profile-hero">
-        <div className="adm2-profile-hero__avatar">{getInitials(displayName)}</div>
+        <div className="adm2-profile-hero__avatar">
+          {admin?.avatarUrl || storedUser?.avatarUrl ? (
+            <img
+              src={resolveImageUrl(admin?.avatarUrl || storedUser?.avatarUrl)}
+              alt=""
+              className="adm2-profile-hero__avatar-img"
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+              }}
+            />
+          ) : (
+            getInitials(displayName)
+          )}
+        </div>
         <div className="adm2-profile-hero__body">
           <h2 className="adm2-profile-hero__name">{displayName}</h2>
           <p className="adm2-profile-hero__meta">

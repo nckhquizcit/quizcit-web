@@ -26,6 +26,24 @@ test("profile payload and user mapper preserve avatarUrl", () => {
       avatarUrl: "/api/uploads/avatars/avatar.webp",
     },
   );
+  assert.deepEqual(
+    buildProfilePayload({
+      displayName: "Nguyen Van A",
+      avatarUrl: null,
+    }),
+    {
+      displayName: "Nguyen Van A",
+      avatarUrl: "",
+    },
+  );
+  assert.deepEqual(
+    buildProfilePayload({
+      displayName: "Nguyen Van A",
+    }),
+    {
+      displayName: "Nguyen Van A",
+    },
+  );
   assert.equal(mapUser({ avatar_url: "/avatar.webp" }).avatarUrl, "/avatar.webp");
 });
 
