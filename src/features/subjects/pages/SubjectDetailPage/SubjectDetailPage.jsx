@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   BookOpen,
@@ -54,13 +54,16 @@ const formatRequiredTheta = (value) => {
 
 export default function SubjectDetailPage() {
   const { subjectId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const toast = useToast();
   const [subject, setSubject] = useState(null);
   const [chapters, setChapters] = useState([]);
   const [theoriesByChapter, setTheoriesByChapter] = useState({});
   const [quizzesByChapter, setQuizzesByChapter] = useState({});
-  const [activeChapterId, setActiveChapterId] = useState(null);
+  const [activeChapterId, setActiveChapterId] = useState(
+    () => location.state?.chapterId || location.state?.activeChapterId || null
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [contentError, setContentError] = useState(null);
@@ -206,10 +209,13 @@ export default function SubjectDetailPage() {
     setChapters(chapterData);
     setTheoriesByChapter(Object.fromEntries(theoryEntries));
     setQuizzesByChapter(Object.fromEntries(quizEntries));
-    setActiveChapterId((current) =>
-      current && chapterIds.includes(current) ? current : chapterIds[0] || null
-    );
-  }, [subjectId, resolveContentAccess]);
+    const targetChapterId = location.state?.chapterId || location.state?.activeChapterId;
+    setActiveChapterId((current) => {
+      if (current && chapterIds.includes(current)) return current;
+      if (targetChapterId && chapterIds.includes(targetChapterId)) return targetChapterId;
+      return chapterIds[0] || null;
+    });
+  }, [subjectId, resolveContentAccess, location.state?.chapterId, location.state?.activeChapterId]);
 
   const load = useCallback(async () => {
     const loadId = (loadIdRef.current += 1);

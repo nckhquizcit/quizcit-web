@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Lock } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import {
   getChaptersBySubject,
   getTheoriesByChapter,
@@ -71,7 +71,14 @@ export default function TheoryPage() {
     };
   }, [subjectId, theoryId]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [theoryId]);
+
   const chapterId = chapter?.chapterId || chapter?.chapter_id || null;
+  const handleGoBack = () => {
+    navigate(`/app/subjects/${subjectId}`, { state: { chapterId } });
+  };
   // Một phiên chat duy nhất cho cả dock desktop lẫn FAB mobile — đổi kích
   // thước cửa sổ qua mốc 1023px không làm mất hội thoại.
   const chatSession = useChatSession({ subjectId, chapterId });
@@ -131,10 +138,28 @@ export default function TheoryPage() {
     displayTitle
   );
 
+  const prevTheory =
+    activeIndexInChapter > 0 ? chapterTheories[activeIndexInChapter - 1] : null;
+  const nextTheory =
+    activeIndexInChapter >= 0 && activeIndexInChapter < chapterTheories.length - 1
+      ? chapterTheories[activeIndexInChapter + 1]
+      : null;
+  const prevTheoryId = prevTheory ? prevTheory.theoryId || prevTheory.theory_id : null;
+  const nextTheoryId = nextTheory ? nextTheory.theoryId || nextTheory.theory_id : null;
+
   return (
     <div className="theory-page">
       <aside className="theory-page__nav">
         <Card padding="md" className="theory-nav-card">
+          <button
+            type="button"
+            className="theory-nav-card__back-btn"
+            onClick={handleGoBack}
+          >
+            <ArrowLeft size={15} />
+            <span>Quay lại môn học</span>
+          </button>
+          <div className="theory-nav-card__divider" />
           <p className="theory-nav-card__title">Nội dung</p>
           <div className="theory-nav-card__list">
             {chapterTheories.map((item, index) => {
@@ -159,22 +184,121 @@ export default function TheoryPage() {
       </aside>
 
       <div className="theory-page__content">
-        <button
-          type="button"
-          className="theory-page__back"
-          onClick={() => navigate(`/app/subjects/${subjectId}`)}
-        >
-          <ArrowLeft size={16} />
-          {chapterIndex >= 0 && chapter?.name
-            ? `Chương ${chapterIndex + 1} · ${chapter.name}`
-            : "Quay lại môn học"}
-        </button>
+        <div className="theory-page__back-bar" role="navigation" aria-label="Điều hướng bài học">
+          <button
+            type="button"
+            className="theory-page__back"
+            onClick={handleGoBack}
+            title={chapterIndex >= 0 && chapter?.name ? `Quay lại ${chapter.name}` : "Quay lại môn học"}
+          >
+            <ArrowLeft size={16} />
+            <span className="theory-page__back-text">
+              {chapterIndex >= 0 && chapter?.name
+                ? `Chương ${chapterIndex + 1} · ${chapter.name}`
+                : "Quay lại môn học"}
+            </span>
+          </button>
+
+          {chapterTheories.length > 1 && (
+            <div className="theory-page__back-bar-nav">
+              <span className="theory-page__back-bar-counter">
+                Bài {activeIndexInChapter + 1}/{chapterTheories.length}
+              </span>
+              <div className="theory-page__back-bar-arrows">
+                <button
+                  type="button"
+                  className="theory-page__bar-arrow"
+                  disabled={!prevTheory}
+                  onClick={() =>
+                    prevTheoryId && navigate(`/app/subjects/${subjectId}/theories/${prevTheoryId}`)
+                  }
+                  title={
+                    prevTheory
+                      ? `Bài trước: ${getTheoryDisplayTitle(prevTheory, activeIndexInChapter - 1)}`
+                      : "Đã là bài đầu tiên"
+                  }
+                  aria-label="Bài trước"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <button
+                  type="button"
+                  className="theory-page__bar-arrow"
+                  disabled={!nextTheory}
+                  onClick={() =>
+                    nextTheoryId && navigate(`/app/subjects/${subjectId}/theories/${nextTheoryId}`)
+                  }
+                  title={
+                    nextTheory
+                      ? `Bài tiếp theo: ${getTheoryDisplayTitle(nextTheory, activeIndexInChapter + 1)}`
+                      : "Đã là bài cuối cùng"
+                  }
+                  aria-label="Bài tiếp theo"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         <Card padding="lg" className="theory-content-card">
           <div className="theory-content-card__head">
             <h1>{displayTitle}</h1>
           </div>
           <TheoryContent content={contentForDisplay} contentFormat={theory?.contentFormat} />
+
+          <footer className="theory-content-card__footer">
+            <div className="theory-footer-nav">
+              {prevTheory ? (
+                <button
+                  type="button"
+                  className="theory-footer-nav-btn theory-footer-nav-btn--prev"
+                  onClick={() =>
+                    navigate(`/app/subjects/${subjectId}/theories/${prevTheoryId}`)
+                  }
+                >
+                  <ChevronLeft size={18} className="theory-footer-nav-btn__icon" />
+                  <div className="theory-footer-nav-btn__info">
+                    <small>Bài trước</small>
+                    <span>{getTheoryDisplayTitle(prevTheory, activeIndexInChapter - 1)}</span>
+                  </div>
+                </button>
+              ) : (
+                <div className="theory-footer-nav-placeholder" />
+              )}
+
+              {nextTheory ? (
+                <button
+                  type="button"
+                  className="theory-footer-nav-btn theory-footer-nav-btn--next"
+                  onClick={() =>
+                    navigate(`/app/subjects/${subjectId}/theories/${nextTheoryId}`)
+                  }
+                >
+                  <div className="theory-footer-nav-btn__info">
+                    <small>Bài tiếp theo</small>
+                    <span>{getTheoryDisplayTitle(nextTheory, activeIndexInChapter + 1)}</span>
+                  </div>
+                  <ChevronRight size={18} className="theory-footer-nav-btn__icon" />
+                </button>
+              ) : (
+                <div className="theory-footer-nav-placeholder" />
+              )}
+            </div>
+
+            <div className="theory-footer-back-row">
+              <Button
+                variant="secondary"
+                onClick={handleGoBack}
+                leftIcon={<ArrowLeft size={16} />}
+              >
+                {chapterIndex >= 0 && chapter?.name
+                  ? `Quay lại Chương ${chapterIndex + 1} · ${chapter.name}`
+                  : "Quay lại môn học"}
+              </Button>
+            </div>
+          </footer>
         </Card>
       </div>
 
