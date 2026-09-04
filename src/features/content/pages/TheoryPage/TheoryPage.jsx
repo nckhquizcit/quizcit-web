@@ -3,12 +3,11 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Lock } from "lucide-react";
 import {
   getChaptersBySubject,
-  getSubjectById,
   getTheoriesByChapter,
   getTheoryById,
 } from "../../../../services/contentService";
 import { getErrorMessage, isAccessDenied } from "../../../../services/apiClient";
-import { Badge, Button, Card, EmptyState, ErrorState, Spinner } from "../../../../components/ui";
+import { Button, Card, EmptyState, ErrorState, Spinner } from "../../../../components/ui";
 import ChatBox from "../../../../components/ChatBox/ChatBox";
 import { useChatSession } from "../../../../components/ChatBox/useChatSession";
 import ChatMessages from "../../../../components/ChatBox/ChatMessages";
@@ -22,7 +21,6 @@ export default function TheoryPage() {
   const navigate = useNavigate();
   const chatInputRef = useRef(null);
 
-  const [subject, setSubject] = useState(null);
   const [chapter, setChapter] = useState(null);
   const [chapterIndex, setChapterIndex] = useState(-1);
   const [theory, setTheory] = useState(null);
@@ -39,8 +37,7 @@ export default function TheoryPage() {
         setLoading(true);
         setError(null);
         setAccessDenied(false);
-        const [subjectData, chapters = [], theoryData] = await Promise.all([
-          getSubjectById(subjectId),
+        const [chapters = [], theoryData] = await Promise.all([
           getChaptersBySubject(subjectId),
           getTheoryById(theoryId),
         ]);
@@ -51,7 +48,6 @@ export default function TheoryPage() {
         const theories = chapterId ? await getTheoriesByChapter(chapterId) : [];
 
         if (!alive) return;
-        setSubject(subjectData);
         setChapter(idx >= 0 ? chapters[idx] : null);
         setChapterIndex(idx);
         setTheory(theoryData);
@@ -134,7 +130,6 @@ export default function TheoryPage() {
     theory?.contentFormat,
     displayTitle
   );
-  const courseCode = subject?.courseCode || subject?.course_code || "";
 
   return (
     <div className="theory-page">
@@ -177,7 +172,6 @@ export default function TheoryPage() {
 
         <Card padding="lg" className="theory-content-card">
           <div className="theory-content-card__head">
-            {courseCode && <Badge variant="primary">{courseCode}</Badge>}
             <h1>{displayTitle}</h1>
           </div>
           <TheoryContent content={contentForDisplay} contentFormat={theory?.contentFormat} />
