@@ -250,6 +250,35 @@
   overflow: hidden;
 }
 
+.theory-rich-text--blocknote {
+  max-width: 78ch;
+  overflow-wrap: anywhere;
+}
+
+.theory-rich-text--blocknote .bn-container {
+  min-height: 0;
+  background: transparent;
+  border: 0;
+}
+
+.theory-rich-text--blocknote .bn-editor {
+  min-height: 0;
+  padding: 0;
+}
+
+.theory-rich-text--blocknote .bn-block {
+  padding: 0;
+}
+
+.theory-rich-text--blocknote .bn-block + .bn-block {
+  margin-top: 10px;
+}
+
+.theory-rich-text--blocknote.is-collapsed {
+  max-height: 13rem;
+  overflow: hidden;
+}
+
 .rich-text-editor .bn-container {
   border: 1px solid #cbd5e1;
   border-radius: 8px;
