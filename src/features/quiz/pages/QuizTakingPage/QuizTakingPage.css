@@ -271,6 +271,8 @@
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: border-color 0.15s ease, background-color 0.15s ease;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .option-item:hover {
   border-color: var(--color-primary-200);
@@ -285,6 +287,7 @@
   width: 18px;
   height: 18px;
   flex-shrink: 0;
+  cursor: pointer;
 }
 .option-marker {
   display: inline-flex;
@@ -298,6 +301,7 @@
   font-weight: 700;
   font-size: var(--fs-sm);
   flex-shrink: 0;
+  pointer-events: none;
 }
 .option-item.is-selected .option-marker {
   background: var(--color-primary-700);
@@ -307,6 +311,8 @@
   font-size: var(--fs-sm);
   color: var(--color-text);
   line-height: 1.5;
+  flex: 1;
+  min-width: 0;
 }
 .quiz-empty-option {
   font-size: var(--fs-sm);

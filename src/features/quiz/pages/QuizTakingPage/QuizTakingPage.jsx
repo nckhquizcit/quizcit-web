@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useBlocker, useNavigate, useParams } from "react-router-dom";
 import { AlertCircle, Flag, ListChecks, X } from "lucide-react";
 import {
@@ -41,6 +41,115 @@ const getDurationSeconds = (quizData) => {
     ? Math.floor(durationMinutes * 60)
     : 0;
 };
+
+const QuizQuestionCard = memo(function QuizQuestionCard({
+  question,
+  questionIndex,
+  selectedOptionId,
+  flagged,
+  isActive,
+  submitting,
+  onSelectOption,
+  onToggleFlag,
+  onShowSkills,
+  onSetActive,
+  setCardRef,
+}) {
+  const hasSkills =
+    Array.isArray(question.skills) && question.skills.length > 0;
+
+  return (
+    <article
+      ref={(element) => setCardRef(question.questionId, element)}
+      className={[
+        "quiz-question-card",
+        flagged ? "is-flagged" : "",
+        isActive ? "is-active" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      onClick={() => onSetActive(question.questionId)}
+    >
+      <div className="question-top">
+        <div className="question-number">Câu {questionIndex + 1}</div>
+        <div className="question-actions">
+          <button
+            type="button"
+            className={`flag-btn ${flagged ? "flag-btn--active" : ""}`}
+            aria-pressed={flagged}
+            onClick={() => onToggleFlag(question.questionId)}
+          >
+            <Flag size={14} />
+            {flagged ? "Bỏ đánh dấu" : "Đánh dấu"}
+          </button>
+          {hasSkills && (
+            <button
+              type="button"
+              className="skill-btn"
+              onClick={() => onShowSkills(question)}
+            >
+              {question.skills.length} kỹ năng
+            </button>
+          )}
+        </div>
+      </div>
+
+      <RichTextView
+        className="question-content"
+        content={question.content}
+        contentFormat={question.contentFormat}
+      />
+
+      <div className="options-list">
+        {(question.options || []).map((option, optIndex) => {
+          const selected = selectedOptionId === option.optionId;
+          const inputId = `opt-${question.questionId}-${option.optionId}`;
+
+          return (
+            <label
+              key={option.optionId}
+              htmlFor={inputId}
+              className={`option-item ${selected ? "is-selected" : ""}`}
+              onClick={(e) => {
+                if (submitting) return;
+                if (e.target.closest("a")) return;
+                if (e.target.tagName !== "INPUT") {
+                  onSelectOption(question.questionId, option.optionId);
+                }
+              }}
+            >
+              <input
+                id={inputId}
+                type="radio"
+                name={`question-${question.questionId}`}
+                value={option.optionId}
+                checked={selected}
+                onChange={() =>
+                  onSelectOption(question.questionId, option.optionId)
+                }
+                disabled={submitting}
+              />
+              <span className="option-marker">
+                {String.fromCharCode(65 + optIndex)}
+              </span>
+              <RichTextView
+                className="option-text"
+                variant="inline"
+                content={option.content}
+                contentFormat={option.contentFormat}
+              />
+            </label>
+          );
+        })}
+        {(!question.options || question.options.length === 0) && (
+          <p className="quiz-empty-option">
+            Câu hỏi này chưa có đáp án lựa chọn.
+          </p>
+        )}
+      </div>
+    </article>
+  );
+});
 
 export default function QuizTakingPage() {
   const { quizId } = useParams();
@@ -336,18 +445,29 @@ export default function QuizTakingPage() {
   }, [answerSheetOpen]);
 
   const handleAnswerChange = useCallback((questionId, optionId) => {
-    setActiveQuestionId(questionId);
-    setAnswers((current) => ({ ...current, [questionId]: optionId }));
+    setActiveQuestionId((prev) => (prev === questionId ? prev : questionId));
+    setAnswers((current) => {
+      if (current[questionId] === optionId) return current;
+      return { ...current, [questionId]: optionId };
+    });
   }, []);
 
-  const toggleFlag = (questionId) => {
+  const handleSetActive = useCallback((questionId) => {
+    setActiveQuestionId((prev) => (prev === questionId ? prev : questionId));
+  }, []);
+
+  const handleShowSkills = useCallback((question) => {
+    setActiveSkillQuestion(question);
+  }, []);
+
+  const toggleFlag = useCallback((questionId) => {
     setFlaggedQuestionIds((current) => {
       const next = new Set(current);
       if (next.has(questionId)) next.delete(questionId);
       else next.add(questionId);
       return next;
     });
-  };
+  }, []);
 
   const goToQuestion = (index) => {
     const target = getQuestionNavigationTarget(questions, index, PAGE_SIZE);
@@ -581,106 +701,23 @@ export default function QuizTakingPage() {
           )}
 
           <div className="quiz-questions">
-            {visibleQuestions.map((question) => {
-              const questionIndex = questions.findIndex(
-                (item) => item.questionId === question.questionId
-              );
-              const flagged = flaggedQuestionIds.has(question.questionId);
-              const hasSkills =
-                Array.isArray(question.skills) && question.skills.length > 0;
-
+            {visibleQuestions.map((question, index) => {
+              const questionIndex = currentPage * PAGE_SIZE + index;
               return (
-                <article
+                <QuizQuestionCard
                   key={question.questionId}
-                  ref={(element) =>
-                    setQuestionCardRef(question.questionId, element)
-                  }
-                  className={[
-                    "quiz-question-card",
-                    flagged ? "is-flagged" : "",
-                    activeQuestionId === question.questionId
-                      ? "is-active"
-                      : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                  tabIndex={-1}
-                  onClick={() => setActiveQuestionId(question.questionId)}
-                  onFocusCapture={() =>
-                    setActiveQuestionId(question.questionId)
-                  }
-                >
-                  <div className="question-top">
-                    <div className="question-number">Câu {questionIndex + 1}</div>
-                    <div className="question-actions">
-                      <button
-                        type="button"
-                        className={`flag-btn ${flagged ? "flag-btn--active" : ""}`}
-                        aria-pressed={flagged}
-                        onClick={() => toggleFlag(question.questionId)}
-                      >
-                        <Flag size={14} />
-                        {flagged ? "Bỏ đánh dấu" : "Đánh dấu"}
-                      </button>
-                      {hasSkills && (
-                        <button
-                          type="button"
-                          className="skill-btn"
-                          onClick={() => setActiveSkillQuestion(question)}
-                        >
-                          {question.skills.length} kỹ năng
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <RichTextView
-                    className="question-content"
-                    content={question.content}
-                    contentFormat={question.contentFormat}
-                  />
-
-                  <div className="options-list">
-                    {(question.options || []).map((option, optIndex) => {
-                      const selected =
-                        answers[question.questionId] === option.optionId;
-                      return (
-                        <label
-                          key={option.optionId}
-                          className={`option-item ${selected ? "is-selected" : ""}`}
-                        >
-                          <input
-                            type="radio"
-                            name={question.questionId}
-                            checked={selected}
-                            onChange={() =>
-                              handleAnswerChange(
-                                question.questionId,
-                                option.optionId
-                              )
-                            }
-                            disabled={submitting}
-                          />
-                          <span className="option-marker">
-                            {String.fromCharCode(65 + optIndex)}
-                          </span>
-                          <RichTextView
-                            className="option-text"
-                            variant="inline"
-                            content={option.content}
-                            contentFormat={option.contentFormat}
-                          />
-                        </label>
-                      );
-                    })}
-                    {(!question.options ||
-                      question.options.length === 0) && (
-                      <p className="quiz-empty-option">
-                        Câu hỏi này chưa có đáp án lựa chọn.
-                      </p>
-                    )}
-                  </div>
-                </article>
+                  question={question}
+                  questionIndex={questionIndex}
+                  selectedOptionId={answers[question.questionId]}
+                  flagged={flaggedQuestionIds.has(question.questionId)}
+                  isActive={activeQuestionId === question.questionId}
+                  submitting={submitting}
+                  onSelectOption={handleAnswerChange}
+                  onToggleFlag={toggleFlag}
+                  onShowSkills={handleShowSkills}
+                  onSetActive={handleSetActive}
+                  setCardRef={setQuestionCardRef}
+                />
               );
             })}
           </div>

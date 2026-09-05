@@ -69,20 +69,25 @@ export default function AdaptiveQuizPage() {
       .catch(() => setMeta({ subjectName: "" }));
   }, [state?.quizId]);
 
-  const handleSelectAnswer = (questionId, optionId) => {
+  const handleSelectAnswer = useCallback((questionId, optionId) => {
     setAnswers((current) => {
-      const nextAnswers = { ...current, [questionId]: optionId };
-      const currentUser = getStoredUser();
-      saveAdaptiveDraft(attemptId, currentUser?.userId, {
-        attemptId,
-        quizId: state?.quizId,
-        page: state?.page,
-        answers: nextAnswers,
-        updatedAt: new Date().toISOString(),
-      });
-      return nextAnswers;
+      if (current[questionId] === optionId) return current;
+      return { ...current, [questionId]: optionId };
     });
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!state?.quizId || submittedRef.current) return;
+    const currentUser = getStoredUser();
+    if (!currentUser?.userId) return;
+    saveAdaptiveDraft(attemptId, currentUser.userId, {
+      attemptId,
+      quizId: state.quizId,
+      page: state.page,
+      answers,
+      updatedAt: new Date().toISOString(),
+    });
+  }, [answers, attemptId, state?.page, state?.quizId]);
 
   const submitPage = async () => {
     const questions = state?.questions || [];
@@ -212,14 +217,39 @@ export default function AdaptiveQuizPage() {
                 </div>
                 <RichTextView className="question-content" content={question.content} contentFormat={question.contentFormat} />
                 <div className="options-list">
-                  {(question.options || []).map((option, optionIndex) => (
-                    <label className={`option-item ${answers[question.questionId] === option.optionId ? "is-selected" : ""}`} key={option.optionId}>
-                      <input type="radio" name={question.questionId} checked={answers[question.questionId] === option.optionId}
-                        disabled={submitting} onChange={() => handleSelectAnswer(question.questionId, option.optionId)} />
-                      <span className="option-marker">{String.fromCharCode(65 + optionIndex)}</span>
-                      <RichTextView className="option-text" variant="inline" content={option.content} contentFormat={option.contentFormat} />
-                    </label>
-                  ))}
+                  {(question.options || []).map((option, optionIndex) => {
+                    const selected = answers[question.questionId] === option.optionId;
+                    const inputId = `adaptive-opt-${question.questionId}-${option.optionId}`;
+
+                    return (
+                      <label
+                        key={option.optionId}
+                        htmlFor={inputId}
+                        className={`option-item ${selected ? "is-selected" : ""}`}
+                        onClick={(e) => {
+                          if (submitting) return;
+                          if (e.target.closest("a")) return;
+                          if (e.target.tagName !== "INPUT") {
+                            handleSelectAnswer(question.questionId, option.optionId);
+                          }
+                        }}
+                      >
+                        <input
+                          id={inputId}
+                          type="radio"
+                          name={`adaptive-q-${question.questionId}`}
+                          value={option.optionId}
+                          checked={selected}
+                          disabled={submitting}
+                          onChange={() =>
+                            handleSelectAnswer(question.questionId, option.optionId)
+                          }
+                        />
+                        <span className="option-marker">{String.fromCharCode(65 + optionIndex)}</span>
+                        <RichTextView className="option-text" variant="inline" content={option.content} contentFormat={option.contentFormat} />
+                      </label>
+                    );
+                  })}
                 </div>
               </article>
             ))}
