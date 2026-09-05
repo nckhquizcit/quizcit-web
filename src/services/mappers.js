@@ -162,6 +162,7 @@ export function mapChapter(raw = {}) {
     name: normalizeVietnameseDisplayText(pick(raw, ["name"], "")),
     createdAt: pick(raw, ["createdAt", "created_at"], null),
     displayOrder: toNumber(pick(raw, ["displayOrder", "display_order"], 0)),
+    unlocked: Boolean(raw.unlocked ?? raw.isUnlocked ?? true),
     skills: toArray(pick(raw, ["skills"], [])).map((skill) => ({
       ...mapSkill(skill),
       requiredTheta: toNumber(pick(skill, ["requiredTheta", "required_theta"], 0)),

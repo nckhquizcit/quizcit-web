@@ -5,6 +5,7 @@ import {
   formatScaledThetaValue,
   getAbilityLevel,
   mapAbilityHistory,
+  mapChapter,
   mapQuestion,
   mapSubject,
   mapUserSkillAbility,
@@ -91,6 +92,28 @@ describe("subject mapping and image URL resolution", () => {
     assert.equal(resolveImageUrl("https://cdn.example.com/img.jpg"), "https://cdn.example.com/img.jpg");
     assert.equal(resolveImageUrl("data:image/png;base64,..."), "data:image/png;base64,...");
     assert.ok(resolveImageUrl("/api/uploads/subjects/img.webp").includes("/api/uploads/subjects/img.webp"));
+  });
+});
+
+describe("chapter mapping and unlock status", () => {
+  it("preserves unlocked: true when chapter is unlocked", () => {
+    const chapter = mapChapter({ chapterId: "c1", name: "Chương 1", unlocked: true });
+    assert.equal(chapter.unlocked, true);
+  });
+
+  it("preserves unlocked: false when chapter is locked due to insufficient theta", () => {
+    const chapter = mapChapter({ chapterId: "c2", name: "Chương 2", unlocked: false });
+    assert.equal(chapter.unlocked, false);
+  });
+
+  it("handles isUnlocked backward compatibility", () => {
+    const chapter = mapChapter({ chapter_id: "c3", name: "Chương 3", isUnlocked: false });
+    assert.equal(chapter.unlocked, false);
+  });
+
+  it("defaults unlocked to true if omitted", () => {
+    const chapter = mapChapter({ chapterId: "c4", name: "Chương 4" });
+    assert.equal(chapter.unlocked, true);
   });
 });
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
+  AlertTriangle,
   ArrowLeft,
   BookOpen,
   ChevronRight,
@@ -75,6 +76,7 @@ export default function SubjectDetailPage() {
   const [adaptiveError, setAdaptiveError] = useState("");
   const [adaptiveEligibility, setAdaptiveEligibility] = useState(null);
   const [checkingEligibility, setCheckingEligibility] = useState(false);
+  const [warningQuiz, setWarningQuiz] = useState(null);
   const adaptiveCancelledRef = useRef(false);
   const adaptiveInputRef = useRef(null);
   const loadIdRef = useRef(0);
@@ -270,6 +272,12 @@ export default function SubjectDetailPage() {
     [chapters, activeChapterId]
   );
   const activeChapter = activeChapterIndex >= 0 ? chapters[activeChapterIndex] : null;
+  const activeChapterUnlocked = activeChapter ? activeChapter.unlocked !== false : true;
+
+  const unlockedChaptersCount = useMemo(
+    () => chapters.filter((c) => c.unlocked !== false).length,
+    [chapters]
+  );
 
   const totalTheories = useMemo(
     () => Object.values(theoriesByChapter).reduce((sum, list) => sum + list.length, 0),
@@ -367,13 +375,13 @@ export default function SubjectDetailPage() {
       ) : (
         <>
           <div className="subject-detail-stats">
-            <StatTile value={chapters.length} label="Chương đã mở" icon={<Layers3 size={18} />} />
+            <StatTile value={`${unlockedChaptersCount}/${chapters.length}`} label="Chương đã mở" icon={<Layers3 size={18} />} />
             <StatTile value={totalTheories} label="Bài lý thuyết" icon={<BookOpen size={18} />} />
             <StatTile value={totalQuizzes} label="Bài kiểm tra" icon={<ListChecks size={18} />} />
           </div>
 
           <p className="subject-detail-unlock-hint">
-            Chỉ hiện chương đã mở khóa. Chương còn lại mở khi năng lực kỹ năng đạt ngưỡng yêu cầu.
+            Hiển thị toàn bộ chương của môn học. Các chương có viền vàng là chương chưa mở khóa do năng lực các chương trước chưa đạt yêu cầu.
           </p>
 
           <Modal
@@ -431,10 +439,43 @@ export default function SubjectDetailPage() {
             </div>
           </Modal>
 
+          <Modal
+            open={Boolean(warningQuiz)}
+            onClose={() => setWarningQuiz(null)}
+            title="Cảnh báo năng lực"
+            size="sm"
+            footer={
+              <>
+                <Button variant="ghost" onClick={() => setWarningQuiz(null)}>
+                  Để sau
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    const qId = warningQuiz.quizId || warningQuiz.quiz_id;
+                    setWarningQuiz(null);
+                    navigate(`/app/quiz/${qId}`);
+                  }}
+                >
+                  Tôi vẫn muốn làm
+                </Button>
+              </>
+            }
+          >
+            <div className="chapter-quiz-warning-modal">
+              <div className="chapter-quiz-warning-modal__icon">
+                <AlertTriangle size={24} />
+              </div>
+              <p className="chapter-quiz-warning-modal__text">
+                Năng lực bạn chưa đủ để làm bài này, bạn vẫn có thể làm nhưng vẫn khuyến khích hoàn thiện các chương trước đó.
+              </p>
+            </div>
+          </Modal>
+
           {chapters.length === 0 ? (
             <EmptyState
-              title="Chưa mở khóa chương nào"
-              description="Chương sẽ hiện khi bạn đạt ngưỡng năng lực kỹ năng tương ứng, hoặc khi hệ thống mở khóa."
+              title="Chưa có chương nào"
+              description="Chưa có dữ liệu chương cho môn học này."
             />
           ) : (
             <div className="subject-detail-body">
@@ -442,31 +483,57 @@ export default function SubjectDetailPage() {
                 <p className="chapter-nav__title">Chương</p>
                 {chapters.map((chapter, index) => {
                   const id = chapter.chapterId || chapter.chapter_id;
+                  const isUnlocked = chapter.unlocked !== false;
                   return (
                     <button
                       key={id}
                       type="button"
                       className={`chapter-nav__item ${
                         id === activeChapterId ? "active" : ""
-                      }`}
+                      } ${!isUnlocked ? "chapter-nav__item--locked" : ""}`}
                       onClick={() => setActiveChapterId(id)}
                     >
                       <span className="chapter-nav__index">{index + 1}</span>
                       <span className="chapter-nav__name">{chapter.name}</span>
+                      {!isUnlocked && (
+                        <span className="chapter-nav__locked-tag" title="Chưa mở khóa do chưa đủ năng lực">
+                          <Lock size={12} />
+                        </span>
+                      )}
                     </button>
                   );
                 })}
               </aside>
 
               <div className="chapter-panel">
-                <Card padding="lg" className="chapter-overview-card">
-                  <span className="chapter-overview-card__chip">
-                    CHƯƠNG {activeChapterIndex + 1}
-                  </span>
+                <Card
+                  padding="lg"
+                  className={`chapter-overview-card ${
+                    !activeChapterUnlocked ? "chapter-overview-card--locked" : ""
+                  }`}
+                >
+                  <div className="chapter-overview-card__header-row">
+                    <span className="chapter-overview-card__chip">
+                      CHƯƠNG {activeChapterIndex + 1}
+                    </span>
+                    {!activeChapterUnlocked && (
+                      <Badge variant="warning" size="sm" className="chapter-locked-badge">
+                        <Lock size={12} /> Chưa mở khóa
+                      </Badge>
+                    )}
+                  </div>
                   <h2 className="chapter-overview-card__name">{activeChapter?.name}</h2>
                   <p className="chapter-overview-card__meta">
                     {theories.length} bài lý thuyết · {quizzes.length} bài kiểm tra
                   </p>
+                  {!activeChapterUnlocked && (
+                    <div className="chapter-locked-banner" role="alert">
+                      <AlertTriangle size={18} className="chapter-locked-banner__icon" />
+                      <div className="chapter-locked-banner__content">
+                        <strong>Cảnh báo năng lực chưa đạt:</strong> Năng lực (theta) của bạn ở các chương trước chưa đạt yêu cầu mở khóa chương này. Bạn vẫn có thể học và làm bài kiểm tra, nhưng nên hoàn thiện các chương trước đó.
+                      </div>
+                    </div>
+                  )}
                   {activeChapterSkills.length > 0 && (
                     <div className="chapter-overview-card__skills">
                       <span className="chapter-overview-card__skills-label">
@@ -530,7 +597,12 @@ export default function SubjectDetailPage() {
                         const quizId = quiz.quizId || quiz.quiz_id;
                         const minutes = quiz.durationMinutes || quiz.duration || 0;
                         return (
-                          <div key={quizId} className="quiz-nav-row">
+                          <div
+                            key={quizId}
+                            className={`quiz-nav-row ${
+                              !activeChapterUnlocked ? "quiz-nav-row--warning" : ""
+                            }`}
+                          >
                             <div className="quiz-nav-row__info">
                               <span className="quiz-nav-row__name">{quiz.name}</span>
                               <span className="quiz-nav-row__meta">
@@ -542,12 +614,23 @@ export default function SubjectDetailPage() {
                                     {minutes} phút
                                   </>
                                 )}
+                                {!activeChapterUnlocked && (
+                                  <span className="quiz-nav-row__warning-tag">
+                                    <AlertTriangle size={12} /> Chưa mở khóa
+                                  </span>
+                                )}
                               </span>
                             </div>
                             <Button
                               variant="secondary"
                               size="sm"
-                              onClick={() => navigate(`/app/quiz/${quizId}`)}
+                              onClick={() => {
+                                if (activeChapterUnlocked) {
+                                  navigate(`/app/quiz/${quizId}`);
+                                } else {
+                                  setWarningQuiz(quiz);
+                                }
+                              }}
                             >
                               Bắt đầu làm
                             </Button>
