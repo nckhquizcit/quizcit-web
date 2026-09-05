@@ -1,6 +1,6 @@
-import { request } from "./apiClient";
-import { getDeleteParams } from "./apiContracts";
-import { mapAttempt, mapQuestion, mapQuiz, mapQuizResult } from "./mappers";
+import { request } from "./apiClient.js";
+import { getDeleteParams } from "./apiContracts.js";
+import { mapAttempt, mapQuestion, mapQuiz, mapQuizResult } from "./mappers.js";
 
 function mapAdaptiveState(raw = {}) {
   if (!raw || typeof raw !== "object") return raw;
@@ -15,7 +15,7 @@ function mapAdaptiveState(raw = {}) {
     questions: (raw.questions || []).map(mapQuestion),
   };
 }
-import { enrichSkillNames, getSkills } from "./skillService";
+import { enrichSkillNames, getSkills } from "./skillService.js";
 import {
   createQuestion,
   createQuestionsBulk,
@@ -27,7 +27,7 @@ import {
   updateQuestion,
   placeQuestion,
   placeQuestionsBulk,
-} from "./questionService";
+} from "./questionService.js";
 
 const QUIZ_DRAFT_PREFIX = "quizcit:quiz-draft:";
 
@@ -164,34 +164,16 @@ export async function getUserAttempts(userId) {
   return (attempts || []).map(mapAttempt);
 }
 
-export function getQuizDraftKey(quizId, userId) {
-  return `${QUIZ_DRAFT_PREFIX}${userId || "anonymous"}:${quizId}`;
-}
-
-export function loadQuizDraft(quizId, userId) {
-  try {
-    const rawDraft = sessionStorage.getItem(getQuizDraftKey(quizId, userId));
-    return rawDraft ? JSON.parse(rawDraft) : null;
-  } catch {
-    return null;
-  }
-}
-
-export function saveQuizDraft(quizId, userId, draft) {
-  try {
-    sessionStorage.setItem(getQuizDraftKey(quizId, userId), JSON.stringify(draft));
-  } catch {
-    // Best-effort only; backend currently has no save-draft API.
-  }
-}
-
-export function clearQuizDraft(quizId, userId) {
-  try {
-    sessionStorage.removeItem(getQuizDraftKey(quizId, userId));
-  } catch {
-    // Nuốt lỗi: hàm này chạy giữa lúc nộp bài thành công và điều hướng sang trang
-    // kết quả, ném ra đây sẽ báo "nộp bài thất bại" cho một lượt nộp đã thành công.
-  }
-}
+export {
+  getQuizDraftKey,
+  loadQuizDraft,
+  saveQuizDraft,
+  clearQuizDraft,
+  getAdaptiveDraftKey,
+  loadAdaptiveDraft,
+  saveAdaptiveDraft,
+  clearAdaptiveDraft,
+  getExpiredQuizDrafts,
+} from "./quizDraftStorage.js";
 
 export { createQuestion, createQuestionsBulk, deleteQuestion, getAllQuestions, getQuestionById, getQuestionsByChapter, getQuestionsByQuiz, updateQuestion, placeQuestion, placeQuestionsBulk };

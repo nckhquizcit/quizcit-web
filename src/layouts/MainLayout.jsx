@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, Outlet, ScrollRestoration, useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, Menu } from "lucide-react";
 import Sidebar from "../components/Sidebar/Sidebar";
-import { ToastProvider } from "../components/ui/Toast/Toast";
+import { ToastProvider, useToast } from "../components/ui/Toast/Toast";
 import { getStoredUser, setStoredUser, subscribeToAuthChange } from "../services/apiClient";
 import { getCurrentUser } from "../services/userService";
 import { resolveImageUrl } from "../services/mappers";
@@ -11,6 +11,7 @@ import {
   isUserPreviewActive,
   subscribeToUserPreview,
 } from "../services/userPreviewMode";
+import { useQuizAutoSubmitSync } from "../features/quiz/hooks/useQuizAutoSubmitSync";
 import "./MainLayout.css";
 
 const TITLE_MAP = [
@@ -26,18 +27,26 @@ const TITLE_MAP = [
   { match: (p) => p.startsWith("/app/profile"), title: "Cá nhân" },
 ];
 
+const EXAM_ROUTES_REGEX = /^\/app\/(quiz\/(?!result\/)[^/]+|adaptive\/[^/]+)$/;
+
 function resolveTitle(pathname) {
   const found = TITLE_MAP.find((t) => t.match(pathname));
   return found ? found.title : "QuizCIT";
 }
 
-export default function MainLayout() {
+function MainLayoutContent() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const [user, setUser] = useState(() => getStoredUser());
   const [avatarError, setAvatarError] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState(() => isUserPreviewActive(user));
+  const toast = useToast();
+
+  const isExamMode = EXAM_ROUTES_REGEX.test(location.pathname);
+
+  // Tự động kiểm tra và nộp các bài thi đã hết thời gian làm bài của user trong nền
+  useQuizAutoSubmitSync(user, toast.show);
 
   useEffect(() => subscribeToAuthChange(() => {
     setUser(getStoredUser());
@@ -68,11 +77,11 @@ export default function MainLayout() {
   const initial = displayName.trim().charAt(0).toUpperCase() || "S";
 
   return (
-    <ToastProvider>
+    <>
       {/* Điều hướng sang trang con phải bắt đầu từ đầu trang, không giữ vị trí cuộn cũ. */}
       <ScrollRestoration />
-      <div className="app-container">
-        {mobileOpen && (
+      <div className={`app-container ${isExamMode ? "app-container--exam" : ""}`}>
+        {!isExamMode && mobileOpen && (
           <div
             className="app-overlay"
             onClick={() => setMobileOpen(false)}
@@ -80,15 +89,21 @@ export default function MainLayout() {
           />
         )}
 
-        <Sidebar
-          type="USER"
-          user={user}
-          mobileOpen={mobileOpen}
-          onClose={() => setMobileOpen(false)}
-        />
+        {!isExamMode && (
+          <Sidebar
+            type="USER"
+            user={user}
+            mobileOpen={mobileOpen}
+            onClose={() => setMobileOpen(false)}
+          />
+        )}
 
-        <div className={`app-main-col ${isPreviewing ? "app-main-col--preview" : ""}`}>
-          {isPreviewing && (
+        <div
+          className={`app-main-col ${isExamMode ? "app-main-col--exam" : ""} ${
+            isPreviewing && !isExamMode ? "app-main-col--preview" : ""
+          }`}
+        >
+          {isPreviewing && !isExamMode && (
             <div className="user-preview-banner" role="status">
               <span>Bạn đang xem website với góc nhìn của người dùng.</span>
               <button type="button" onClick={handleExitPreview}>
@@ -97,54 +112,56 @@ export default function MainLayout() {
               </button>
             </div>
           )}
-          <header className="app-topbar">
-            <div className="app-topbar__left">
+          {!isExamMode && (
+            <header className="app-topbar">
+              <div className="app-topbar__left">
+                <button
+                  type="button"
+                  className="app-topbar__menu"
+                  onClick={() => setMobileOpen(true)}
+                  aria-label="Mở menu"
+                >
+                  <Menu size={22} />
+                </button>
+                <div className="app-topbar__titles">
+                  {/* Breadcrumb thật: gốc là link về /app, đoạn trang hiện tại là chữ thường. */}
+                  <nav className="app-topbar__breadcrumb" aria-label="Đường dẫn">
+                    <Link to="/app" className="app-topbar__breadcrumb-link">
+                      Không gian học
+                    </Link>
+                    {location.pathname !== "/app" && (
+                      <span> / {resolveTitle(location.pathname)}</span>
+                    )}
+                  </nav>
+                  {/* Không dùng h1 ở topbar: mỗi trang tự sở hữu h1 riêng. */}
+                  <p className="app-topbar__title">
+                    {resolveTitle(location.pathname)}
+                  </p>
+                </div>
+              </div>
+
               <button
                 type="button"
-                className="app-topbar__menu"
-                onClick={() => setMobileOpen(true)}
-                aria-label="Mở menu"
+                className="app-topbar__user"
+                onClick={() => navigate("/app/profile")}
+                title="Trang cá nhân"
               >
-                <Menu size={22} />
-              </button>
-              <div className="app-topbar__titles">
-                {/* Breadcrumb thật: gốc là link về /app, đoạn trang hiện tại là chữ thường. */}
-                <nav className="app-topbar__breadcrumb" aria-label="Đường dẫn">
-                  <Link to="/app" className="app-topbar__breadcrumb-link">
-                    Không gian học
-                  </Link>
-                  {location.pathname !== "/app" && (
-                    <span> / {resolveTitle(location.pathname)}</span>
+                <span className="app-topbar__avatar">
+                  {user?.avatarUrl && !avatarError ? (
+                    <img
+                      src={resolveImageUrl(user.avatarUrl)}
+                      alt=""
+                      className="app-topbar__avatar-img"
+                      onError={() => setAvatarError(true)}
+                    />
+                  ) : (
+                    initial
                   )}
-                </nav>
-                {/* Không dùng h1 ở topbar: mỗi trang tự sở hữu h1 riêng. */}
-                <p className="app-topbar__title">
-                  {resolveTitle(location.pathname)}
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              className="app-topbar__user"
-              onClick={() => navigate("/app/profile")}
-              title="Trang cá nhân"
-            >
-              <span className="app-topbar__avatar">
-                {user?.avatarUrl && !avatarError ? (
-                  <img
-                    src={resolveImageUrl(user.avatarUrl)}
-                    alt=""
-                    className="app-topbar__avatar-img"
-                    onError={() => setAvatarError(true)}
-                  />
-                ) : (
-                  initial
-                )}
-              </span>
-              <span className="app-topbar__name">{displayName}</span>
-            </button>
-          </header>
+                </span>
+                <span className="app-topbar__name">{displayName}</span>
+              </button>
+            </header>
+          )}
 
           <main className="main-content">
             <div className="main-content__inner">
@@ -153,6 +170,14 @@ export default function MainLayout() {
           </main>
         </div>
       </div>
+    </>
+  );
+}
+
+export default function MainLayout() {
+  return (
+    <ToastProvider>
+      <MainLayoutContent />
     </ToastProvider>
   );
 }

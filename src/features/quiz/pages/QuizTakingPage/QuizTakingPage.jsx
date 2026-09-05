@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useBlocker, useNavigate, useParams } from "react-router-dom";
 import { AlertCircle, Flag, ListChecks, X } from "lucide-react";
 import {
   clearQuizDraft,
@@ -21,12 +21,14 @@ import {
 } from "../../../../components/ui";
 import RichTextView from "../../../../components/richtext/RichTextView";
 import SkillInfoModal from "../../components/SkillInfoModal";
+import ExamExitModal from "../../components/ExamExitModal";
 import {
   clampQuizPage,
   getPageNavigationTarget,
   getQuestionNavigationTarget,
   getResumableQuizDraft,
   getTotalQuizPages,
+  isQuizDraftExpired,
   QUIZ_PAGE_SIZE,
 } from "./QuizTakingPage.logic.js";
 import "./QuizTakingPage.css";
@@ -82,6 +84,26 @@ export default function QuizTakingPage() {
         setLoading(true);
         setError("");
         const draft = loadQuizDraft(quizId, currentUser.userId);
+        if (draft && isQuizDraftExpired(draft)) {
+          // Bài thi đã hết hạn khi mở lại: nộp ngay bài cũ với đáp án đã lưu thay vì tạo attempt mới
+          try {
+            const answerList = Object.entries(draft.answers || {}).map(([questionId, optionId]) => ({
+              questionId,
+              optionId,
+            }));
+            await submitAttempt({
+              quizId,
+              attemptId: draft.attemptId,
+              answers: answerList,
+            });
+          } catch {
+            // best-effort
+          }
+          clearQuizDraft(quizId, currentUser.userId);
+          navigate(`/app/quiz/result/${draft.attemptId}`, { replace: true });
+          return;
+        }
+
         const [quizData, questionsData] = await Promise.all([
           getQuizById(quizId),
           getQuestionsByQuiz(quizId),
@@ -212,25 +234,37 @@ export default function QuizTakingPage() {
       answers,
       attemptId: attempt.attemptId,
       quizId,
+      quizName: quiz?.name || "",
       deadlineAt: deadlineRef.current,
       currentPage,
       flaggedQuestionIds: Array.from(flaggedQuestionIds),
       updatedAt: new Date().toISOString(),
     });
-  }, [answers, attempt, currentPage, currentUser?.userId, flaggedQuestionIds, quizId]);
+  }, [answers, attempt, currentPage, currentUser?.userId, flaggedQuestionIds, quiz?.name, quizId]);
+
+  const shouldBlock = Boolean(attempt && !submittedRef.current && !submitting);
+
+  const blocker = useBlocker(
+    useCallback(
+      ({ currentLocation, nextLocation }) =>
+        shouldBlock && currentLocation.pathname !== nextLocation.pathname,
+      [shouldBlock],
+    ),
+  );
 
   useEffect(() => {
-    const hasWork = Object.keys(answers).length > 0 && !submittedRef.current;
-    if (!hasWork) return undefined;
+    if (!shouldBlock) return undefined;
 
     const handleBeforeUnload = (event) => {
       event.preventDefault();
-      event.returnValue = "";
+      event.returnValue =
+        "Bạn đang làm bài trắc nghiệm, nếu thoát ra thì bài của bạn sẽ tự động được nộp khi hết giờ làm bài.";
+      return event.returnValue;
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [answers]);
+  }, [shouldBlock]);
 
   const doSubmit = useCallback(
     async (currentAnswers) => {
@@ -238,6 +272,7 @@ export default function QuizTakingPage() {
       submittedRef.current = true;
       setSubmitting(true);
       setError("");
+      setSubmitConfirmOpen(false);
 
       try {
         const answerList = Object.entries(currentAnswers).map(([questionId, optionId]) => ({
@@ -842,6 +877,12 @@ export default function QuizTakingPage() {
       <SkillInfoModal
         question={activeSkillQuestion}
         onClose={() => setActiveSkillQuestion(null)}
+      />
+
+      <ExamExitModal
+        open={blocker.state === "blocked"}
+        onStay={() => blocker.reset?.()}
+        onLeave={() => blocker.proceed?.()}
       />
     </div>
   );

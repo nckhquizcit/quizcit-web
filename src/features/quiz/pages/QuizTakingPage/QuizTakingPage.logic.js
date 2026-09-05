@@ -30,6 +30,12 @@ export const clampQuizPage = (page, totalPages) => {
   return Math.min(Math.max(safePage, 0), safeTotalPages - 1);
 };
 
+export const isQuizDraftExpired = (draft, now = Date.now()) => {
+  if (!draft?.attemptId) return false;
+  const deadlineAt = Number(draft.deadlineAt);
+  return Number.isFinite(deadlineAt) && deadlineAt > 0 && deadlineAt <= now;
+};
+
 export const getResumableQuizDraft = (
   draft,
   quizId,

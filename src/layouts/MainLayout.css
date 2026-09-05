@@ -19,6 +19,27 @@
   );
 }
 
+.app-container--exam {
+  display: block;
+  width: 100%;
+}
+
+.app-main-col--exam {
+  --sticky-top: var(--space-4);
+  width: 100%;
+  max-width: 100%;
+}
+
+.app-main-col--exam .main-content {
+  width: 100%;
+}
+
+.app-main-col--exam .main-content__inner {
+  max-width: var(--content-wide);
+  margin: 0 auto;
+  padding: 0 var(--space-4) var(--space-8);
+}
+
 .user-preview-banner {
   /* Bảng màu banner gom về một chỗ, bám token cảnh báo;
      hai sắc cam nhạt chưa có token tương đương nên giữ giá trị cũ. */

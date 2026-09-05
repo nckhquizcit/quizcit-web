@@ -5,6 +5,7 @@ import {
   getQuestionNavigationTarget,
   getResumableQuizDraft,
   getTotalQuizPages,
+  isQuizDraftExpired,
 } from "./QuizTakingPage.logic.js";
 
 const questions = Array.from({ length: 12 }, (_, index) => ({
@@ -66,5 +67,13 @@ describe("QuizTakingPage draft recovery", () => {
       getResumableQuizDraft(untimedDraft, "quiz-1", 0, now),
       untimedDraft,
     );
+  });
+
+  it("detects expired quiz drafts correctly", () => {
+    assert.equal(isQuizDraftExpired({ ...draft, deadlineAt: now - 1000 }, now), true);
+    assert.equal(isQuizDraftExpired({ ...draft, deadlineAt: now }, now), true);
+    assert.equal(isQuizDraftExpired({ ...draft, deadlineAt: now + 5000 }, now), false);
+    assert.equal(isQuizDraftExpired({ ...draft, deadlineAt: 0 }, now), false);
+    assert.equal(isQuizDraftExpired(null, now), false);
   });
 });

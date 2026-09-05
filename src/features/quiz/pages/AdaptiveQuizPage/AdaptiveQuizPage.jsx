@@ -1,13 +1,17 @@
-import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useBlocker, useNavigate, useParams } from "react-router-dom";
 import { AlertCircle } from "lucide-react";
 import { Button, EmptyState, ErrorState, Spinner } from "../../../../components/ui";
 import RichTextView from "../../../../components/richtext/RichTextView";
 import SkillInfoModal from "../../components/SkillInfoModal";
-import { getErrorMessage } from "../../../../services/apiClient";
+import ExamExitModal from "../../components/ExamExitModal";
+import { getErrorMessage, getStoredUser } from "../../../../services/apiClient";
 import {
+  clearAdaptiveDraft,
   getAdaptiveAttempt,
   getQuizById,
+  loadAdaptiveDraft,
+  saveAdaptiveDraft,
   submitAdaptiveBatch,
 } from "../../../../services/quizService";
 import { getSubjectById } from "../../../../services/subjectService";
@@ -30,12 +34,22 @@ export default function AdaptiveQuizPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const metaRequestedRef = useRef(false);
+  const submittedRef = useRef(false);
 
   useEffect(() => {
     getAdaptiveAttempt(attemptId)
       .then((data) => {
-        if (data.completed) navigate(`/app/quiz/result/${attemptId}`, { replace: true });
-        else setState(data);
+        if (data.completed) {
+          submittedRef.current = true;
+          navigate(`/app/quiz/result/${attemptId}`, { replace: true });
+        } else {
+          setState(data);
+          const currentUser = getStoredUser();
+          const draft = loadAdaptiveDraft(attemptId, currentUser?.userId);
+          if (draft && Number(draft.page) === Number(data.page) && draft.answers) {
+            setAnswers(draft.answers);
+          }
+        }
       })
       .catch((err) =>
         setError(getErrorMessage(err, "Không thể tải bài kiểm tra thích ứng.")),
@@ -55,6 +69,21 @@ export default function AdaptiveQuizPage() {
       .catch(() => setMeta({ subjectName: "" }));
   }, [state?.quizId]);
 
+  const handleSelectAnswer = (questionId, optionId) => {
+    setAnswers((current) => {
+      const nextAnswers = { ...current, [questionId]: optionId };
+      const currentUser = getStoredUser();
+      saveAdaptiveDraft(attemptId, currentUser?.userId, {
+        attemptId,
+        quizId: state?.quizId,
+        page: state?.page,
+        answers: nextAnswers,
+        updatedAt: new Date().toISOString(),
+      });
+      return nextAnswers;
+    });
+  };
+
   const submitPage = async () => {
     const questions = state?.questions || [];
     if (!hasAnsweredAdaptiveBatch(questions, answers)) {
@@ -68,7 +97,10 @@ export default function AdaptiveQuizPage() {
         attemptId,
         buildAdaptiveBatchAnswers(questions, answers),
       );
+      const currentUser = getStoredUser();
+      clearAdaptiveDraft(attemptId, currentUser?.userId);
       if (next.completed) {
+        submittedRef.current = true;
         navigate(`/app/quiz/result/${attemptId}`);
         return;
       }
@@ -81,6 +113,30 @@ export default function AdaptiveQuizPage() {
       setSubmitting(false);
     }
   };
+
+  const shouldBlock = Boolean(state && !state.completed && !submittedRef.current && !submitting);
+
+  const blocker = useBlocker(
+    useCallback(
+      ({ currentLocation, nextLocation }) =>
+        shouldBlock && currentLocation.pathname !== nextLocation.pathname,
+      [shouldBlock],
+    ),
+  );
+
+  useEffect(() => {
+    if (!shouldBlock) return undefined;
+
+    const handleBeforeUnload = (event) => {
+      event.preventDefault();
+      event.returnValue =
+        "Bạn đang làm bài trắc nghiệm, nếu thoát ra thì bài của bạn sẽ tự động được nộp khi hết giờ làm bài.";
+      return event.returnValue;
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [shouldBlock]);
 
   if (loading) return <div className="quiz-loading"><Spinner size={32} /><p>Đang chọn câu hỏi phù hợp...</p></div>;
   if (!state) return <div className="quiz-taking-page adaptive-quiz-page"><ErrorState title="Không thể mở bài kiểm tra thích ứng" description={error} onRetry={() => navigate("/app/subjects")} /></div>;
@@ -159,7 +215,7 @@ export default function AdaptiveQuizPage() {
                   {(question.options || []).map((option, optionIndex) => (
                     <label className={`option-item ${answers[question.questionId] === option.optionId ? "is-selected" : ""}`} key={option.optionId}>
                       <input type="radio" name={question.questionId} checked={answers[question.questionId] === option.optionId}
-                        disabled={submitting} onChange={() => setAnswers((current) => ({ ...current, [question.questionId]: option.optionId }))} />
+                        disabled={submitting} onChange={() => handleSelectAnswer(question.questionId, option.optionId)} />
                       <span className="option-marker">{String.fromCharCode(65 + optionIndex)}</span>
                       <RichTextView className="option-text" variant="inline" content={option.content} contentFormat={option.contentFormat} />
                     </label>
@@ -213,6 +269,12 @@ export default function AdaptiveQuizPage() {
       <SkillInfoModal
         question={activeSkillQuestion}
         onClose={() => setActiveSkillQuestion(null)}
+      />
+
+      <ExamExitModal
+        open={blocker.state === "blocked"}
+        onStay={() => blocker.reset?.()}
+        onLeave={() => blocker.proceed?.()}
       />
     </div>
   );
