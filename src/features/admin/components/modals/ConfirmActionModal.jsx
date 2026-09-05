@@ -10,7 +10,7 @@ export default function ConfirmActionModal({ isOpen, onClose, onConfirm, user, m
     return <Modal open={false} onClose={onClose} labelledById={titleId} />;
   }
 
-  const username = user.username || user.displayName || user.fullName || "";
+  const username = user.displayName || user.username || user.fullName || "";
 
   const handleClose = () => {
     if (!isSubmitting) onClose();

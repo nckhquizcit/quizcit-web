@@ -43,7 +43,13 @@ const STATUS_BADGE_TONE = {
 
 const formatRole = (role) => ROLE_LABELS[role] || role || "Chưa có";
 const formatStatus = (status) => STATUS_LABELS[status] || status || "Chưa có";
-const getInitials = (username) => (username || "?").trim().slice(0, 2).toUpperCase();
+const getInitials = (name) => {
+  const trimmed = (name || "").trim();
+  if (!trimmed) return "?";
+  const parts = trimmed.split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+};
 const SELF_LOCKOUT_MESSAGE = "Bạn không thể khóa/xóa/thay đổi vai trò tài khoản đang đăng nhập.";
 const PAGE_SIZE = 20;
 const EMPTY_PAGE_INFO = { totalElements: 0, totalPages: 0, first: true, last: true };
@@ -176,18 +182,19 @@ export default function AdminUsers() {
       key: "username",
       label: "Người dùng",
       sortable: true,
+      sortValue: (user) => (user.displayName || user.username || "").toLowerCase(),
       render: (user) => (
         <div className="adm2-user-cell">
           <span className="adm2-user-avatar">
             {user.avatarUrl ? (
               <img src={resolveImageUrl(user.avatarUrl)} alt="" />
             ) : (
-              getInitials(user.username)
+              getInitials(user.displayName || user.username)
             )}
           </span>
           <div className="adm2-user-cell__body">
-            <strong>{user.username}</strong>
-            <span className="adm2-user-cell__sub">User #{user.userId}</span>
+            <strong>{user.displayName || user.username}</strong>
+            <span className="adm2-user-cell__sub">{user.username}</span>
           </div>
         </div>
       ),
@@ -307,9 +314,9 @@ export default function AdminUsers() {
             totalElements={pageInfo.totalElements}
             onPageChange={(nextPage) => loadUsers(nextPage)}
             searchable
-            searchPlaceholder="Tìm username/email trong trang này..."
-            searchAriaLabel="Tìm username hoặc email trong trang này"
-            searchKeys={["username", "email"]}
+            searchPlaceholder="Tìm tên, username, email trong trang này..."
+            searchAriaLabel="Tìm tên, username hoặc email trong trang này"
+            searchKeys={["displayName", "username", "email"]}
             emptyState={
               <EmptyState
                 icon={<Users size={28} />}
@@ -346,7 +353,7 @@ export default function AdminUsers() {
         message={
           selectedUser?.status === "BANNED" ? (
             <>
-              Mở khóa người dùng "<strong>{selectedUser?.username}</strong>"? Tài khoản sẽ chuyển
+              Mở khóa người dùng "<strong>{selectedUser?.displayName || selectedUser?.username}</strong>"? Tài khoản sẽ chuyển
               về trạng thái Đã xác thực.
             </>
           ) : undefined
@@ -373,7 +380,7 @@ export default function AdminUsers() {
         onConfirm={handleDeleteUser}
         title="Xóa người dùng"
         message="Bạn có chắc chắn muốn xóa người dùng này? Hành động này không thể hoàn tác."
-        itemName={deletingUser?.username || ""}
+        itemName={deletingUser?.displayName || deletingUser?.username || ""}
       />
     </div>
   );

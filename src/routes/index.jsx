@@ -39,7 +39,6 @@ const AdminQuizEdit = lazy(() => import("../features/admin/pages/AdminQuizEdit.j
 const AdminQuizQuestions = lazy(() => import("../features/admin/pages/AdminQuizQuestions.jsx"));
 const AdminSkills = lazy(() => import("../features/admin/pages/AdminSkills.jsx"));
 const AdminUsers = lazy(() => import("../features/admin/pages/AdminUsers.jsx"));
-const AdminAccess = lazy(() => import("../features/admin/pages/AdminAccess.jsx"));
 const AdminProfile = lazy(() => import("../features/admin/pages/AdminProfile.jsx"));
 
 const LoginPage = lazy(() => import("../features/auth/pages/LoginPage/LoginPage.jsx"));
@@ -155,7 +154,7 @@ export const router = createBrowserRouter([
       { path: "quizzes/:quizId/edit/questions", element: withSuspense(<AdminQuizQuestions />) },
       { path: "quizzes", element: withSuspense(<AdminQuizzes />) },
       { path: "users", element: withSuspense(<AdminUsers />) },
-      { path: "access", element: withSuspense(<AdminAccess />) },
+      { path: "access", element: <Navigate to="dashboard" replace /> },
       { path: "profile", element: withSuspense(<AdminProfile />) },
     ],
   },
