@@ -88,6 +88,11 @@ describe("QuizTakingPage draft recovery", () => {
     assert.equal(getResumableQuizDraft(draft, "quiz-2", 600, now), null);
   });
 
+  it("restores only a draft matching the target attemptId when specified", () => {
+    assert.equal(getResumableQuizDraft(draft, "quiz-1", 600, now, "attempt-1"), draft);
+    assert.equal(getResumableQuizDraft(draft, "quiz-1", 600, now, "attempt-2"), null);
+  });
+
   it("allows untimed quiz drafts without a deadline", () => {
     const untimedDraft = { ...draft, deadlineAt: undefined };
     assert.equal(

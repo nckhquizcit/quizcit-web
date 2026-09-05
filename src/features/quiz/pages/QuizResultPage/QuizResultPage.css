@@ -174,77 +174,6 @@
   background: var(--color-warning);
 }
 
-.result-ai-card {
-  display: grid;
-  gap: var(--space-4);
-  border-left: 4px solid #2563eb;
-}
-
-.result-ai-card__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-4);
-}
-
-.result-ai-card__header h2 {
-  margin-bottom: 4px;
-  color: var(--color-text);
-  font-size: var(--fs-md);
-}
-
-.result-ai-card__header p,
-.result-ai-card__state {
-  color: var(--color-text-muted);
-  font-size: var(--fs-sm);
-}
-
-.result-ai-card__state {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.result-ai-card__error {
-  margin: 0;
-  padding: var(--space-3);
-  border: 1px solid #fecaca;
-  border-radius: var(--radius-md);
-  background: var(--color-error-soft);
-  color: var(--color-error-strong);
-  font-size: var(--fs-sm);
-}
-
-.result-ai-card__metrics {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 180px));
-  gap: var(--space-3);
-}
-
-.result-ai-card__metrics > div {
-  display: grid;
-  gap: 4px;
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-2);
-}
-
-.result-ai-card__metrics span {
-  color: var(--color-text-muted);
-  font-size: var(--fs-xs);
-}
-
-.result-ai-card__metrics strong {
-  color: var(--color-text);
-  font-size: var(--fs-xl);
-  font-variant-numeric: tabular-nums;
-}
-
-.result-ai-card__metrics small {
-  color: var(--color-text-muted);
-  font-size: var(--fs-xs);
-}
 
 /* Skill analysis */
 .skill-analysis-list {
@@ -596,10 +525,6 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .result-ai-card__metrics {
-    grid-template-columns: 1fr 1fr;
-  }
-
   /* Kỹ năng xếp 2 hàng: tên + theta, rồi thanh tiến độ + delta */
   .skill-analysis-row {
     grid-template-columns: minmax(0, 1fr) auto;
@@ -659,12 +584,6 @@
 }
 
 @media (max-width: 400px) {
-  .result-ai-card__header {
-    flex-wrap: wrap;
-  }
-  .result-ai-card__metrics {
-    grid-template-columns: 1fr;
-  }
   .result-score-card__body {
     flex-wrap: wrap;
   }

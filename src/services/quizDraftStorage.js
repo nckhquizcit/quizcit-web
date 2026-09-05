@@ -1,12 +1,12 @@
 const QUIZ_DRAFT_PREFIX = "quizcit:quiz-draft:";
 const ADAPTIVE_DRAFT_PREFIX = "quizcit:adaptive-draft:";
 
-export function getQuizDraftKey(quizId, userId) {
-  return `${QUIZ_DRAFT_PREFIX}${userId || "anonymous"}:${quizId}`;
+export function getQuizDraftKey(identifier, userId) {
+  return `${QUIZ_DRAFT_PREFIX}${userId || "anonymous"}:${identifier}`;
 }
 
-export function loadQuizDraft(quizId, userId) {
-  const key = getQuizDraftKey(quizId, userId);
+export function loadQuizDraft(identifier, userId) {
+  const key = getQuizDraftKey(identifier, userId);
   try {
     const raw = localStorage.getItem(key) ?? sessionStorage.getItem(key);
     return raw ? JSON.parse(raw) : null;
@@ -15,8 +15,8 @@ export function loadQuizDraft(quizId, userId) {
   }
 }
 
-export function saveQuizDraft(quizId, userId, draft) {
-  const key = getQuizDraftKey(quizId, userId);
+export function saveQuizDraft(identifier, userId, draft) {
+  const key = getQuizDraftKey(identifier, userId);
   try {
     localStorage.setItem(key, JSON.stringify(draft));
   } catch {
@@ -29,8 +29,8 @@ export function saveQuizDraft(quizId, userId, draft) {
   }
 }
 
-export function clearQuizDraft(quizId, userId) {
-  const key = getQuizDraftKey(quizId, userId);
+export function clearQuizDraft(identifier, userId) {
+  const key = getQuizDraftKey(identifier, userId);
   try {
     localStorage.removeItem(key);
   } catch {
@@ -41,6 +41,62 @@ export function clearQuizDraft(quizId, userId) {
   } catch {
     // Best-effort
   }
+}
+
+export function clearQuizDraftsByQuizId(quizId, userId) {
+  if (!quizId) return;
+  const prefix = `${QUIZ_DRAFT_PREFIX}${userId || "anonymous"}:`;
+  const keysToRemove = [];
+
+  const inspectStorage = (storage) => {
+    if (!storage) return;
+    try {
+      for (let i = 0; i < storage.length; i++) {
+        const key = storage.key(i);
+        if (key && key.startsWith(prefix)) {
+          if (key.endsWith(`:${quizId}`)) {
+            keysToRemove.push(key);
+          } else {
+            try {
+              const raw = storage.getItem(key);
+              const parsed = raw ? JSON.parse(raw) : null;
+              if (parsed && String(parsed.quizId) === String(quizId)) {
+                keysToRemove.push(key);
+              }
+            } catch {
+              // ignore unparseable
+            }
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  try {
+    inspectStorage(localStorage);
+  } catch {
+    // ignore
+  }
+  try {
+    inspectStorage(sessionStorage);
+  } catch {
+    // ignore
+  }
+
+  keysToRemove.forEach((key) => {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // ignore
+    }
+    try {
+      sessionStorage.removeItem(key);
+    } catch {
+      // ignore
+    }
+  });
 }
 
 export function getAdaptiveDraftKey(attemptId, userId) {

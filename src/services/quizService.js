@@ -169,6 +169,7 @@ export {
   loadQuizDraft,
   saveQuizDraft,
   clearQuizDraft,
+  clearQuizDraftsByQuizId,
   getAdaptiveDraftKey,
   loadAdaptiveDraft,
   saveAdaptiveDraft,

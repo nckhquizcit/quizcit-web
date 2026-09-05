@@ -1,5 +1,10 @@
 import { useEffect, useRef } from "react";
-import { clearQuizDraft, getExpiredQuizDrafts, submitAttempt } from "../../../services/quizService";
+import {
+  clearQuizDraft,
+  clearQuizDraftsByQuizId,
+  getExpiredQuizDrafts,
+  submitAttempt,
+} from "../../../services/quizService";
 
 /**
  * Tự động quét và nộp các bài thi đã hết thời gian làm bài của người dùng trong nền,
@@ -37,7 +42,8 @@ export function useQuizAutoSubmitSync(currentUser, showToast) {
             answers: answerList,
           });
 
-          clearQuizDraft(quizId, userId);
+          clearQuizDraft(attemptId, userId);
+          clearQuizDraftsByQuizId(quizId, userId);
           if (isMounted && typeof showToast === "function") {
             const displayName = quizName ? `"${quizName}"` : "trắc nghiệm";
             showToast(`Bài kiểm tra ${displayName} đã hết thời gian và đã được tự động nộp.`, {
@@ -47,7 +53,8 @@ export function useQuizAutoSubmitSync(currentUser, showToast) {
           }
         } catch {
           // Nếu backend đã ghi nhận nộp hoặc lỗi attempt, xóa draft để không lặp vô tận
-          clearQuizDraft(quizId, userId);
+          clearQuizDraft(attemptId, userId);
+          clearQuizDraftsByQuizId(quizId, userId);
         } finally {
           submittingRef.current.delete(attemptId);
         }

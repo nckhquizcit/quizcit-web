@@ -4,13 +4,8 @@ import { BookOpen, ChevronDown, ChevronUp, History } from "lucide-react";
 import { getErrorMessage } from "../../../../services/apiClient";
 import {
   getAttemptResult,
-  getQuestionsByQuiz,
   getQuizById,
 } from "../../../../services/quizService";
-import {
-  buildAiEstimatePayload,
-  estimateAbility,
-} from "../../../../services/aiService";
 import { getSubjectById } from "../../../../services/subjectService";
 import {
   formatScaledThetaValue,
@@ -87,7 +82,6 @@ export default function QuizResultPage() {
   const [error, setError] = useState("");
   const [reviewFilter, setReviewFilter] = useState("all");
   const [expandedIds, setExpandedIds] = useState(() => new Set());
-  const [aiEstimate, setAiEstimate] = useState({ status: "idle", data: null, error: "" });
 
   const cameFromHistory = location.state?.from === "history";
 
@@ -115,42 +109,6 @@ export default function QuizResultPage() {
     };
   }, [attemptId]);
 
-  useEffect(() => {
-    if (!result) return undefined;
-    let alive = true;
-
-    async function loadEstimate() {
-      setAiEstimate({ status: "loading", data: null, error: "" });
-      try {
-        if (!result.quizId || !result.questionResults?.length) {
-          throw new Error("Kết quả chưa đủ dữ liệu để ước lượng năng lực AI.");
-        }
-        const questions = await getQuestionsByQuiz(result.quizId);
-        const payload = buildAiEstimatePayload(result.questionResults, questions);
-        if (!payload) {
-          throw new Error("Không tìm thấy đầy đủ độ khó và trọng số câu hỏi.");
-        }
-        const estimate = await estimateAbility(payload);
-        if (!Number.isFinite(estimate.theta)) {
-          throw new Error("Dịch vụ AI trả về kết quả không hợp lệ.");
-        }
-        if (alive) setAiEstimate({ status: "success", data: estimate, error: "" });
-      } catch (estimateError) {
-        if (alive) {
-          setAiEstimate({
-            status: "error",
-            data: null,
-            error: getErrorMessage(estimateError, "Không thể tải ước lượng AI."),
-          });
-        }
-      }
-    }
-
-    loadEstimate();
-    return () => {
-      alive = false;
-    };
-  }, [result]);
 
   const questionResults = useMemo(
     () => result?.questionResults || [],
@@ -291,46 +249,6 @@ export default function QuizResultPage() {
         </Card>
       </div>
 
-      <Card padding="lg" className="result-ai-card">
-        <div className="result-ai-card__header">
-          <div>
-            <h2>Ước lượng năng lực AI</h2>
-            <p>Đối chiếu độc lập từ đáp án, độ khó và trọng số kỹ năng.</p>
-          </div>
-          <Badge variant={aiEstimate.status === "success" ? "success" : "neutral"}>
-            {aiEstimate.status === "success" ? "Đã tính" : "Tham khảo"}
-          </Badge>
-        </div>
-
-        {(aiEstimate.status === "idle" || aiEstimate.status === "loading") && (
-          <div className="result-ai-card__state">
-            <Spinner size={18} />
-            <span>Đang ước lượng năng lực...</span>
-          </div>
-        )}
-        {aiEstimate.status === "error" && (
-          <p className="result-ai-card__error">{aiEstimate.error}</p>
-        )}
-        {aiEstimate.status === "success" && (
-          <div className="result-ai-card__metrics">
-            <div>
-              <span>Theta (θ)</span>
-              <strong>{aiEstimate.data.theta.toFixed(2)}</strong>
-              {Number.isFinite(aiEstimate.data.thetaScaled) && (
-                <small>{aiEstimate.data.thetaScaled.toFixed(2)} / 4</small>
-              )}
-            </div>
-            <div>
-              <span>Sai số chuẩn</span>
-              <strong>
-                {Number.isFinite(aiEstimate.data.standardError)
-                  ? aiEstimate.data.standardError.toFixed(2)
-                  : "Không có"}
-              </strong>
-            </div>
-          </div>
-        )}
-      </Card>
 
       <Card padding="lg" className="result-skill-card">
         <h2>Phân tích theo kỹ năng</h2>

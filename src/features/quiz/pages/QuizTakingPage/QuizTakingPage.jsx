@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useBlocker, useNavigate, useParams } from "react-router-dom";
+import { useBlocker, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   AlertCircle,
   CheckCircle2,
@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import {
   clearQuizDraft,
+  clearQuizDraftsByQuizId,
   getQuestionsByQuiz,
   getQuizById,
   loadQuizDraft,
@@ -162,6 +163,8 @@ const QuizQuestionCard = memo(function QuizQuestionCard({
 
 export default function QuizTakingPage() {
   const { quizId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlAttemptId = searchParams.get("attemptId");
   const navigate = useNavigate();
   const currentUser = useMemo(() => getStoredUser(), []);
   const [quiz, setQuiz] = useState(null);
@@ -201,26 +204,6 @@ export default function QuizTakingPage() {
       try {
         setLoading(true);
         setError("");
-        const draft = loadQuizDraft(quizId, currentUser.userId);
-        if (draft && isQuizDraftExpired(draft)) {
-          // Bài thi đã hết hạn khi mở lại: nộp ngay bài cũ với đáp án đã lưu thay vì tạo attempt mới
-          try {
-            const answerList = Object.entries(draft.answers || {}).map(([questionId, optionId]) => ({
-              questionId,
-              optionId,
-            }));
-            await submitAttempt({
-              quizId,
-              attemptId: draft.attemptId,
-              answers: answerList,
-            });
-          } catch {
-            // best-effort
-          }
-          clearQuizDraft(quizId, currentUser.userId);
-          navigate(`/app/quiz/result/${draft.attemptId}`, { replace: true });
-          return;
-        }
 
         const [quizData, questionsData] = await Promise.all([
           getQuizById(quizId),
@@ -235,19 +218,60 @@ export default function QuizTakingPage() {
         }
 
         const durationSeconds = getDurationSeconds(quizData);
-        // Giữ nguyên lượt làm và hạn nộp đã lưu để tải lại trang không tạo lượt mới
-        // và không cấp thêm thời gian.
-        const resumableDraft = getResumableQuizDraft(draft, quizId, durationSeconds);
-        const draftDeadlineAt = Number(resumableDraft?.deadlineAt);
-        const attemptData = resumableDraft
-          ? { attemptId: resumableDraft.attemptId }
-          : await startQuiz(quizId, currentUser.userId);
-        const deadlineAt = resumableDraft && Number.isFinite(draftDeadlineAt)
-          ? draftDeadlineAt
-          : Date.now() + durationSeconds * 1000;
         const loadedQuestions = Array.isArray(questionsData)
           ? questionsData
           : [];
+
+        let attemptData = null;
+        let resumableDraft = null;
+
+        if (urlAttemptId) {
+          const draft = loadQuizDraft(urlAttemptId, currentUser.userId);
+          if (draft && isQuizDraftExpired(draft)) {
+            // Bài thi đã hết hạn khi mở lại: nộp ngay bài cũ với đáp án đã lưu thay vì tạo attempt mới
+            try {
+              const answerList = Object.entries(draft.answers || {}).map(([questionId, optionId]) => ({
+                questionId,
+                optionId,
+              }));
+              await submitAttempt({
+                quizId,
+                attemptId: draft.attemptId,
+                answers: answerList,
+              });
+            } catch {
+              // best-effort
+            }
+            clearQuizDraft(urlAttemptId, currentUser.userId);
+            clearQuizDraftsByQuizId(quizId, currentUser.userId);
+            navigate(`/app/quiz/result/${draft.attemptId}`, { replace: true });
+            return;
+          }
+
+          resumableDraft = getResumableQuizDraft(
+            draft,
+            quizId,
+            durationSeconds,
+            Date.now(),
+            urlAttemptId,
+          );
+          if (resumableDraft) {
+            attemptData = { attemptId: urlAttemptId };
+          }
+        }
+
+        if (!attemptData) {
+          // Bắt đầu một lượt làm mới: dọn dẹp các draft cũ của quiz này (nếu có)
+          clearQuizDraftsByQuizId(quizId, currentUser.userId);
+          attemptData = await startQuiz(quizId, currentUser.userId);
+          setSearchParams({ attemptId: attemptData.attemptId }, { replace: true });
+        }
+
+        const draftDeadlineAt = Number(resumableDraft?.deadlineAt);
+        const deadlineAt = resumableDraft && Number.isFinite(draftDeadlineAt)
+          ? draftDeadlineAt
+          : Date.now() + durationSeconds * 1000;
+
         const draftPage = Number(resumableDraft?.currentPage ?? 0);
         const safeDraftPage = clampQuizPage(
           draftPage,
@@ -289,7 +313,7 @@ export default function QuizTakingPage() {
     }
 
     loadQuiz();
-  }, [currentUser?.userId, navigate, quizId]);
+  }, [currentUser?.userId, navigate, quizId, setSearchParams, urlAttemptId]);
 
   const totalPages = useMemo(
     () => getTotalQuizPages(questions.length, PAGE_SIZE),
@@ -355,8 +379,8 @@ export default function QuizTakingPage() {
   }, [activeQuestionId, visibleQuestions]);
 
   useEffect(() => {
-    if (!attempt || submittedRef.current || !currentUser?.userId) return;
-    saveQuizDraft(quizId, currentUser.userId, {
+    if (!attempt?.attemptId || submittedRef.current || !currentUser?.userId) return;
+    saveQuizDraft(attempt.attemptId, currentUser.userId, {
       answers,
       attemptId: attempt.attemptId,
       quizId,
@@ -366,7 +390,7 @@ export default function QuizTakingPage() {
       flaggedQuestionIds: Array.from(flaggedQuestionIds),
       updatedAt: new Date().toISOString(),
     });
-  }, [answers, attempt, currentPage, currentUser?.userId, flaggedQuestionIds, quiz?.name, quizId]);
+  }, [answers, attempt?.attemptId, currentPage, currentUser?.userId, flaggedQuestionIds, quiz?.name, quizId]);
 
   const shouldBlock = Boolean(attempt && !submittedRef.current && !submitting);
 
@@ -394,7 +418,7 @@ export default function QuizTakingPage() {
 
   const doSubmit = useCallback(
     async (currentAnswers) => {
-      if (!attempt || submittedRef.current) return false;
+      if (!attempt?.attemptId || submittedRef.current) return false;
       submittedRef.current = true;
       setSubmitting(true);
       setError("");
@@ -411,7 +435,8 @@ export default function QuizTakingPage() {
           attemptId: attempt.attemptId,
           answers: answerList,
         });
-        clearQuizDraft(quizId, currentUser?.userId);
+        clearQuizDraft(attempt.attemptId, currentUser?.userId);
+        clearQuizDraftsByQuizId(quizId, currentUser?.userId);
         navigate(`/app/quiz/result/${attempt.attemptId}`);
         return true;
       } catch (submitError) {
@@ -421,7 +446,7 @@ export default function QuizTakingPage() {
         return false;
       }
     },
-    [attempt, currentUser?.userId, navigate, quizId],
+    [attempt?.attemptId, currentUser?.userId, navigate, quizId],
   );
 
   useEffect(() => {

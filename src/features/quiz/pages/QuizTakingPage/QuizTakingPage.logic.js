@@ -41,8 +41,10 @@ export const getResumableQuizDraft = (
   quizId,
   durationSeconds,
   now = Date.now(),
+  targetAttemptId = null,
 ) => {
   if (!draft?.attemptId) return null;
+  if (targetAttemptId && String(draft.attemptId) !== String(targetAttemptId)) return null;
   if (draft.quizId && String(draft.quizId) !== String(quizId)) return null;
 
   const duration = Number(durationSeconds);

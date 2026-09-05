@@ -3,6 +3,7 @@ import { beforeEach, describe, it } from "node:test";
 import {
   clearAdaptiveDraft,
   clearQuizDraft,
+  clearQuizDraftsByQuizId,
   getAdaptiveDraftKey,
   getExpiredQuizDrafts,
   getQuizDraftKey,
@@ -46,12 +47,45 @@ describe("quiz draft storage", () => {
       deadlineAt: 1700000060000,
     };
 
-    saveQuizDraft("quiz-abc", "user-1", draft);
-    const loaded = loadQuizDraft("quiz-abc", "user-1");
+    saveQuizDraft("att-123", "user-1", draft);
+    const loaded = loadQuizDraft("att-123", "user-1");
     assert.deepEqual(loaded, draft);
 
-    clearQuizDraft("quiz-abc", "user-1");
-    assert.equal(loadQuizDraft("quiz-abc", "user-1"), null);
+    clearQuizDraft("att-123", "user-1");
+    assert.equal(loadQuizDraft("att-123", "user-1"), null);
+  });
+
+  it("isolates answers between different attempts so old answers do not leak into new attempt", () => {
+    const attempt1Draft = {
+      attemptId: "att-old",
+      quizId: "quiz-math",
+      answers: { q1: "optA", q2: "optB" },
+    };
+
+    saveQuizDraft("att-old", "user-1", attempt1Draft);
+
+    // New attempt starts with its own attemptId
+    assert.equal(loadQuizDraft("att-new", "user-1"), null);
+    assert.deepEqual(loadQuizDraft("att-old", "user-1"), attempt1Draft);
+  });
+
+  it("clears all drafts belonging to a quiz when clearQuizDraftsByQuizId is called", () => {
+    const draft1 = { attemptId: "att-1", quizId: "quiz-100", answers: { q1: "a" } };
+    const draft2 = { attemptId: "att-2", quizId: "quiz-100", answers: { q1: "b" } };
+    const draftOther = { attemptId: "att-3", quizId: "quiz-200", answers: { q1: "c" } };
+
+    saveQuizDraft("att-1", "user-1", draft1);
+    saveQuizDraft("att-2", "user-1", draft2);
+    saveQuizDraft("att-3", "user-1", draftOther);
+    // Legacy key format
+    globalThis.localStorage.setItem("quizcit:quiz-draft:user-1:quiz-100", JSON.stringify(draft1));
+
+    clearQuizDraftsByQuizId("quiz-100", "user-1");
+
+    assert.equal(loadQuizDraft("att-1", "user-1"), null);
+    assert.equal(loadQuizDraft("att-2", "user-1"), null);
+    assert.equal(globalThis.localStorage.getItem("quizcit:quiz-draft:user-1:quiz-100"), null);
+    assert.deepEqual(loadQuizDraft("att-3", "user-1"), draftOther);
   });
 
   it("falls back to sessionStorage if draft is in session", () => {
