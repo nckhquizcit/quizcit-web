@@ -26,6 +26,7 @@ import {
   getMyEnrollments,
   isAlreadyEnrolled,
 } from "../../../../services/enrollmentService";
+import { getUserSkillAbilities } from "../../../../services/progressService";
 import {
   Badge,
   Button,
@@ -41,17 +42,17 @@ import {
 import ChatBox from "../../../../components/ChatBox/ChatBox";
 import { getErrorMessage, getStoredUser, isAccessDenied } from "../../../../services/apiClient";
 import { isUserPreviewActive } from "../../../../services/userPreviewMode";
-import { formatScaledThetaValue, resolveImageUrl } from "../../../../services/mappers";
+import { resolveImageUrl } from "../../../../services/mappers";
 import { getTheoryDisplayTitle } from "../../../content/utils/theoryDisplay.js";
 import { isValidAdaptiveQuestionCount } from "../../../quiz/pages/AdaptiveQuizPage/AdaptiveQuizPage.logic.js";
+import {
+  buildAbilityMap,
+  formatCurrentTheta,
+  formatRequiredTheta,
+  isSkillRequirementMet,
+  resolveSkillCurrentTheta,
+} from "./SubjectDetailPage.logic.js";
 import "./SubjectDetailPage.css";
-
-// BE so sánh θ raw; 0 = ngưỡng mặc định (scale hiển thị 2.00). Chỉ ẩn khi không phải số.
-const formatRequiredTheta = (value) => {
-  const n = Number(value);
-  if (!Number.isFinite(n)) return null;
-  return formatScaledThetaValue(n);
-};
 
 export default function SubjectDetailPage() {
   const { subjectId } = useParams();
@@ -77,9 +78,12 @@ export default function SubjectDetailPage() {
   const [adaptiveEligibility, setAdaptiveEligibility] = useState(null);
   const [checkingEligibility, setCheckingEligibility] = useState(false);
   const [warningQuiz, setWarningQuiz] = useState(null);
+  const [userAbilities, setUserAbilities] = useState([]);
   const adaptiveCancelledRef = useRef(false);
   const adaptiveInputRef = useRef(null);
   const loadIdRef = useRef(0);
+
+  const userAbilityMap = useMemo(() => buildAbilityMap(userAbilities), [userAbilities]);
 
   // Escape/backdrop/focus trap do Modal dùng chung đảm nhiệm.
   const closeAdaptiveDialog = useCallback(() => {
@@ -167,20 +171,25 @@ export default function SubjectDetailPage() {
       setChapters([]);
       setTheoriesByChapter({});
       setQuizzesByChapter({});
+      setUserAbilities([]);
       setActiveChapterId(null);
       setContentBlocked(true);
       return;
     }
     setContentBlocked(false);
 
-    const results = await Promise.allSettled([
+    const storedUser = getStoredUser();
+    const currentUserId = storedUser?.userId || storedUser?.id || null;
+
+    const [chapterRes, theoriesRes, quizzesRes, abilitiesRes] = await Promise.allSettled([
       getChaptersBySubject(subjectId),
       getTheoriesBySubject(subjectId),
       getQuizzesBySubject(subjectId),
+      currentUserId ? getUserSkillAbilities(currentUserId) : Promise.resolve([]),
     ]);
     if (loadIdRef.current !== loadId) return;
 
-    const failures = results
+    const failures = [chapterRes, theoriesRes, quizzesRes]
       .filter((result) => result.status === "rejected")
       .map((result) => result.reason);
 
@@ -188,6 +197,7 @@ export default function SubjectDetailPage() {
       setChapters([]);
       setTheoriesByChapter({});
       setQuizzesByChapter({});
+      setUserAbilities([]);
       setActiveChapterId(null);
       if (failures.some(isAccessDenied)) {
         setContentBlocked(true);
@@ -197,7 +207,14 @@ export default function SubjectDetailPage() {
       return;
     }
 
-    const [chapterData = [], theories = [], quizzes = []] = results.map((result) => result.value);
+    const chapterData = chapterRes.value || [];
+    const theories = theoriesRes.value || [];
+    const quizzes = quizzesRes.value || [];
+    const abilities =
+      abilitiesRes.status === "fulfilled" && Array.isArray(abilitiesRes.value)
+        ? abilitiesRes.value
+        : [];
+
     const chapterIds = chapterData.map((chapter) => chapter.chapterId || chapter.chapter_id);
     const theoryEntries = chapterIds.map((id) => [
       id,
@@ -211,6 +228,7 @@ export default function SubjectDetailPage() {
     setChapters(chapterData);
     setTheoriesByChapter(Object.fromEntries(theoryEntries));
     setQuizzesByChapter(Object.fromEntries(quizEntries));
+    setUserAbilities(abilities);
     const targetChapterId = location.state?.chapterId || location.state?.activeChapterId;
     setActiveChapterId((current) => {
       if (current && chapterIds.includes(current)) return current;
@@ -537,15 +555,33 @@ export default function SubjectDetailPage() {
                   {activeChapterSkills.length > 0 && (
                     <div className="chapter-overview-card__skills">
                       <span className="chapter-overview-card__skills-label">
-                        Kỹ năng liên quan
+                        Yêu cầu kỹ năng
                       </span>
                       {activeChapterSkills.map((skill) => {
+                        const currentThetaRaw = resolveSkillCurrentTheta(skill, userAbilityMap);
                         const threshold = formatRequiredTheta(skill.requiredTheta);
+                        const current = formatCurrentTheta(currentThetaRaw);
+                        const isMet = isSkillRequirementMet(currentThetaRaw, skill.requiredTheta);
                         return (
-                          <Badge key={skill.skillId} size="sm" className="chapter-skill-badge">
-                            {skill.name}
+                          <Badge
+                            key={skill.skillId || skill.id || skill.name}
+                            size="sm"
+                            variant={isMet ? "success" : "neutral"}
+                            className={`chapter-skill-badge ${isMet ? "chapter-skill-badge--met" : "chapter-skill-badge--unmet"}`}
+                            title={
+                              threshold
+                                ? `Năng lực hiện có: ${current} / Yêu cầu: ${threshold}`
+                                : `Kỹ năng: ${skill.name}`
+                            }
+                          >
+                            <span>{skill.name}</span>
                             {threshold ? (
-                              <span className="chapter-skill-badge__theta">≥ {threshold}</span>
+                              <span
+                                className="chapter-skill-badge__theta"
+                                aria-label={`Năng lực hiện có ${current}, yêu cầu ${threshold}`}
+                              >
+                                {current}/{threshold}
+                              </span>
                             ) : null}
                           </Badge>
                         );

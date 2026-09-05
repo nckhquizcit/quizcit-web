@@ -320,7 +320,9 @@
 
 .chapter-skill-badge__theta {
   font-weight: 700;
-  opacity: 0.85;
+  opacity: 0.9;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .content-block__label {

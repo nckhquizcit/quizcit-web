@@ -115,5 +115,24 @@ describe("chapter mapping and unlock status", () => {
     const chapter = mapChapter({ chapterId: "c4", name: "Chương 4" });
     assert.equal(chapter.unlocked, true);
   });
+
+  it("maps skills with requiredTheta and currentTheta", () => {
+    const chapter = mapChapter({
+      chapterId: "c5",
+      name: "Chương 5",
+      skills: [
+        { skillId: "s1", name: "Kỹ năng 1", requiredTheta: 0.5, currentTheta: 1.2 },
+        { skillId: "s2", name: "Kỹ năng 2", required_theta: -0.5, current_theta: null },
+        { skillId: "s3", name: "Kỹ năng 3" },
+      ],
+    });
+    assert.equal(chapter.skills.length, 3);
+    assert.equal(chapter.skills[0].requiredTheta, 0.5);
+    assert.equal(chapter.skills[0].currentTheta, 1.2);
+    assert.equal(chapter.skills[1].requiredTheta, -0.5);
+    assert.equal(chapter.skills[1].currentTheta, null);
+    assert.equal(chapter.skills[2].requiredTheta, 0);
+    assert.equal(chapter.skills[2].currentTheta, null);
+  });
 });
 
