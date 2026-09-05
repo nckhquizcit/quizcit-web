@@ -1,6 +1,14 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useBlocker, useNavigate, useParams } from "react-router-dom";
-import { AlertCircle, Flag, ListChecks, X } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Flag,
+  ListChecks,
+  X,
+} from "lucide-react";
 import {
   clearQuizDraft,
   getQuestionsByQuiz,
@@ -26,6 +34,7 @@ import {
   clampQuizPage,
   getPageNavigationTarget,
   getQuestionNavigationTarget,
+  getQuizPaginationPages,
   getResumableQuizDraft,
   getTotalQuizPages,
   isQuizDraftExpired,
@@ -286,6 +295,14 @@ export default function QuizTakingPage() {
     () => getTotalQuizPages(questions.length, PAGE_SIZE),
     [questions.length],
   );
+
+  const paginationPages = useMemo(
+    () => getQuizPaginationPages(currentPage, totalPages),
+    [currentPage, totalPages],
+  );
+
+  const pageStartIndex = currentPage * PAGE_SIZE;
+  const pageEndIndex = Math.min(pageStartIndex + PAGE_SIZE, questions.length);
 
   const visibleQuestions = useMemo(() => {
     const start = currentPage * PAGE_SIZE;
@@ -679,14 +696,58 @@ export default function QuizTakingPage() {
 
       <div className="quiz-layout">
         <div className="quiz-main">
-          <div className="quiz-info-banner">
-            <span className="quiz-info-banner__icon" aria-hidden="true">
-              ⓘ
-            </span>
-            <span className="quiz-info-banner__hint">
-              Phím tắt: 1-4 chọn đáp án, ←/→ chuyển trang.
-            </span>
-          </div>
+          {totalPages > 1 ? (
+            <div
+              className="quiz-page-bar--top"
+              role="region"
+              aria-label="Điều hướng trang nhanh"
+            >
+              <div className="quiz-page-bar__info">
+                <span className="quiz-page-bar__badge">
+                  Trang {currentPage + 1} / {totalPages}
+                </span>
+                <span className="quiz-page-bar__range">
+                  Câu {pageStartIndex + 1}–{pageEndIndex} / {questions.length} câu
+                </span>
+                <span className="quiz-page-bar__hint">
+                  Phím tắt: 1-4 chọn đáp án, ←/→ chuyển trang
+                </span>
+              </div>
+              <div className="quiz-page-bar__actions">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  iconLeft={<ChevronLeft size={16} />}
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 0}
+                  title="Trang trước (Phím tắt: ←)"
+                  aria-label="Về trang trước"
+                >
+                  Trang trước
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  iconRight={<ChevronRight size={16} />}
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage >= totalPages - 1}
+                  title="Trang sau (Phím tắt: →)"
+                  aria-label="Sang trang sau"
+                >
+                  Trang sau
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="quiz-info-banner">
+              <span className="quiz-info-banner__icon" aria-hidden="true">
+                ⓘ
+              </span>
+              <span className="quiz-info-banner__hint">
+                Phím tắt: 1-4 chọn đáp án
+              </span>
+            </div>
+          )}
 
           {questions.length === 0 && (
             <EmptyState
@@ -722,24 +783,134 @@ export default function QuizTakingPage() {
             })}
           </div>
 
-          {questions.length > 0 && (
-            <div className="quiz-pagination">
-              <Button
-                variant="ghost"
-                onClick={() => goToPage(currentPage - 1)}
-                disabled={currentPage === 0}
-              >
-                ← Trang trước
-              </Button>
-              <span className="page-indicator">
-                Trang {currentPage + 1} / {totalPages}
+          {questions.length > 0 && totalPages > 1 && (
+            <nav className="quiz-pagination" aria-label="Điều hướng trang câu hỏi">
+              <div className="quiz-pagination__actions-desktop">
+                <Button
+                  variant="secondary"
+                  size="md"
+                  className="quiz-pagination__btn quiz-pagination__btn--prev"
+                  iconLeft={<ChevronLeft size={18} />}
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 0}
+                  title="Trang trước (Phím tắt: ←)"
+                >
+                  Trang trước
+                </Button>
+              </div>
+
+              <div className="quiz-pagination__center">
+                <div className="quiz-pagination__pages" aria-label="Danh sách trang">
+                  {paginationPages.map((item, idx) =>
+                    typeof item === "number" ? (
+                      <button
+                        key={item}
+                        type="button"
+                        className={`quiz-page-pill ${
+                          item === currentPage ? "is-active" : ""
+                        }`}
+                        onClick={() => goToPage(item)}
+                        aria-current={item === currentPage ? "page" : undefined}
+                        aria-label={`Chuyển đến trang ${item + 1}`}
+                      >
+                        {item + 1}
+                      </button>
+                    ) : (
+                      <span
+                        key={`ellipsis-${idx}`}
+                        className="quiz-page-ellipsis"
+                        aria-hidden="true"
+                      >
+                        …
+                      </span>
+                    ),
+                  )}
+                </div>
+                <span className="quiz-pagination__indicator">
+                  Trang <strong>{currentPage + 1}</strong> / {totalPages}
+                </span>
+              </div>
+
+              <div className="quiz-pagination__actions-desktop">
+                {currentPage < totalPages - 1 ? (
+                  <Button
+                    variant="primary"
+                    size="md"
+                    className="quiz-pagination__btn quiz-pagination__btn--next"
+                    iconRight={<ChevronRight size={18} />}
+                    onClick={() => goToPage(currentPage + 1)}
+                    title="Trang sau (Phím tắt: →)"
+                  >
+                    Trang sau
+                  </Button>
+                ) : (
+                  <Button
+                    variant="primary"
+                    size="md"
+                    className="quiz-pagination__btn quiz-pagination__btn--submit"
+                    iconRight={<CheckCircle2 size={18} />}
+                    onClick={handleSubmit}
+                    disabled={questions.length === 0 || submitting}
+                  >
+                    {submitting ? "Đang nộp..." : "Nộp bài"}
+                  </Button>
+                )}
+              </div>
+
+              {/* Hàng nút bấm lớn trên màn hình mobile / cảm ứng */}
+              <div className="quiz-pagination__mobile-actions">
+                <Button
+                  variant="secondary"
+                  size="md"
+                  className="quiz-pagination__btn quiz-pagination__btn--prev"
+                  iconLeft={<ChevronLeft size={18} />}
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 0}
+                  title="Trang trước"
+                >
+                  Trang trước
+                </Button>
+                {currentPage < totalPages - 1 ? (
+                  <Button
+                    variant="primary"
+                    size="md"
+                    className="quiz-pagination__btn quiz-pagination__btn--next"
+                    iconRight={<ChevronRight size={18} />}
+                    onClick={() => goToPage(currentPage + 1)}
+                    title="Trang sau"
+                  >
+                    Trang sau
+                  </Button>
+                ) : (
+                  <Button
+                    variant="primary"
+                    size="md"
+                    className="quiz-pagination__btn quiz-pagination__btn--submit"
+                    iconRight={<CheckCircle2 size={18} />}
+                    onClick={handleSubmit}
+                    disabled={questions.length === 0 || submitting}
+                  >
+                    {submitting ? "Đang nộp..." : "Nộp bài"}
+                  </Button>
+                )}
+              </div>
+            </nav>
+          )}
+
+          {questions.length > 0 && totalPages === 1 && (
+            <div className="quiz-pagination quiz-pagination--single-page">
+              <span className="quiz-pagination__single-page-note">
+                Đã hiển thị toàn bộ {questions.length} câu hỏi
               </span>
               <Button
-                variant="ghost"
-                onClick={() => goToPage(currentPage + 1)}
-                disabled={currentPage >= totalPages - 1}
+                variant="primary"
+                size="md"
+                className="quiz-pagination__btn quiz-pagination__btn--submit"
+                iconRight={<CheckCircle2 size={18} />}
+                onClick={handleSubmit}
+                disabled={submitting}
               >
-                Trang sau →
+                {submitting ? "Đang nộp..." : "Nộp bài"}
               </Button>
             </div>
           )}

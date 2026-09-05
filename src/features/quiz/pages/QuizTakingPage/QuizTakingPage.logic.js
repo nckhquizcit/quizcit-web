@@ -103,3 +103,40 @@ export const getQuestionNavigationTarget = (
     questionId: list[safeIndex]?.questionId ?? null,
   };
 };
+
+export const getQuizPaginationPages = (currentPage, totalPages) => {
+  const safeTotal =
+    Number.isFinite(Number(totalPages)) && Number(totalPages) > 0
+      ? Math.floor(Number(totalPages))
+      : 1;
+  const safeCurrent = clampQuizPage(currentPage, safeTotal);
+
+  if (safeTotal <= 7) {
+    return Array.from({ length: safeTotal }, (_, index) => index);
+  }
+
+  if (safeCurrent <= 2) {
+    return [0, 1, 2, 3, "...", safeTotal - 1];
+  }
+
+  if (safeCurrent >= safeTotal - 3) {
+    return [
+      0,
+      "...",
+      safeTotal - 4,
+      safeTotal - 3,
+      safeTotal - 2,
+      safeTotal - 1,
+    ];
+  }
+
+  return [
+    0,
+    "...",
+    safeCurrent - 1,
+    safeCurrent,
+    safeCurrent + 1,
+    "...",
+    safeTotal - 1,
+  ];
+};

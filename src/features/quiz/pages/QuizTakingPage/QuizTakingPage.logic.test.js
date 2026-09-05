@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   getPageNavigationTarget,
   getQuestionNavigationTarget,
+  getQuizPaginationPages,
   getResumableQuizDraft,
   getTotalQuizPages,
   isQuizDraftExpired,
@@ -40,6 +41,32 @@ describe("QuizTakingPage navigation logic", () => {
       page: 0,
       questionId: null,
     });
+  });
+});
+
+describe("QuizTakingPage pagination page generation", () => {
+  it("returns [0] when there is only 1 page or empty", () => {
+    assert.deepEqual(getQuizPaginationPages(0, 1), [0]);
+    assert.deepEqual(getQuizPaginationPages(0, 0), [0]);
+  });
+
+  it("returns sequential pages when totalPages <= 7", () => {
+    assert.deepEqual(getQuizPaginationPages(0, 4), [0, 1, 2, 3]);
+    assert.deepEqual(getQuizPaginationPages(2, 7), [0, 1, 2, 3, 4, 5, 6]);
+  });
+
+  it("adds trailing ellipsis when near the start of large page set", () => {
+    assert.deepEqual(getQuizPaginationPages(0, 10), [0, 1, 2, 3, "...", 9]);
+    assert.deepEqual(getQuizPaginationPages(2, 10), [0, 1, 2, 3, "...", 9]);
+  });
+
+  it("adds leading and trailing ellipsis when in the middle", () => {
+    assert.deepEqual(getQuizPaginationPages(5, 10), [0, "...", 4, 5, 6, "...", 9]);
+  });
+
+  it("adds leading ellipsis when near the end", () => {
+    assert.deepEqual(getQuizPaginationPages(9, 10), [0, "...", 6, 7, 8, 9]);
+    assert.deepEqual(getQuizPaginationPages(7, 10), [0, "...", 6, 7, 8, 9]);
   });
 });
 
