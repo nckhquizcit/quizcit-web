@@ -252,7 +252,6 @@ export default function AdminSubjects() {
             ) : null}
 
             <div className="adm2-subject-card-head">
-              <div className="adm2-icon-square" title={subject.courseCode}>{subject.courseCode}</div>
               <div className="adm2-subject-card-headtext">
                 <div className="subject-title">{subject.name}</div>
                 <div className="subject-code">{subject.courseCode}</div>
