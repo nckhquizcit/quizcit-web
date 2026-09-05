@@ -356,18 +356,20 @@ export default function QuizResultPage() {
                           ? "Câu hỏi chưa có nội dung"
                           : toPreviewText(question.content, question.contentFormat, 140)}
                       </p>
-                      <p className="result-question-row__answer">
-                        {answered ? (
-                          <>
-                            Bạn chọn <strong>{selectedText}</strong> · Đáp án đúng{" "}
-                            <strong>{correctText}</strong>
-                          </>
-                        ) : (
-                          <>
-                            Chưa trả lời · Đáp án đúng <strong>{correctText}</strong>
-                          </>
-                        )}
-                      </p>
+                      {!expanded && (
+                        <p className="result-question-row__answer">
+                          {answered ? (
+                            <>
+                              Bạn chọn <strong>{selectedText}</strong> · Đáp án đúng{" "}
+                              <strong>{correctText}</strong>
+                            </>
+                          ) : (
+                            <>
+                              Chưa trả lời · Đáp án đúng <strong>{correctText}</strong>
+                            </>
+                          )}
+                        </p>
+                      )}
                     </div>
                     {difficultyBadge && (
                       <Badge variant={difficultyBadge.variant} size="sm">
