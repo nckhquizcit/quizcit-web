@@ -138,6 +138,7 @@ export default function AdminSkills() {
   return (
     <>
       <AdminPageHeader
+        breadcrumb={["Tổng quan", "Kỹ năng"]}
         title="Quản lý kỹ năng"
         subtitle="Kỹ năng dùng để gắn câu hỏi và cập nhật theta."
         action={

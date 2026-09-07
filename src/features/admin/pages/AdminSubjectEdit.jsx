@@ -47,6 +47,7 @@ export default function AdminSubjectEdit() {
 
   return <>
     <AdminPageHeader
+      breadcrumb={["Tổng quan", "Môn học", form?.name || "Chỉnh sửa môn học"]}
       title="Chỉnh sửa môn học"
       subtitle="Cập nhật thông tin hiển thị và thứ tự."
       backHref={returnPath}

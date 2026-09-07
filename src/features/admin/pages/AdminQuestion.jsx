@@ -564,6 +564,32 @@ export default function AdminQuestions() {
     }
   };
 
+  const currentSubject = useMemo(
+    () => subjects.find((s) => String(s.subjectId) === String(subjectId)),
+    [subjects, subjectId],
+  );
+  const currentChapter = useMemo(
+    () => allChapters.find((c) => String(c.chapterId) === String(chapterId)),
+    [allChapters, chapterId],
+  );
+
+  const breadcrumb = useMemo(() => {
+    if (subjectId && chapterId) {
+      return [
+        "Tổng quan",
+        "Môn học",
+        {
+          label: currentSubject?.name || "Chương",
+          href: `/admin/subjects/${subjectId}/chapters`,
+        },
+        currentChapter
+          ? `Chương ${currentChapter.displayOrder ?? ""}: ${currentChapter.name}`
+          : "Câu hỏi",
+      ];
+    }
+    return ["Tổng quan", "Ngân hàng câu hỏi"];
+  }, [subjectId, chapterId, currentSubject, currentChapter]);
+
   const createQuestionPath =
     subjectId && chapterId
       ? `/admin/subjects/${subjectId}/chapters/${chapterId}/questions/new`
@@ -576,9 +602,13 @@ export default function AdminQuestions() {
   return (
     <>
       <AdminPageHeader
-        breadcrumb={["Tổng quan", "Ngân hàng câu hỏi"]}
+        breadcrumb={breadcrumb}
         title="Ngân hàng câu hỏi"
-        subtitle="Quản lý tập trung tất cả câu hỏi trong hệ thống"
+        subtitle={
+          subjectId && chapterId
+            ? `Quản lý câu hỏi thuộc ${currentChapter?.name || "chương"}`
+            : "Quản lý tập trung tất cả câu hỏi trong hệ thống"
+        }
         action={
           <div className="question-bank-actions">
             <button

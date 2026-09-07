@@ -87,13 +87,39 @@ export default function AdminQuestionImport() {
     return { successCount, failureCount: errors.length, errors };
   };
 
+  const breadcrumb = useMemo(() => {
+    if (subjectId && chapterId) {
+      return [
+        "Tổng quan",
+        "Môn học",
+        {
+          label: routeSubject?.name || "Chương",
+          href: `/admin/subjects/${subjectId}/chapters`,
+        },
+        {
+          label: routeChapter
+            ? `Chương ${routeChapter.displayOrder ?? ""}: ${routeChapter.name}`
+            : "Câu hỏi",
+          href: returnPath,
+        },
+        "Import câu hỏi",
+      ];
+    }
+    return [
+      "Tổng quan",
+      { label: "Ngân hàng câu hỏi", href: "/admin/questions" },
+      "Import câu hỏi",
+    ];
+  }, [subjectId, chapterId, routeSubject, routeChapter, returnPath]);
+
   return (
     <>
       <AdminPageHeader
+        breadcrumb={breadcrumb}
         title="Import câu hỏi"
         subtitle="Đọc dữ liệu, gán môn/chương và kiểm tra lỗi trước khi lưu."
         backHref={returnPath}
-        backLabel="Ngân hàng câu hỏi"
+        backLabel={subjectId && chapterId ? "Danh sách câu hỏi" : "Ngân hàng câu hỏi"}
       />
 
       {error ? (

@@ -46,6 +46,12 @@ export default function AdminChapterEdit() {
 
   return <>
     <AdminPageHeader
+      breadcrumb={[
+        "Tổng quan",
+        "Môn học",
+        { label: subject?.name || "Chương", href: returnPath },
+        form?.name ? `Chương ${form?.displayOrder ?? ""}: ${form.name}` : "Chỉnh sửa chương",
+      ]}
       title={`Chỉnh sửa chương ${form?.displayOrder ?? ""}`}
       subtitle={form ? `${subject?.name || ""} · ${form.name || ""}` : "Đang tải thông tin..."}
       backHref={returnPath}

@@ -148,6 +148,12 @@ export default function AdminQuizQuestions() {
 
   return <>
     <AdminPageHeader
+      breadcrumb={[
+        "Tổng quan",
+        "Đề thi",
+        { label: quiz?.name || "Chỉnh sửa đề", href: returnPath },
+        "Câu hỏi trong đề",
+      ]}
       title="Câu hỏi trong đề"
       subtitle={quiz ? `${quiz.name} · ${quizQuestions.length} câu` : "Đang tải câu hỏi..."}
       backHref={returnPath}

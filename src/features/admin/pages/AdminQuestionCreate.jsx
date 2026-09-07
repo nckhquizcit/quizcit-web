@@ -49,13 +49,31 @@ export default function AdminQuestionCreate() {
     navigate(returnPath);
   };
 
+  const breadcrumb = useMemo(() => {
+    if (subjectId && chapterId) {
+      return [
+        "Tổng quan",
+        "Môn học",
+        { label: "Chương", href: `/admin/subjects/${subjectId}/chapters` },
+        { label: "Câu hỏi", href: returnPath },
+        "Tạo câu hỏi mới",
+      ];
+    }
+    return [
+      "Tổng quan",
+      { label: "Ngân hàng câu hỏi", href: "/admin/questions" },
+      "Tạo câu hỏi mới",
+    ];
+  }, [subjectId, chapterId, returnPath]);
+
   return (
     <>
       <AdminPageHeader
+        breadcrumb={breadcrumb}
         title="Tạo câu hỏi mới"
         subtitle="Soạn nội dung, đáp án, kỹ năng và độ khó IRT."
         backHref={returnPath}
-        backLabel="Ngân hàng câu hỏi"
+        backLabel={subjectId && chapterId ? "Danh sách câu hỏi" : "Ngân hàng câu hỏi"}
         action={<span className="adm2-status-chip">Đang soạn</span>}
       />
 

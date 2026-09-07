@@ -46,6 +46,7 @@ export default function AdminQuizCreate() {
   return (
     <>
       <AdminPageHeader
+        breadcrumb={["Tổng quan", "Đề thi", "Tạo đề thi"]}
         title="Tạo đề thi"
         backHref={returnPath}
         backLabel="Danh sách đề"

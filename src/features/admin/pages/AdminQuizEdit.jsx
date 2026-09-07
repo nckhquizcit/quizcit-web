@@ -49,6 +49,7 @@ export default function AdminQuizEdit() {
 
   return <>
     <AdminPageHeader
+      breadcrumb={["Tổng quan", "Đề thi", data?.quiz?.name || "Chỉnh sửa đề thi"]}
       title="Chỉnh sửa đề thi"
       subtitle={data?.quiz?.name || "Đang tải đề thi..."}
       backHref={returnPath}

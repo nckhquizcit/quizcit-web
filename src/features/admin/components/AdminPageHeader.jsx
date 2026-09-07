@@ -1,5 +1,6 @@
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
+import { resolveAdminBreadcrumbs } from "../utils/adminBreadcrumbs";
 
 export default function AdminPageHeader({
   breadcrumb = [],
@@ -11,7 +12,7 @@ export default function AdminPageHeader({
   action,
   icon,
 }) {
-  const crumbs = Array.isArray(breadcrumb) ? breadcrumb.filter(Boolean) : [];
+  const crumbs = resolveAdminBreadcrumbs(breadcrumb);
 
   return (
     <header className="admin-header admin-page-header">
@@ -19,13 +20,15 @@ export default function AdminPageHeader({
         <nav className="admin-breadcrumb" aria-label="Điều hướng">
           <ol>
             {crumbs.map((item, index) => {
-              const isLast = index === crumbs.length - 1;
-              const label = typeof item === "string" ? item : item.label;
-              const href = typeof item === "string" ? "" : item.href;
+              const { label, href, isCurrent } = item;
 
               return (
                 <li key={`${label}-${index}`}>
-                  {href && !isLast ? <Link to={href}>{label}</Link> : <span>{label}</span>}
+                  {href && !isCurrent ? (
+                    <Link to={href}>{label}</Link>
+                  ) : (
+                    <span aria-current={isCurrent ? "page" : undefined}>{label}</span>
+                  )}
                 </li>
               );
             })}

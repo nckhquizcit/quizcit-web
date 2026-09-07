@@ -3873,11 +3873,14 @@
 .admin-breadcrumb ol {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   list-style: none;
   color: var(--admin-subtle);
   font-size: 13px;
   font-weight: 650;
+  margin: 0;
+  padding: 0;
 }
 
 .admin-breadcrumb li {
@@ -3894,10 +3897,23 @@
 .admin-breadcrumb a {
   color: var(--admin-muted);
   text-decoration: none;
+  transition: color 0.15s ease;
 }
 
 .admin-breadcrumb a:hover {
   color: var(--admin-primary-hover);
+  text-decoration: underline;
+}
+
+.admin-breadcrumb a:focus-visible {
+  outline: 2px solid var(--admin-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.admin-breadcrumb [aria-current="page"] {
+  color: var(--admin-text);
+  font-weight: 600;
 }
 
 .header-main,
