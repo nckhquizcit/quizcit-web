@@ -1,10 +1,9 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
-import { Check, ChevronDown, ChevronRight, FileText, GripVertical, ListOrdered, Plus, Pencil, RefreshCw, Trash2, X } from "lucide-react";
+import { Brain, Check, ChevronDown, ChevronRight, FileText, GripVertical, ListOrdered, Plus, Pencil, Trash2, X } from "lucide-react";
 import AddChapterModal from "../components/modals/AddChapterModal";
+import { formatScaledThetaValue } from "../../../services/mappers";
 import ConfirmDeleteModal from "../components/modals/ConfirmDeleteModal";
-import AddTheoryModal from "../components/modals/AddTheoryModal";
-import EditTheoryModal from "../components/modals/EditTheoryModal";
 import TheoryContent from "../../content/components/TheoryContent";
 import AdminPageHeader from "../components/AdminPageHeader";
 import AdminPageState from "../components/AdminPageState";
@@ -15,17 +14,13 @@ import {
   getSubjectById,
   reorderChapters,
   deleteChapter,
+  updateChapter,
   getTheoriesByChapter,
-  createTheory,
-  updateTheory,
-  deleteTheory,
-  reindexTheoriesBySubject,
 } from "../../../services/contentService";
 import { getAllQuestions } from "../../../services/quizService";
 import { getErrorMessage } from "../../../services/apiClient";
 import { useToast } from "../../../components/ui/Toast/Toast";
 import { reorderById } from "../utils/displayOrder";
-import { toPreviewText } from "../../../components/richtext/richTextUtils";
 
 const getQuestionChapterId = (question) =>
   question?.chapterId ?? question?.chapter?.chapterId ?? question?.chapter?.id;
@@ -53,9 +48,7 @@ export default function AdminChapters() {
   const [theoriesByChapter, setTheoriesByChapter] = useState({});
   const [theoryLoadingByChapter, setTheoryLoadingByChapter] = useState({});
   const [theoryErrorByChapter, setTheoryErrorByChapter] = useState({});
-  const [openAddTheory, setOpenAddTheory] = useState(false);
-  const [editingTheory, setEditingTheory] = useState(null);
-  const [deletingTheory, setDeletingTheory] = useState(null);
+
   const [expandedTheories, setExpandedTheories] = useState({});
 
   useEffect(() => {
@@ -94,6 +87,36 @@ export default function AdminChapters() {
       alive = false;
     };
   }, [subjectId]);
+
+
+  const handleRemoveSkillFromChapter = async (chapter, skillToRemove) => {
+    const nextSkills = (chapter.skills || []).filter(
+      (s) => s.skillId !== skillToRemove.skillId,
+    );
+    try {
+      await updateChapter(chapter.chapterId, {
+        name: chapter.name,
+        displayOrder: Number(chapter.displayOrder),
+        skills: nextSkills.map((s) => ({
+          skillId: s.skillId,
+          requiredTheta: Number(s.requiredTheta ?? 0),
+        })),
+      });
+      toast.success(`Đã gỡ kỹ năng "${skillToRemove.name}" khỏi ${chapter.name}.`);
+      setSubjectChapters((current) =>
+        current.map((c) =>
+          c.chapterId === chapter.chapterId ? { ...c, skills: nextSkills } : c,
+        ),
+      );
+    } catch (err) {
+      toast.error(
+        getErrorMessage(
+          err,
+          "Không thể gỡ kỹ năng khỏi chương. Có thể câu hỏi trong chương đang sử dụng kỹ năng này.",
+        ),
+      );
+    }
+  };
 
   const loadTheories = async (chapterId) => {
     setTheoryLoadingByChapter((prev) => ({ ...prev, [chapterId]: true }));
@@ -180,39 +203,7 @@ export default function AdminChapters() {
     }
   };
 
-  const handleAddTheory = async (payload) => {
-    if (!expandedChapter) return;
 
-    await runAction("create-theory", async () => {
-      await createTheory(expandedChapter, payload);
-      await loadTheories(expandedChapter);
-      setOpenAddTheory(false);
-    });
-  };
-
-  const handleUpdateTheory = async (payload) => {
-    if (!editingTheory) return;
-
-    await runAction("update-theory", async () => {
-      await updateTheory(editingTheory.theoryId, payload);
-      await loadTheories(expandedChapter ?? editingTheory.chapterId);
-      setEditingTheory(null);
-    });
-  };
-
-  const handleDeleteTheory = async () => {
-    if (!deletingTheory) return;
-
-    // Lỗi xóa hiển thị trong ConfirmDeleteModal, không set actionError trang
-    setPendingAction("delete-theory");
-    try {
-      await deleteTheory(deletingTheory.theoryId);
-      await loadTheories(expandedChapter ?? deletingTheory.chapterId);
-      setDeletingTheory(null);
-    } finally {
-      setPendingAction("");
-    }
-  };
 
   const toggleTheory = (theoryId) => {
     setExpandedTheories((current) => ({
@@ -240,20 +231,8 @@ export default function AdminChapters() {
     }
   };
 
-  const handleReindex = async () => {
-    if (pendingAction) return;
-    try {
-      const chunkCount = await runAction("reindex-theories", () =>
-        reindexTheoriesBySubject(subjectId),
-      );
-      toast.success(`Đã re-index ${chunkCount ?? 0} đoạn lý thuyết.`);
-    } catch {
-      // Lỗi đã hiển thị qua actionError ở đầu trang.
-    }
-  };
 
   const isMutating = Boolean(pendingAction);
-  const expandedChapterData = subjectChapters.find((c) => c.chapterId === expandedChapter);
   const pageError = loadError || (!loading && !subject ? "Không tìm thấy môn học." : "");
 
   return (
@@ -268,14 +247,6 @@ export default function AdminChapters() {
         }
         onBack={() => navigate("/admin/subjects")}
         action={<div className="display-order-actions">
-          <button
-            className="cancel-btn"
-            onClick={handleReindex}
-            disabled={isMutating || isOrdering}
-            title="Cập nhật lại chỉ mục lý thuyết cho chatbot"
-          >
-            <RefreshCw size={17} /> Re-index lý thuyết
-          </button>
           {isOrdering ? <>
             <button className="cancel-btn" onClick={cancelOrdering} disabled={isMutating}><X size={17} /> Hủy</button>
             <button className="add-btn" onClick={saveOrdering} disabled={isMutating}><Check size={17} /> Lưu thứ tự</button>
@@ -386,6 +357,52 @@ export default function AdminChapters() {
 
               {isExpanded && (
                 <div className="chapter-expanded-content">
+                  {/* Kỹ năng của chương */}
+                  <div className="chapter-skills-management">
+                    <div className="theory-header adm2-chapter-panel-head">
+                      <div className="adm2-chapter-panel-head-text">
+                        <h4>Kỹ năng của chương ({chapter.skills?.length || 0})</h4>
+                        <span className="adm2-chapter-panel-skills">
+                          Kỹ năng cần đạt (θ raw) để mở khóa chương tiếp theo
+                        </span>
+                      </div>
+                    </div>
+
+                    {chapter.skills?.length > 0 ? (
+                      <div className="chapter-skills-badge-list">
+                        {chapter.skills.map((skill) => {
+                          const raw = Number(skill.requiredTheta ?? 0);
+                          return (
+                            <span className="chapter-skill-tag" key={skill.skillId}>
+                              <Brain size={13} className="chapter-skill-tag__icon" />
+                              <strong className="chapter-skill-tag__name">{skill.name}</strong>
+                              <span
+                                className="chapter-skill-tag__theta"
+                                title="Điểm năng lực raw yêu cầu"
+                              >
+                                ≥ {raw} raw (≈ {formatScaledThetaValue(raw)})
+                              </span>
+                              <button
+                                type="button"
+                                className="chapter-skill-tag__remove"
+                                title={`Gỡ kỹ năng "${skill.name}" khỏi chương`}
+                                aria-label={`Gỡ kỹ năng "${skill.name}" khỏi chương`}
+                                disabled={isMutating}
+                                onClick={() => handleRemoveSkillFromChapter(chapter, skill)}
+                              >
+                                <X size={12} />
+                              </button>
+                            </span>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="chapter-skills-empty">
+                        <span>Chương này chưa được gán kỹ năng nào.</span>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="theory-management">
                     <div className="theory-header adm2-chapter-panel-head">
                       <div className="adm2-chapter-panel-head-text">
@@ -394,14 +411,7 @@ export default function AdminChapters() {
                           <span className="adm2-chapter-panel-skills">Kỹ năng: {chapterSkillNames}</span>
                         )}
                       </div>
-                      <button
-                        className="add-btn small"
-                        disabled={isMutating}
-                        onClick={() => setOpenAddTheory(true)}
-                      >
-                        <Plus size={14} />
-                        Thêm lý thuyết
-                      </button>
+
                     </div>
 
                     <div className="theory-list">
@@ -444,26 +454,7 @@ export default function AdminChapters() {
                                 </button>
                               )}
                             </div>
-                            <div className="theory-actions">
-                              <button
-                                type="button"
-                                className="adm2-text-btn"
-                                disabled={isMutating}
-                                aria-label="Chỉnh sửa lý thuyết"
-                                onClick={() => setEditingTheory(theory)}
-                              >
-                                <Pencil size={14} /> Sửa
-                              </button>
-                              <button
-                                type="button"
-                                className="adm2-text-btn is-danger"
-                                disabled={isMutating}
-                                aria-label="Xóa lý thuyết"
-                                onClick={() => setDeletingTheory(theory)}
-                              >
-                                <Trash2 size={14} /> Xóa
-                              </button>
-                            </div>
+
                           </div>
                           );
                         })
@@ -513,28 +504,7 @@ export default function AdminChapters() {
         onConfirm={handleDeleteChapter}
       />
 
-      <AddTheoryModal
-        open={openAddTheory}
-        onClose={() => setOpenAddTheory(false)}
-        chapter={expandedChapterData}
-        onSubmit={handleAddTheory}
-      />
 
-      <EditTheoryModal
-        open={Boolean(editingTheory)}
-        onClose={() => setEditingTheory(null)}
-        theory={editingTheory}
-        onSubmit={handleUpdateTheory}
-      />
-
-      <ConfirmDeleteModal
-        open={Boolean(deletingTheory)}
-        onClose={() => setDeletingTheory(null)}
-        title="Xóa lý thuyết"
-        message="Bạn có muốn xóa nội dung lý thuyết này không?"
-        itemName={toPreviewText(deletingTheory?.content, deletingTheory?.contentFormat, 50)}
-        onConfirm={handleDeleteTheory}
-      />
     </>
   );
 }

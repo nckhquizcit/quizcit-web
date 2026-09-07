@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { ArrowRight } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import AdminPageHeader from "../components/AdminPageHeader";
 import AdminPageState from "../components/AdminPageState";
@@ -18,7 +17,6 @@ export default function AdminSubjectEdit() {
   const [saving, setSaving] = useState(false);
   const [chapterCount, setChapterCount] = useState(0);
   const returnPath = "/admin/subjects";
-  const chaptersPath = `/admin/subjects/${subjectId}/chapters`;
 
   useEffect(() => {
     getSubjectById(subjectId).then(setForm).catch((loadError) => setError(getErrorMessage(loadError, "Không thể tải môn học.")));
@@ -128,10 +126,6 @@ export default function AdminSubjectEdit() {
             <h4>Môn học có {chapterCount} chương</h4>
             <p>Đổi tên/mã học phần không làm mất dữ liệu.</p>
             <p>Ẩn môn sẽ ngăn user truy cập mới.</p>
-            <div className="adm2-divider" />
-            <button type="button" className="adm2-link-arrow" onClick={() => navigate(chaptersPath)}>
-              Xem danh sách chương <ArrowRight size={14} />
-            </button>
           </div>
         </aside>
       </div>

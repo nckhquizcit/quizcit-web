@@ -44,6 +44,7 @@ export default function AdminSubjects() {
           chapters.filter((chapter) => String(chapter.subjectId) === String(subject.subjectId)).length,
         ]);
 
+
         if (!alive) return;
         setSubjects(data);
         setChapterCountBySubject(Object.fromEntries(chapterEntries));
@@ -271,6 +272,7 @@ export default function AdminSubjects() {
 
             <div className="adm2-card-footer">
               <div className="adm2-card-footer-actions">
+
                 <button
                   type="button"
                   className="adm2-text-btn"
