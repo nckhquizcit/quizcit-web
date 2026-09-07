@@ -13,11 +13,11 @@ export async function getRoles() {
   return (roles || []).map((role) => mapAccessItem(role, "roleId"));
 }
 
-export function deleteRole(roleId, hard = false) {
+export function deleteRole(roleId) {
   return request({
     method: "DELETE",
     url: `${RBAC_ENDPOINTS.roles}/${roleId}`,
-    params: getDeleteParams(hard),
+    params: getDeleteParams(),
   });
 }
 
@@ -26,10 +26,10 @@ export async function getPermissions() {
   return (permissions || []).map((permission) => mapAccessItem(permission, "permissionId"));
 }
 
-export function deletePermission(permissionId, hard = false) {
+export function deletePermission(permissionId) {
   return request({
     method: "DELETE",
     url: `${RBAC_ENDPOINTS.permissions}/${permissionId}`,
-    params: getDeleteParams(hard),
+    params: getDeleteParams(),
   });
 }

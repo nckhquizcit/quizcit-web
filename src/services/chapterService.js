@@ -46,11 +46,11 @@ export async function updateChapter(chapterId, payload) {
   return result ? mapChapter(result) : null;
 }
 
-export async function deleteChapter(chapterId, hard = false) {
+export async function deleteChapter(chapterId) {
   return request({
     method: "DELETE",
     url: `/api/chapters/${chapterId}`,
-    params: getDeleteParams(hard),
+    params: getDeleteParams(),
   });
 }
 

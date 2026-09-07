@@ -101,13 +101,13 @@ export default function AdminAccess() {
     [activeType],
   );
 
-  const handleDelete = async (hard) => {
+  const handleDelete = async () => {
     if (!deletingItem?.id) return;
     if (deletingItem.type === "roles") {
-      await deleteRole(deletingItem.id, hard);
+      await deleteRole(deletingItem.id);
       setRoles((current) => current.filter((item) => item.id !== deletingItem.id));
     } else {
-      await deletePermission(deletingItem.id, hard);
+      await deletePermission(deletingItem.id);
       setPermissions((current) => current.filter((item) => item.id !== deletingItem.id));
     }
     toast.success(`Đã xóa ${ACCESS_TYPES[deletingItem.type].singular}.`);

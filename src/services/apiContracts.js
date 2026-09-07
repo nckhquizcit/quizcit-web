@@ -3,7 +3,7 @@ export const RBAC_ENDPOINTS = {
   permissions: "/api/users/permissions",
 };
 
-export const getDeleteParams = (hard = false) => ({ hard: Boolean(hard) });
+export const getDeleteParams = () => ({});
 
 export function buildProfilePayload({ displayName, avatarUrl }) {
   return avatarUrl === undefined

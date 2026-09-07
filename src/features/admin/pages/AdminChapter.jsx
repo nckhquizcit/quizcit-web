@@ -158,14 +158,14 @@ export default function AdminChapters() {
     });
   };
 
-  const handleDeleteChapter = async (hard) => {
+  const handleDeleteChapter = async () => {
     if (!deletingChapter) return;
 
     // Delete failures are shown inside ConfirmDeleteModal, so skip the
     // page-level actionError and let the error propagate to the modal.
     setPendingAction("delete-chapter");
     try {
-      await deleteChapter(deletingChapter.chapterId, hard);
+      await deleteChapter(deletingChapter.chapterId);
       setSubjectChapters((current) =>
         current.filter((c) => c.chapterId !== deletingChapter.chapterId),
       );
@@ -200,13 +200,13 @@ export default function AdminChapters() {
     });
   };
 
-  const handleDeleteTheory = async (hard) => {
+  const handleDeleteTheory = async () => {
     if (!deletingTheory) return;
 
     // Lỗi xóa hiển thị trong ConfirmDeleteModal, không set actionError trang
     setPendingAction("delete-theory");
     try {
-      await deleteTheory(deletingTheory.theoryId, hard);
+      await deleteTheory(deletingTheory.theoryId);
       await loadTheories(expandedChapter ?? deletingTheory.chapterId);
       setDeletingTheory(null);
     } finally {

@@ -78,7 +78,7 @@ function SkillFormContent({ mode, initialData, onClose, onSubmit, isSubmitting, 
 
         <p className="adm2-note adm2-note--muted">Tên tối đa 200 · Mô tả tối đa 2000 ký tự</p>
 
-        <div className="adm2-note">Đổi tên ảnh hưởng nhãn báo cáo, không mất theta.</div>
+        {isEdit && <div className="adm2-note">Đổi tên ảnh hưởng nhãn báo cáo, không mất theta.</div>}
       </FormModalLayout>
     </form>
   );

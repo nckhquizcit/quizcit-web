@@ -84,11 +84,11 @@ export async function updateQuestion(questionId, payload) {
   return result ? mapQuestion(result) : mapQuestion({ questionId, ...payload });
 }
 
-export async function deleteQuestion(questionId, hard = false) {
+export async function deleteQuestion(questionId) {
   return request({
     method: "DELETE",
     url: `/api/questions/${questionId}`,
-    params: getDeleteParams(hard),
+    params: getDeleteParams(),
   });
 }
 

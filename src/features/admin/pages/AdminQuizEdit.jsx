@@ -39,8 +39,8 @@ export default function AdminQuizEdit() {
     void Promise.resolve().then(load);
   }, [load]);
 
-  const handleDeleteQuiz = async (hard) => {
-    await deleteQuiz(quizId, hard);
+  const handleDeleteQuiz = async () => {
+    await deleteQuiz(quizId);
     toast.success("Đã xóa đề thi.");
     navigate(returnPath);
   };
@@ -109,7 +109,7 @@ export default function AdminQuizEdit() {
       onClose={() => setDeleting(false)}
       onConfirm={handleDeleteQuiz}
       title="Xóa đề thi"
-      message="Bạn có chắc chắn muốn xóa đề thi này? Hành động này không thể hoàn tác."
+      message="Bạn có chắc chắn muốn xóa đề thi này không?"
       itemName={data?.quiz?.name || ""}
     />
   </>;

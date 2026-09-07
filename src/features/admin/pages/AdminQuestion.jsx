@@ -507,8 +507,8 @@ export default function AdminQuestions() {
     toast.success("Đã cập nhật câu hỏi.");
   };
 
-  const handleDeleteQuestion = async (hard) => {
-    await deleteQuestion(deletingQuestion.questionId, hard);
+  const handleDeleteQuestion = async () => {
+    await deleteQuestion(deletingQuestion.questionId);
     setQuestionRows((currentRows) =>
       currentRows.filter((question) => question.questionId !== deletingQuestion.questionId),
     );

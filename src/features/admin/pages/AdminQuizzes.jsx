@@ -167,10 +167,10 @@ export default function AdminQuizzes() {
     }
   };
 
-  const handleDeleteQuiz = async (hard) => {
+  const handleDeleteQuiz = async () => {
     if (!deletingQuiz) return;
     const quizId = getQuizId(deletingQuiz);
-    await deleteQuiz(quizId, hard);
+    await deleteQuiz(quizId);
     setQuizzes((current) => current.filter((quiz) => getQuizId(quiz) !== quizId));
     setDeletingQuiz(null);
     toast.success("Xóa đề thi thành công.");

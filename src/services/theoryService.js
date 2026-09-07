@@ -27,11 +27,11 @@ export async function updateTheory(theoryId, payload) {
   return result ? mapTheory(result) : null;
 }
 
-export async function deleteTheory(theoryId, hard = false) {
+export async function deleteTheory(theoryId) {
   return request({
     method: "DELETE",
     url: `/api/theories/${theoryId}`,
-    params: getDeleteParams(hard),
+    params: getDeleteParams(),
   });
 }
 

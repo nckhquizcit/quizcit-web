@@ -205,14 +205,14 @@ export default function AdminUsers() {
     }
   };
 
-  const handleDeleteUser = async (hard) => {
+  const handleDeleteUser = async () => {
     if (!deletingUser?.userId) return;
     if (String(deletingUser.userId) === currentUserId) {
       toast.error(SELF_LOCKOUT_MESSAGE);
       setDeletingUser(null);
       return;
     }
-    await deleteUser(deletingUser.userId, hard);
+    await deleteUser(deletingUser.userId);
     setDeletingUser(null);
     toast.success("Đã xóa người dùng.");
     loadUsers(items.length <= 1 && page > 0 ? page - 1 : page);

@@ -9,10 +9,10 @@ import {
 } from "./apiContracts.js";
 import { mapUser } from "./mappers.js";
 
-test("hard delete query is always a boolean", () => {
-  assert.deepEqual(getDeleteParams(true), { hard: true });
-  assert.deepEqual(getDeleteParams(false), { hard: false });
-  assert.deepEqual(getDeleteParams(), { hard: false });
+test("delete query params are always empty to enforce soft delete", () => {
+  assert.deepEqual(getDeleteParams(true), {});
+  assert.deepEqual(getDeleteParams(false), {});
+  assert.deepEqual(getDeleteParams(), {});
 });
 
 test("profile payload and user mapper preserve avatarUrl", () => {

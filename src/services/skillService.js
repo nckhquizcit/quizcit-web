@@ -76,11 +76,11 @@ export async function updateSkill(skillId, payload) {
   return result;
 }
 
-export async function deleteSkill(skillId, hard = false) {
+export async function deleteSkill(skillId) {
   const result = await request({
     method: "DELETE",
     url: `/api/skills/${skillId}`,
-    params: getDeleteParams(hard),
+    params: getDeleteParams(),
   });
   skillCatalogPromise = null;
   return result;

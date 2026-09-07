@@ -94,10 +94,10 @@ export async function changeUserRole(userId, role) {
   return result ? mapUser(result) : mapUser({ userId, role });
 }
 
-export async function deleteUser(userId, hard = false) {
+export async function deleteUser(userId) {
   return request({
     method: "DELETE",
     url: `/api/users/${userId}`,
-    params: getDeleteParams(hard),
+    params: getDeleteParams(),
   });
 }

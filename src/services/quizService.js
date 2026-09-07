@@ -84,11 +84,11 @@ export async function updateQuiz(quizId, payload) {
   return result ? mapQuiz(result) : mapQuiz({ quizId, ...payload });
 }
 
-export async function deleteQuiz(quizId, hard = false) {
+export async function deleteQuiz(quizId) {
   return request({
     method: "DELETE",
     url: `/api/quizzes/${quizId}`,
-    params: getDeleteParams(hard),
+    params: getDeleteParams(),
   });
 }
 

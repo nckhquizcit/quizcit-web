@@ -99,14 +99,14 @@ export default function AdminSubjects() {
     });
   };
 
-  const handleDeleteSubject = async (hard) => {
+  const handleDeleteSubject = async () => {
     if (!deletingSubject) return;
 
     // Delete failures are shown inside ConfirmDeleteModal, so skip the
     // page-level actionError and let the error propagate to the modal.
     setPendingAction("delete-subject");
     try {
-      await deleteSubject(deletingSubject.subjectId, hard);
+      await deleteSubject(deletingSubject.subjectId);
       setSubjects((current) =>
         current.filter((s) => s.subjectId !== deletingSubject.subjectId),
       );

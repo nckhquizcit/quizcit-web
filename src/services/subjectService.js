@@ -20,11 +20,11 @@ export async function updateSubject(subjectId, payload) {
   return result ? mapSubject(result) : null;
 }
 
-export async function deleteSubject(subjectId, hard = false) {
+export async function deleteSubject(subjectId) {
   return request({
     method: "DELETE",
     url: `/api/subjects/${subjectId}`,
-    params: getDeleteParams(hard),
+    params: getDeleteParams(),
   });
 }
 
