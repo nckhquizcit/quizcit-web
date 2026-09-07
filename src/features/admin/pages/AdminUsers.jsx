@@ -24,39 +24,29 @@ import "../Admin.css";
 import "../components/modals/modal.css";
 import "./AdminUsers.css";
 
-const ROLE_LABELS = {
-  ADMINISTRATOR: "Quản trị viên",
-  USER: "Người dùng",
-};
+import {
+  formatRole,
+  formatStatus,
+  getInitials,
+  getBackendSortParam,
+  matchesSearch,
+  isBackendUnfiltered,
+  sortUsersList,
+  STATUS_BADGE_TONE,
+} from "../utils/adminUsersLogic";
 
-const STATUS_LABELS = {
-  VERIFIED: "Đã xác thực",
-  UNVERIFIED: "Chưa xác thực",
-  BANNED: "Đã khóa",
-};
-
-const STATUS_BADGE_TONE = {
-  VERIFIED: "emerald",
-  UNVERIFIED: "amber",
-  BANNED: "red",
-};
-
-const formatRole = (role) => ROLE_LABELS[role] || role || "Chưa có";
-const formatStatus = (status) => STATUS_LABELS[status] || status || "Chưa có";
-const getInitials = (name) => {
-  const trimmed = (name || "").trim();
-  if (!trimmed) return "?";
-  const parts = trimmed.split(/\s+/);
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-};
 const SELF_LOCKOUT_MESSAGE = "Bạn không thể khóa/xóa/thay đổi vai trò tài khoản đang đăng nhập.";
 const PAGE_SIZE = 20;
 const EMPTY_PAGE_INFO = { totalElements: 0, totalPages: 0, first: true, last: true };
 
 export default function AdminUsers() {
   const toast = useToast();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [filterRole, setFilterRole] = useState("ALL");
   const [filterStatus, setFilterStatus] = useState("ALL");
+  const [sortBy, setSortBy] = useState("DEFAULT");
+
   const [items, setItems] = useState([]);
   const [pageInfo, setPageInfo] = useState(EMPTY_PAGE_INFO);
   const [page, setPage] = useState(0);
@@ -70,35 +60,86 @@ export default function AdminUsers() {
   const currentUser = useMemo(() => getStoredUser(), []);
   const currentUserId = String(currentUser?.userId || currentUser?.user_id || currentUser?.id || "");
 
+  // Debounce search query 300ms de tranh spam API khi dang go
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   const loadUsers = useCallback(async (targetPage = 0) => {
     try {
       setLoading(true);
       setError("");
-      const result = await getUsers({ page: targetPage, size: PAGE_SIZE });
-      setItems(result?.items || []);
-      setPageInfo({
-        totalElements: result?.totalElements ?? 0,
-        totalPages: result?.totalPages ?? 0,
-        first: result?.first ?? true,
-        last: result?.last ?? true,
+
+      const backendSort = getBackendSortParam(sortBy);
+      const result = await getUsers({
+        page: targetPage,
+        size: PAGE_SIZE,
+        sort: backendSort,
+        search: debouncedQuery,
+        role: filterRole,
+        status: filterStatus,
       });
-      setPage(result?.page ?? targetPage);
+
+      const fetchedItems = result?.items || [];
+      const needsClientFallback = isBackendUnfiltered(fetchedItems, debouncedQuery, filterRole, filterStatus);
+
+      if (needsClientFallback) {
+        // Resilient Fallback: Backend cu chua restart, tu dong lay danh sach day du de filter/sort
+        const allResult = await getUsers({ page: 0, size: 100, sort: backendSort });
+        const allItems = allResult?.items || [];
+        const filteredAll = allItems.filter((u) => {
+          if (!matchesSearch(u, debouncedQuery)) return false;
+          if (filterRole !== "ALL" && u.role !== filterRole) return false;
+          if (filterStatus !== "ALL" && u.status !== filterStatus) return false;
+          return true;
+        });
+
+        const sortedAll = sortUsersList(filteredAll, sortBy, currentUserId);
+        const startIndex = targetPage * PAGE_SIZE;
+        const pagedSlice = sortedAll.slice(startIndex, startIndex + PAGE_SIZE);
+
+        setItems(pagedSlice);
+        setPageInfo({
+          totalElements: sortedAll.length,
+          totalPages: Math.max(1, Math.ceil(sortedAll.length / PAGE_SIZE)),
+          first: targetPage === 0,
+          last: (targetPage + 1) * PAGE_SIZE >= sortedAll.length,
+        });
+        setPage(targetPage);
+      } else {
+        // Backend moi da loc server-side, luon uu tien dua nguoi dang xem len dau o trang 1
+        let processedItems = fetchedItems;
+        if (targetPage === 0 && currentUserId) {
+          const selfIdx = processedItems.findIndex((u) => String(u.userId) === currentUserId);
+          if (selfIdx > 0) {
+            const copy = [...processedItems];
+            const selfUser = copy.splice(selfIdx, 1)[0];
+            copy.unshift(selfUser);
+            processedItems = copy;
+          }
+        }
+        setItems(processedItems);
+        setPageInfo({
+          totalElements: result?.totalElements ?? 0,
+          totalPages: result?.totalPages ?? 0,
+          first: result?.first ?? true,
+          last: result?.last ?? true,
+        });
+        setPage(result?.page ?? targetPage);
+      }
     } catch (loadError) {
       setError(getErrorMessage(loadError, "Không thể tải danh sách người dùng."));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [debouncedQuery, filterRole, filterStatus, sortBy, currentUserId]);
 
   useEffect(() => {
     loadUsers(0);
   }, [loadUsers]);
-
-  const visibleUsers = useMemo(
-    () =>
-      filterStatus === "ALL" ? items : items.filter((user) => user.status === filterStatus),
-    [items, filterStatus],
-  );
 
   const pageStats = useMemo(
     () => ({
@@ -183,21 +224,27 @@ export default function AdminUsers() {
       label: "Người dùng",
       sortable: true,
       sortValue: (user) => (user.displayName || user.username || "").toLowerCase(),
-      render: (user) => (
-        <div className="adm2-user-cell">
-          <span className="adm2-user-avatar">
-            {user.avatarUrl ? (
-              <img src={resolveImageUrl(user.avatarUrl)} alt="" />
-            ) : (
-              getInitials(user.displayName || user.username)
-            )}
-          </span>
-          <div className="adm2-user-cell__body">
-            <strong>{user.displayName || user.username}</strong>
-            <span className="adm2-user-cell__sub">{user.username}</span>
+      render: (user) => {
+        const isSelf = String(user.userId) === currentUserId;
+        return (
+          <div className="adm2-user-cell">
+            <span className="adm2-user-avatar">
+              {user.avatarUrl ? (
+                <img src={resolveImageUrl(user.avatarUrl)} alt="" />
+              ) : (
+                getInitials(user.displayName || user.username)
+              )}
+            </span>
+            <div className="adm2-user-cell__body">
+              <div className="adm2-user-name-wrapper">
+                <strong>{user.displayName || user.username}</strong>
+                {isSelf && <span className="adm2-badge--you">Bạn</span>}
+              </div>
+              <span className="adm2-user-cell__sub">{user.username}</span>
+            </div>
           </div>
-        </div>
-      ),
+        );
+      },
     },
     { key: "email", label: "Email", sortable: true },
     {
@@ -305,7 +352,7 @@ export default function AdminUsers() {
         <>
           <DataTable
             columns={columns}
-            rows={visibleUsers}
+            rows={items}
             getRowKey={(user) => user.userId}
             loading={loading}
             pageSize={PAGE_SIZE}
@@ -314,9 +361,14 @@ export default function AdminUsers() {
             totalElements={pageInfo.totalElements}
             onPageChange={(nextPage) => loadUsers(nextPage)}
             searchable
-            searchPlaceholder="Tìm tên, username, email trong trang này..."
-            searchAriaLabel="Tìm tên, username hoặc email trong trang này"
-            searchKeys={["displayName", "username", "email"]}
+            searchValue={searchQuery}
+            onSearchChange={(newQuery) => {
+              setSearchQuery(newQuery);
+              setPage(0);
+            }}
+            serverSearch
+            searchPlaceholder="Tìm theo tên, username, email..."
+            searchAriaLabel="Tìm kiếm người dùng theo tên, username hoặc email"
             emptyState={
               <EmptyState
                 icon={<Users size={28} />}
@@ -325,22 +377,59 @@ export default function AdminUsers() {
               />
             }
             toolbarExtra={
-              <select
-                className="filter-select"
-                value={filterStatus}
-                onChange={(event) => setFilterStatus(event.target.value)}
-                aria-label="Lọc trạng thái"
-              >
-                <option value="ALL">Tất cả trạng thái</option>
-                <option value="VERIFIED">Đã xác thực</option>
-                <option value="UNVERIFIED">Chưa xác thực</option>
-                <option value="BANNED">Đã khóa</option>
-              </select>
+              <div className="admin-users-filters">
+                <select
+                  className="filter-select"
+                  value={filterRole}
+                  onChange={(event) => {
+                    setFilterRole(event.target.value);
+                    setPage(0);
+                  }}
+                  aria-label="Lọc theo vai trò"
+                >
+                  <option value="ALL">Tất cả vai trò</option>
+                  <option value="ADMINISTRATOR">Quản trị viên</option>
+                  <option value="USER">Người dùng</option>
+                </select>
+
+                <select
+                  className="filter-select"
+                  value={filterStatus}
+                  onChange={(event) => {
+                    setFilterStatus(event.target.value);
+                    setPage(0);
+                  }}
+                  aria-label="Lọc theo trạng thái"
+                >
+                  <option value="ALL">Tất cả trạng thái</option>
+                  <option value="VERIFIED">Đã xác thực</option>
+                  <option value="UNVERIFIED">Chưa xác thực</option>
+                  <option value="BANNED">Đã khóa</option>
+                </select>
+
+                <select
+                  className="filter-select"
+                  value={sortBy}
+                  onChange={(event) => {
+                    setSortBy(event.target.value);
+                    setPage(0);
+                  }}
+                  aria-label="Sắp xếp danh sách"
+                >
+                  <option value="DEFAULT">Sắp xếp mặc định</option>
+                  <option value="ROLE_ADMIN_FIRST">Vai trò: Quản trị viên trước</option>
+                  <option value="ROLE_USER_FIRST">Vai trò: Người dùng trước</option>
+                  <option value="NAME_ASC">Tên hiển thị: A → Z</option>
+                  <option value="NAME_DESC">Tên hiển thị: Z → A</option>
+                  <option value="NEWEST">Mới nhất</option>
+                  <option value="OLDEST">Cũ nhất</option>
+                </select>
+              </div>
             }
           />
 
           <p className="adm2-user-scope-note">
-            Tìm kiếm, bộ lọc và sắp xếp áp dụng trong trang hiện tại ({PAGE_SIZE} người dùng/trang).
+            Tìm kiếm và bộ lọc áp dụng trên toàn bộ danh sách ({pageInfo.totalElements} tài khoản).
           </p>
         </>
       )}

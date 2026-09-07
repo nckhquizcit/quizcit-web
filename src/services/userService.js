@@ -26,11 +26,23 @@ export async function changeCurrentUserPassword(currentPassword, newPassword) {
   });
 }
 
-export async function getUsers({ page = 0, size = 20, sort = "createdAt,desc" } = {}) {
+export async function getUsers({
+  page = 0,
+  size = 20,
+  sort = "createdAt,desc",
+  search = "",
+  role = "",
+  status = "",
+} = {}) {
+  const params = { page, size, sort };
+  if (search && search.trim()) params.search = search.trim();
+  if (role && role !== "ALL") params.role = role;
+  if (status && status !== "ALL") params.status = status;
+
   const data = await request({
     method: "GET",
     url: "/api/users",
-    params: { page, size, sort },
+    params,
   });
   return {
     items: (data?.content || []).map(mapUser),

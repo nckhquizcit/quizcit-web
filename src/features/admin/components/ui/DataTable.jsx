@@ -19,6 +19,9 @@ export default function DataTable({
   searchPlaceholder = "Tìm kiếm...",
   searchAriaLabel,
   searchKeys = null,
+  searchValue = undefined,
+  onSearchChange = undefined,
+  serverSearch = false,
   pageSize = 10,
   emptyState = null,
   toolbarExtra = null,
@@ -41,6 +44,7 @@ export default function DataTable({
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState(initialSort);
   const [page, setPage] = useState(1);
+  const effectiveQuery = searchValue !== undefined ? searchValue : query;
 
   // External rows changed (e.g. a filter in toolbarExtra swapped the rows prop):
   // go back to page 1. Adjust state during render per React docs — sort-order
@@ -52,8 +56,9 @@ export default function DataTable({
   }
 
   const filtered = useMemo(() => {
-    if (!searchable || !query.trim()) return rows;
-    const q = query.trim().toLowerCase();
+    if (serverSearch) return rows;
+    if (!searchable || !effectiveQuery.trim()) return rows;
+    const q = effectiveQuery.trim().toLowerCase();
     return rows.filter((row) => {
       const keys = searchKeys || Object.keys(row);
       return keys.some((k) => {
@@ -61,7 +66,7 @@ export default function DataTable({
         return v != null && String(v).toLowerCase().includes(q);
       });
     });
-  }, [rows, query, searchable, searchKeys]);
+  }, [rows, effectiveQuery, searchable, searchKeys, serverSearch]);
 
   const sorted = useMemo(() => {
     if (!sort) return filtered;
@@ -109,8 +114,16 @@ export default function DataTable({
   };
 
   const onSearch = (e) => {
-    setQuery(e.target.value);
-    if (!isServer) setPage(1);
+    const val = e.target.value;
+    if (searchValue === undefined) {
+      setQuery(val);
+    }
+    onSearchChange?.(val);
+    if (!isServer) {
+      setPage(1);
+    } else {
+      onPageChange?.(0);
+    }
   };
 
   const countTotal = isServer ? serverTotal : sorted.length;
@@ -129,7 +142,7 @@ export default function DataTable({
               <Search size={16} />
               <input
                 type="text"
-                value={query}
+                value={effectiveQuery}
                 onChange={onSearch}
                 placeholder={searchPlaceholder}
                 aria-label={searchAriaLabel || searchPlaceholder}
