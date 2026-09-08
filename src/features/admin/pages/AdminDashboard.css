@@ -7,7 +7,7 @@
 
 .admin-dashboard .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 0;
 }
@@ -48,7 +48,8 @@
 .admin-dashboard .stat-card--primary .stat-card__icon,
 .admin-dashboard .stat-card--info .stat-card__icon,
 .admin-dashboard .stat-card--warning .stat-card__icon,
-.admin-dashboard .stat-card--success .stat-card__icon {
+.admin-dashboard .stat-card--success .stat-card__icon,
+.admin-dashboard .stat-card--accent .stat-card__icon {
   background: var(--admin-primary-soft, #ecfdf5);
   color: var(--admin-primary, #10b981);
 }
@@ -154,10 +155,15 @@
   color: var(--admin-primary, #10b981);
 }
 
-@media (max-width: 1023px) {
-  .admin-dashboard .stats-grid,
-  .admin-dashboard .quick-actions {
-    grid-template-columns: repeat(2, 1fr);
+@media (max-width: 1200px) {
+  .admin-dashboard .stats-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .admin-dashboard .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

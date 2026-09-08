@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import {
   ArrowRight,
   BookOpen,
+  Brain,
   FileQuestion,
   GraduationCap,
   ListChecks,
@@ -18,20 +19,14 @@ import "./AdminDashboard.css";
 import { adminDashboardService } from "../services/dashboardService";
 
 const emptyStats = {
-  totalUsers: 0,
   totalSubjects: 0,
   totalQuestions: 0,
   totalQuizzes: 0,
+  totalSkills: 0,
+  totalUsers: 0,
 };
 
 const statCards = [
-  {
-    key: "totalUsers",
-    label: "Người dùng",
-    icon: <Users size={22} />,
-    tone: "info",
-    to: "/admin/users",
-  },
   {
     key: "totalSubjects",
     label: "Môn học",
@@ -53,13 +48,29 @@ const statCards = [
     tone: "success",
     to: "/admin/quizzes",
   },
+  {
+    key: "totalSkills",
+    label: "Kỹ năng",
+    icon: <Brain size={22} />,
+    tone: "accent",
+    to: "/admin/skills",
+  },
+  {
+    key: "totalUsers",
+    label: "Người dùng",
+    icon: <Users size={22} />,
+    tone: "info",
+    to: "/admin/users",
+  },
 ];
 
 const quickActions = [
   { label: "Tạo đề thi", icon: <Plus size={18} />, to: "/admin/quizzes/new" },
   { label: "Import câu hỏi", icon: <Upload size={18} />, to: "/admin/questions/import" },
-  { label: "Thêm môn học", icon: <BookOpen size={18} />, to: "/admin/subjects" },
+  { label: "Quản lý môn học", icon: <BookOpen size={18} />, to: "/admin/subjects" },
   { label: "Quản lý câu hỏi", icon: <ListChecks size={18} />, to: "/admin/questions" },
+  { label: "Quản lý kỹ năng", icon: <Brain size={18} />, to: "/admin/skills" },
+  { label: "Quản lý người dùng", icon: <Users size={18} />, to: "/admin/users" },
 ];
 
 export default function AdminDashboard() {
