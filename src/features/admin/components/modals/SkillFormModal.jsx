@@ -7,7 +7,7 @@ const INITIAL_FORM = {
   description: "",
 };
 
-function SkillFormContent({ mode, initialData, onClose, onSubmit, isSubmitting, titleId }) {
+function SkillFormContent({ mode, initialData, onClose, onSubmit, isSubmitting, titleId, existingSkills = [] }) {
   const [formData, setFormData] = useState({
     name: initialData?.name || INITIAL_FORM.name,
     description: initialData?.description || INITIAL_FORM.description,
@@ -24,14 +24,29 @@ function SkillFormContent({ mode, initialData, onClose, onSubmit, isSubmitting, 
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!formData.name.trim()) {
+    const trimmedName = formData.name.trim();
+    if (!trimmedName) {
       setError("Tên kỹ năng không được để trống.");
+      return;
+    }
+
+    const currentSkillId = initialData?.skillId || initialData?.id;
+    const isDuplicate = existingSkills.some((skill) => {
+      const skillId = skill?.skillId || skill?.id;
+      if (isEdit && skillId && currentSkillId && String(skillId) === String(currentSkillId)) {
+        return false;
+      }
+      return (skill?.name || skill?.skillName || "").trim().toLowerCase() === trimmedName.toLowerCase();
+    });
+
+    if (isDuplicate) {
+      setError("Tên kỹ năng đã tồn tại (không phân biệt chữ hoa/thường).");
       return;
     }
 
     setError("");
     await onSubmit({
-      name: formData.name.trim(),
+      name: trimmedName,
       description: formData.description.trim(),
     });
   };
@@ -91,6 +106,7 @@ export default function SkillFormModal({
   onClose,
   onSubmit,
   isSubmitting = false,
+  existingSkills = [],
 }) {
   const formKey = `${mode}-${initialData?.skillId || initialData?.id || "new"}-${open ? "open" : "closed"}`;
   const titleId = useId();
@@ -105,6 +121,7 @@ export default function SkillFormModal({
         onSubmit={onSubmit}
         isSubmitting={isSubmitting}
         titleId={titleId}
+        existingSkills={existingSkills}
       />
     </Modal>
   );

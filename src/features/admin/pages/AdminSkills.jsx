@@ -45,6 +45,15 @@ export default function AdminSkills() {
   }, [loadSkills]);
 
   const handleCreateSkill = async (payload) => {
+    const trimmedName = (payload.name || "").trim();
+    const isDuplicate = skills.some(
+      (s) => (s.name || "").trim().toLowerCase() === trimmedName.toLowerCase(),
+    );
+    if (isDuplicate) {
+      toast.error("Tên kỹ năng đã tồn tại (không phân biệt chữ hoa/thường).");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -62,6 +71,18 @@ export default function AdminSkills() {
 
   const handleUpdateSkill = async (payload) => {
     if (!editingSkill) return;
+
+    const currentId = getSkillId(editingSkill);
+    const trimmedName = (payload.name || "").trim();
+    const isDuplicate = skills.some(
+      (s) =>
+        getSkillId(s) !== currentId &&
+        (s.name || "").trim().toLowerCase() === trimmedName.toLowerCase(),
+    );
+    if (isDuplicate) {
+      toast.error("Tên kỹ năng đã tồn tại (không phân biệt chữ hoa/thường).");
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -191,6 +212,7 @@ export default function AdminSkills() {
         onClose={() => setIsCreateOpen(false)}
         onSubmit={handleCreateSkill}
         isSubmitting={isSubmitting}
+        existingSkills={skills}
       />
 
       <SkillFormModal
@@ -200,6 +222,7 @@ export default function AdminSkills() {
         onClose={() => setEditingSkill(null)}
         onSubmit={handleUpdateSkill}
         isSubmitting={isSubmitting}
+        existingSkills={skills}
       />
 
       <ImportSkillsModal

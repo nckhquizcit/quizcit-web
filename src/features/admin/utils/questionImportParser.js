@@ -61,9 +61,68 @@ export const createEmptyImportOptions = () =>
     content: "",
   }));
 
+/**
+ * Splits a string by delimiters (default: [",", ";"]), respecting:
+ * 1. Double quotes ("...") and single quotes ('...')
+ * 2. Parentheses (...), brackets [...], and braces {...}
+ */
+export function splitRespectingGroups(input = "", delimiters = [",", ";"]) {
+  const delimSet = new Set(delimiters);
+  const parts = [];
+  let current = "";
+  let inDouble = false;
+  let inSingle = false;
+  let parenDepth = 0;
+  let bracketDepth = 0;
+  let braceDepth = 0;
+
+  for (let i = 0; i < input.length; i += 1) {
+    const char = input[i];
+    const prev = i > 0 ? input[i - 1] : "";
+
+    if (char === '"' && prev !== "\\" && !inSingle) {
+      inDouble = !inDouble;
+      current += char;
+      continue;
+    }
+    if (char === "'" && prev !== "\\" && !inDouble) {
+      inSingle = !inSingle;
+      current += char;
+      continue;
+    }
+
+    if (!inDouble && !inSingle) {
+      if (char === "(") parenDepth += 1;
+      else if (char === ")" && parenDepth > 0) parenDepth -= 1;
+      else if (char === "[") bracketDepth += 1;
+      else if (char === "]" && bracketDepth > 0) bracketDepth -= 1;
+      else if (char === "{") braceDepth += 1;
+      else if (char === "}" && braceDepth > 0) braceDepth -= 1;
+
+      const isDepthZero = parenDepth === 0 && bracketDepth === 0 && braceDepth === 0;
+      if (isDepthZero && delimSet.has(char)) {
+        const token = current.trim();
+        if (token) {
+          parts.push(token);
+        }
+        current = "";
+        continue;
+      }
+    }
+
+    current += char;
+  }
+
+  const lastToken = current.trim();
+  if (lastToken) {
+    parts.push(lastToken);
+  }
+
+  return parts;
+}
+
 const splitListCell = (value = "") =>
-  String(value || "")
-    .split(/[;|\n]+/)
+  splitRespectingGroups(String(value || ""), [";", "|", "\n"])
     .map((item) => normalizeText(item))
     .filter(Boolean);
 
@@ -449,9 +508,12 @@ const buildCsvHeaderMap = (headerRow = []) =>
 
 const hasCsvHeader = (row = []) => Object.keys(buildCsvHeaderMap(row)).length >= 2;
 
-const getCsvValue = (row, headerMap, columnKey, fallbackIndex) => {
-  const index = headerMap[columnKey] ?? fallbackIndex;
-  return row[index] ?? "";
+const getCsvValue = (row, headerMap, columnKey, fallbackIndex, hasHeader = false) => {
+  if (hasHeader) {
+    const index = headerMap[columnKey];
+    return index !== undefined ? (row[index] ?? "") : "";
+  }
+  return row[fallbackIndex] ?? "";
 };
 
 export function detectCsvImport(input = "") {
@@ -475,20 +537,20 @@ export function parseQuestionsFromCsv(input = "") {
   return dataRows.map((row, index) =>
     createQuestionImportRow(
       {
-        content: getCsvValue(row, headerMap, "content", 0),
+        content: getCsvValue(row, headerMap, "content", 0, firstRowHasHeader),
         options: IMPORT_OPTION_KEYS.map((key, optionIndex) => ({
           key,
-          content: getCsvValue(row, headerMap, key, optionIndex + 1),
+          content: getCsvValue(row, headerMap, key, optionIndex + 1, firstRowHasHeader),
         })),
-        correctKey: getCsvValue(row, headerMap, "correctKey", 5),
-        explanation: getCsvValue(row, headerMap, "explanation", 6),
-        difficulty: getCsvValue(row, headerMap, "difficulty", 7),
-        subjectId: getCsvValue(row, headerMap, "subjectId", 8),
-        chapterId: getCsvValue(row, headerMap, "chapterId", 9),
+        correctKey: getCsvValue(row, headerMap, "correctKey", 5, firstRowHasHeader),
+        explanation: getCsvValue(row, headerMap, "explanation", 6, firstRowHasHeader),
+        difficulty: getCsvValue(row, headerMap, "difficulty", 7, firstRowHasHeader),
+        subjectId: getCsvValue(row, headerMap, "subjectId", 8, firstRowHasHeader),
+        chapterId: getCsvValue(row, headerMap, "chapterId", 9, firstRowHasHeader),
         skills: parseCsvSkills(
-          getCsvValue(row, headerMap, "skills", 10),
-          getCsvValue(row, headerMap, "weights", 11),
-          getCsvValue(row, headerMap, "primarySkill", 12),
+          getCsvValue(row, headerMap, "skills", 10, firstRowHasHeader),
+          getCsvValue(row, headerMap, "weights", 11, firstRowHasHeader),
+          getCsvValue(row, headerMap, "primarySkill", 12, firstRowHasHeader),
         ),
         sourceLine: firstRowHasHeader ? index + 2 : index + 1,
       },

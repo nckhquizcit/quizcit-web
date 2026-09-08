@@ -5630,6 +5630,34 @@
   font-size: 13px;
 }
 
+.question-import-quick-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid #fee2e2;
+  background: #fef2f2;
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+.question-import-quick-delete-btn:hover:not(:disabled) {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+
+.question-import-quick-delete-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .question-import-card__body {
   display: grid;
   gap: 12px;

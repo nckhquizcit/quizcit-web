@@ -178,19 +178,23 @@ export default function QuestionImportPreview({
                 {hasError ? "Cần sửa" : "Hợp lệ"}
               </span>
               <span className="adm2-link-arrow question-import-edit-label">Sửa</span>
+              <button
+                type="button"
+                className="question-import-quick-delete-btn"
+                title={`Xóa câu ${index + 1}`}
+                aria-label={`Xóa câu ${index + 1}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  event.preventDefault();
+                  onRemoveRow?.(row.id);
+                }}
+                disabled={disabled}
+              >
+                <Trash2 size={14} />
+                <span>Xóa</span>
+              </button>
             </summary>
             <div className="question-import-card__body">
-              <div className="question-import-card__actions">
-                <button
-                  type="button"
-                  aria-label={`Xóa câu ${index + 1}`}
-                  onClick={() => onRemoveRow?.(row.id)}
-                  disabled={disabled}
-                >
-                  <Trash2 size={16} />
-                  Xóa câu
-                </button>
-              </div>
 
             {row.contentFormat === "blocknote" ? (
               <div className="form-field full">
