@@ -1,13 +1,30 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, ClipboardList, Eye, HelpCircle, LogOut, Shield, Users } from "lucide-react";
+import {
+  BookOpen,
+  Camera,
+  ClipboardList,
+  Edit2,
+  Eye,
+  HelpCircle,
+  KeyRound,
+  LogOut,
+  Mail,
+  Shield,
+  Users,
+} from "lucide-react";
 import AdminPageHeader from "../components/AdminPageHeader";
 import Skeleton from "../../../components/ui/Skeleton/Skeleton";
+import { useToast } from "../../../components/ui";
 import { adminProfileService } from "../services/profileService.js";
 import { getStoredUser } from "../../../services/apiClient";
 import { enterUserPreview } from "../../../services/userPreviewMode";
 import { logout } from "../../../services/authService";
 import { resolveImageUrl } from "../../../services/mappers";
+import { getInitials } from "../utils/adminUsersLogic";
+import AdminEditProfileModal from "../components/modals/AdminEditProfileModal";
+import AdminChangePasswordModal from "../components/modals/AdminChangePasswordModal";
+import AdminChangeEmailModal from "../components/modals/AdminChangeEmailModal";
 import "./AdminProfile.css";
 
 const emptyStats = {
@@ -39,20 +56,18 @@ function IconAttempt({ className }) {
   return <ClipboardList className={className} aria-hidden="true" strokeWidth={1.8} />;
 }
 
-function getInitials(name) {
-  const trimmed = (name || "").trim();
-  if (!trimmed) return "?";
-  const parts = trimmed.split(/\s+/);
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-}
-
 export default function AdminProfile() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [admin, setAdmin] = useState(null);
   const [stats, setStats] = useState(emptyStats);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [changeEmailOpen, setChangeEmailOpen] = useState(false);
+
   const numberFormatter = useMemo(() => new Intl.NumberFormat("vi-VN"), []);
 
   useEffect(() => {
@@ -96,15 +111,17 @@ export default function AdminProfile() {
   }, []);
 
   const storedUser = useMemo(() => getStoredUser(), []);
+  const currentAdmin = admin || storedUser;
+
   const displayName =
-    admin?.displayName ||
-    admin?.display_name ||
-    admin?.username ||
-    storedUser?.displayName ||
-    storedUser?.username ||
+    currentAdmin?.displayName ||
+    currentAdmin?.display_name ||
+    currentAdmin?.username ||
     "Quản trị viên";
-  const username = admin?.username || storedUser?.username || "—";
-  const email = admin?.email || storedUser?.email || "—";
+  const username = currentAdmin?.username || "—";
+  const email = currentAdmin?.email || "—";
+  const avatarUrl = currentAdmin?.avatarUrl;
+
   const formatStat = (value) =>
     loading ? <Skeleton height={22} width={56} /> : numberFormatter.format(value ?? 0);
 
@@ -118,6 +135,11 @@ export default function AdminProfile() {
     navigate("/login");
   };
 
+  const handleEditProfileSuccess = (updatedUser) => {
+    setAdmin((prev) => ({ ...prev, ...updatedUser }));
+    toast.success("Cập nhật thông tin quản trị viên thành công.");
+  };
+
   return (
     <div className="admin-profile-page">
       <AdminPageHeader
@@ -128,20 +150,37 @@ export default function AdminProfile() {
       {error && <p className="admin-profile-error">{error}</p>}
 
       <section className="admin-card adm2-profile-hero">
-        <div className="adm2-profile-hero__avatar">
-          {admin?.avatarUrl || storedUser?.avatarUrl ? (
-            <img
-              src={resolveImageUrl(admin?.avatarUrl || storedUser?.avatarUrl)}
-              alt=""
-              className="adm2-profile-hero__avatar-img"
-              onError={(e) => {
-                e.currentTarget.style.display = "none";
-              }}
-            />
-          ) : (
-            getInitials(displayName)
-          )}
+        <div className="adm2-profile-hero__avatar-wrapper">
+          <div
+            className="adm2-profile-hero__avatar"
+            style={{ cursor: "pointer" }}
+            onClick={() => setEditProfileOpen(true)}
+            title="Nhấn để đổi thông tin hoặc ảnh đại diện"
+          >
+            {avatarUrl ? (
+              <img
+                src={resolveImageUrl(avatarUrl)}
+                alt=""
+                className="adm2-profile-hero__avatar-img"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
+              />
+            ) : (
+              getInitials(displayName)
+            )}
+          </div>
+          <button
+            type="button"
+            className="adm2-profile-hero__avatar-btn"
+            onClick={() => setEditProfileOpen(true)}
+            title="Đổi ảnh đại diện"
+            aria-label="Đổi ảnh đại diện"
+          >
+            <Camera size={16} />
+          </button>
         </div>
+
         <div className="adm2-profile-hero__body">
           <h2 className="adm2-profile-hero__name">{displayName}</h2>
           <p className="adm2-profile-hero__meta">
@@ -149,10 +188,33 @@ export default function AdminProfile() {
           </p>
           <span className="adm2-badge adm2-badge--dark">ADMINISTRATOR</span>
         </div>
-        <button type="button" className="cancel-btn" onClick={handlePreviewAsUser}>
-          <Eye size={16} />
-          Xem như người dùng
-        </button>
+
+        <div className="adm2-profile-hero__actions">
+          <button
+            type="button"
+            className="adm2-hero-btn adm2-hero-btn--primary"
+            onClick={() => setEditProfileOpen(true)}
+          >
+            <Edit2 size={16} />
+            <span>Chỉnh sửa thông tin</span>
+          </button>
+          <button
+            type="button"
+            className="cancel-btn adm2-hero-btn"
+            onClick={() => setChangePasswordOpen(true)}
+          >
+            <KeyRound size={16} />
+            <span>Đổi mật khẩu</span>
+          </button>
+          <button
+            type="button"
+            className="cancel-btn adm2-hero-btn"
+            onClick={handlePreviewAsUser}
+          >
+            <Eye size={16} />
+            <span>Xem như người dùng</span>
+          </button>
+        </div>
       </section>
 
       <section className="admin-stats">
@@ -206,6 +268,14 @@ export default function AdminProfile() {
               <span className="admin-card__headerDot" aria-hidden="true" />
               <span className="admin-card__headerTitle">Thông tin quản trị viên</span>
             </div>
+            <button
+              type="button"
+              className="adm2-card-header-btn"
+              onClick={() => setEditProfileOpen(true)}
+            >
+              <Edit2 size={14} />
+              <span>Chỉnh sửa</span>
+            </button>
           </header>
 
           <div className="admin-fields adm2-profile-fields">
@@ -229,9 +299,42 @@ export default function AdminProfile() {
 
           <div className="admin-divider" />
 
-          <div className="adm2-unsupported-row">
-            <span>Chỉnh sửa hồ sơ và đổi mật khẩu</span>
-            <span className="adm2-badge adm2-badge--gray">Chưa hỗ trợ</span>
+          <div className="adm2-security-box">
+            <div className="adm2-security-box__header">
+              <span className="adm2-security-box__title">Bảo mật & Quản lý tài khoản</span>
+              <span className="adm2-security-box__sub">
+                Cập nhật họ tên, ảnh đại diện, thay đổi mật khẩu đăng nhập hoặc email xác thực
+              </span>
+            </div>
+
+            <div className="adm2-security-box__actions">
+              <button
+                type="button"
+                className="submit-btn adm2-action-btn"
+                onClick={() => setEditProfileOpen(true)}
+              >
+                <Edit2 size={15} />
+                <span>Chỉnh sửa thông tin</span>
+              </button>
+
+              <button
+                type="button"
+                className="cancel-btn adm2-action-btn"
+                onClick={() => setChangePasswordOpen(true)}
+              >
+                <KeyRound size={15} />
+                <span>Đổi mật khẩu</span>
+              </button>
+
+              <button
+                type="button"
+                className="cancel-btn adm2-action-btn"
+                onClick={() => setChangeEmailOpen(true)}
+              >
+                <Mail size={15} />
+                <span>Đổi email</span>
+              </button>
+            </div>
           </div>
         </section>
 
@@ -262,6 +365,24 @@ export default function AdminProfile() {
           </div>
         </section>
       </div>
+
+      <AdminEditProfileModal
+        open={editProfileOpen}
+        onClose={() => setEditProfileOpen(false)}
+        admin={currentAdmin}
+        onSuccess={handleEditProfileSuccess}
+      />
+
+      <AdminChangePasswordModal
+        open={changePasswordOpen}
+        onClose={() => setChangePasswordOpen(false)}
+      />
+
+      <AdminChangeEmailModal
+        open={changeEmailOpen}
+        onClose={() => setChangeEmailOpen(false)}
+        currentEmail={email !== "—" ? email : ""}
+      />
     </div>
   );
 }

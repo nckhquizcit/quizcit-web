@@ -341,3 +341,180 @@
 .subject-visibility-checkbox small {
   color: var(--text-secondary, #64748b);
 }
+
+/* Admin Profile & Password Modal Additions */
+.admin-modal-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  background: var(--admin-primary-soft, #e9fbf3);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: var(--admin-radius-control, 8px);
+  color: #065f46;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.admin-modal-notice p {
+  margin: 0;
+  color: inherit;
+}
+
+.admin-modal-notice-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--admin-primary, #10b981);
+}
+
+.admin-field-hint {
+  display: block;
+  font-size: 12px;
+  color: var(--admin-muted, #5f6f82);
+  margin-top: 4px;
+}
+
+.admin-input--readonly {
+  background-color: var(--admin-surface-muted, #f8fafc) !important;
+  color: var(--admin-muted, #64748b) !important;
+  cursor: not-allowed;
+  border-color: var(--admin-border, #dce4ec) !important;
+}
+
+.admin-password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.admin-password-wrapper input {
+  width: 100%;
+  padding-right: 40px;
+}
+
+.admin-password-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: var(--admin-muted, #64748b);
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s, background-color 0.15s;
+}
+
+.admin-password-toggle:hover {
+  color: var(--admin-text, #0f172a);
+  background-color: rgba(15, 23, 42, 0.06);
+}
+
+.admin-avatar-edit-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 14px;
+  border-radius: var(--admin-radius-control, 8px);
+  background: var(--admin-surface-muted, #f8fafc);
+  border: 1px solid var(--admin-border, #dce4ec);
+}
+
+.admin-avatar-edit-preview {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: 999px;
+  background: var(--admin-primary-soft, #e9fbf3);
+  color: #047857;
+  font-size: 24px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.1);
+}
+
+.admin-avatar-edit-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.admin-avatar-edit-initials {
+  text-transform: uppercase;
+}
+
+.admin-avatar-edit-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.admin-avatar-edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-avatar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  min-height: 36px;
+}
+
+.admin-avatar-btn--remove {
+  color: var(--admin-danger, #dc2626);
+}
+
+.admin-avatar-btn--remove:hover {
+  background-color: var(--admin-danger-soft, #fef2f2);
+  border-color: #fecaca;
+}
+
+.admin-otp-input {
+  font-family: monospace;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 8px;
+  text-align: center;
+}
+
+.admin-loading-placeholder {
+  text-align: center;
+  padding: 24px 12px;
+  color: var(--admin-muted, #64748b);
+  font-size: 14px;
+}
+
+.admin-spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

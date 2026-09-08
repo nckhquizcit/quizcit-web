@@ -1,5 +1,15 @@
-import { getUserById } from "../../../services/userService";
-import { request } from "../../../services/apiClient";
+import {
+  changeCurrentUserPassword,
+  getCurrentUser,
+  getUserById,
+  updateCurrentUserProfile,
+} from "../../../services/userService";
+import {
+  confirmEmailChange,
+  requestEmailChange,
+  verifyOldEmail,
+} from "../../../services/emailChangeService";
+import { getStoredUser, request, setStoredUser } from "../../../services/apiClient";
 
 const fallbackAdmin = {
   username: "admin",
@@ -8,25 +18,61 @@ const fallbackAdmin = {
   role: "ADMINISTRATOR",
 };
 
-function getStoredUser() {
-  try {
-    const rawUser = localStorage.getItem("user");
-    return rawUser ? JSON.parse(rawUser) : null;
-  } catch {
-    return null;
-  }
+function syncStoredUser(updatedUser) {
+  const current = getStoredUser() || {};
+  const merged = { ...current, ...updatedUser };
+  setStoredUser(merged);
+  return merged;
 }
 
 export const adminProfileService = {
   async getCurrentAdmin() {
     const storedUser = getStoredUser();
 
-    if (!storedUser?.userId) {
-      return storedUser || fallbackAdmin;
+    try {
+      const freshUser = await getCurrentUser();
+      if (freshUser) {
+        return syncStoredUser(freshUser);
+      }
+    } catch {
+      if (storedUser?.userId) {
+        try {
+          const freshUser = await getUserById(storedUser.userId);
+          if (freshUser) {
+            return syncStoredUser(freshUser);
+          }
+        } catch {
+          // Graceful fallback to stored user
+        }
+      }
     }
 
-    const freshUser = await getUserById(storedUser.userId);
-    return { ...storedUser, ...freshUser };
+    return storedUser || fallbackAdmin;
+  },
+
+  async updateAdminProfile(payload) {
+    const updatedUser = await updateCurrentUserProfile(payload);
+    return syncStoredUser(updatedUser);
+  },
+
+  async changeAdminPassword(currentPassword, newPassword) {
+    return changeCurrentUserPassword(currentPassword, newPassword);
+  },
+
+  async requestEmailChange() {
+    return requestEmailChange();
+  },
+
+  async verifyOldEmail({ challengeId, otp, newEmail }) {
+    return verifyOldEmail({ challengeId, otp, newEmail });
+  },
+
+  async confirmEmailChange({ challengeId, otp }) {
+    const result = await confirmEmailChange({ challengeId, otp });
+    if (result) {
+      syncStoredUser(result);
+    }
+    return result;
   },
 
   async getAdminProfileStats() {
