@@ -171,7 +171,6 @@ export default function ImportQuestionsModal({
 
   const [targetSubjectId, setTargetSubjectId] = useState("");
   const [targetChapterId, setTargetChapterId] = useState("");
-  const [defaultSkillId, setDefaultSkillId] = useState("");
   const [availableChapters, setAvailableChapters] = useState([]);
   const [loadingChapters, setLoadingChapters] = useState(false);
   const [downloadingZip, setDownloadingZip] = useState(false);
@@ -261,19 +260,7 @@ export default function ImportQuestionsModal({
       ? matchDifficultyPresetKey(difficultyB) || CUSTOM_DIFFICULTY_KEY
       : (row.manualDifficulty || row.difficulty || "");
 
-    let sourceSkills = row.skills || [];
-    if (!sourceSkills.length && defaultSkillId) {
-      const defSkill = (currentChapterSkills || []).find((s) => s.skillId === defaultSkillId) ||
-        (allSubjectSkills || []).find((s) => s.skillId === defaultSkillId);
-      if (defSkill) {
-        sourceSkills = [{
-          skillId: defSkill.skillId,
-          name: defSkill.name,
-          weight: "1",
-          primary: true,
-        }];
-      }
-    }
+    const sourceSkills = row.skills || [];
 
     const chapterSkills = isBank ? [] : getImportSkillsForChapter(allPreviewChapters, chapterId);
     const equalWeight = equalSkillWeight(sourceSkills.length);
@@ -311,7 +298,7 @@ export default function ImportQuestionsModal({
       mappingErrors,
       serverError: "",
     };
-  }, [allPreviewChapters, allSubjectSkills, currentChapterSkills, defaultSkillId, targetChapterId, targetSubjectId]);
+  }, [allPreviewChapters, targetChapterId, targetSubjectId]);
 
   const handleApplyDifficultyArray = (difficultyValues = []) => {
     setSaveResult(null);
@@ -366,7 +353,6 @@ export default function ImportQuestionsModal({
     setSkillText("");
     setSkillFileName("");
     setSkillFileLoading(false);
-    setDefaultSkillId("");
     setRows([]);
     setParseMessage("");
     setFormError("");
@@ -469,7 +455,6 @@ export default function ImportQuestionsModal({
 
   const handleSubjectChange = (nextSubjectId) => {
     setTargetSubjectId(nextSubjectId);
-    setDefaultSkillId("");
     setFormError("");
     if (nextSubjectId === "QUESTION_BANK") {
       setTargetChapterId("QUESTION_BANK");
@@ -483,7 +468,6 @@ export default function ImportQuestionsModal({
 
   const handleChapterChange = (nextChapterId) => {
     setTargetChapterId(nextChapterId);
-    setDefaultSkillId("");
     setFormError("");
   };
 
@@ -714,8 +698,6 @@ export default function ImportQuestionsModal({
     }
     if (skillMappings.length > 0) {
       msg += ` Gán ${Math.min(skillMappings.length, parsedRows.length)} mảng kỹ năng.`;
-    } else if (defaultSkillId) {
-      msg += " Đã áp dụng kỹ năng mặc định.";
     }
     setParseMessage(msg);
   };
@@ -948,14 +930,14 @@ export default function ImportQuestionsModal({
           )}
         </div>
 
-        {/* BƯỚC 3: CHỌN KỸ NĂNG & NÚT LẤY MẪU ZIP (Chỉ hiển thị sau khi đã chọn môn & chương) */}
+        {/* BƯỚC 3: NÚT LẤY MẪU ZIP (Chỉ hiển thị sau khi đã chọn môn & chương) */}
         {isScopeReady && (
           <div className="admin-section-card adm2-card-pad question-import-step-card question-import-skill-scope-card">
             <div className="adm2-section-heading">
               <div className="question-import-step-badge">3</div>
               <div className="question-import-step-heading-main">
                 <div>
-                  <h3>Kỹ năng mặc định &amp; Bộ file mẫu (.zip)</h3>
+                  <h3>Bộ file mẫu (.zip)</h3>
                   <p>Mỗi câu hỏi bắt buộc có ít nhất 1 kỹ năng chính và tổng trọng số = 1.0.</p>
                 </div>
                 <button
@@ -971,27 +953,6 @@ export default function ImportQuestionsModal({
             </div>
 
             <div className="question-import-skill-setup">
-              <label className="form-field">
-                <span>Gán nhanh kỹ năng mặc định cho các câu chưa có kỹ năng:</span>
-                <select
-                  value={defaultSkillId}
-                  onChange={(event) => setDefaultSkillId(event.target.value)}
-                  disabled={submitting}
-                >
-                  <option value="">-- Không gán tự động (Dùng file/mảng kỹ năng hoặc nhập tay) --</option>
-                  {currentChapterSkills.map((s) => (
-                    <option value={s.skillId} key={s.skillId}>
-                      {s.name} (Trọng số: 1.0 - Chính)
-                    </option>
-                  ))}
-                  {!currentChapterSkills.length && allSubjectSkills.map((s) => (
-                    <option value={s.skillId} key={s.skillId}>
-                      {s.name} ({s.chapterName})
-                    </option>
-                  ))}
-                </select>
-              </label>
-
               <div className="question-import-zip-info-box">
                 <PackageCheck size={18} />
                 <div>

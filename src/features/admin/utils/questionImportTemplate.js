@@ -155,7 +155,7 @@ BỘ FILE MẪU BAO GỒM:
 CÁCH SỬ DỤNG KHI IMPORT:
 - Bước 1: Chọn định dạng "${String(format).toUpperCase()}".
 - Bước 2: Chọn Môn học và Chương.
-- Bước 3: Chọn Kỹ năng mặc định (nếu muốn áp dụng 1 kỹ năng cho toàn bộ câu hỏi) hoặc tải file mảng kỹ năng riêng.
+- Bước 3: Tải bộ file mẫu (.zip) nếu cần xem cấu trúc chuẩn của môn học.
 - Bước 4: Tải lên đồng thời 3 file (File câu hỏi, File độ khó, File kỹ năng) hoặc dán nội dung rồi bấm "Phân tích nội dung".
 - Bước 5: Xem trước, chỉnh sửa nếu cần và bấm "Import".
 `;
