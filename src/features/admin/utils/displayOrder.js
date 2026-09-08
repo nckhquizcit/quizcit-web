@@ -8,3 +8,12 @@ export function reorderById(items, draggedId, targetId, getId) {
   reordered.splice(toIndex, 0, dragged);
   return reordered.map((item, index) => ({ ...item, displayOrder: index + 1 }));
 }
+
+export function clampChapterDisplayOrder(val, totalChapters) {
+  const max = Math.max(1, Number(totalChapters) || 1);
+  if (val === "" || val === null || val === undefined) return 1;
+  const num = Number(val);
+  if (isNaN(num) || num < 1) return 1;
+  if (num > max) return max;
+  return Math.floor(num);
+}

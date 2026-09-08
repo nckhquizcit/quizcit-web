@@ -8,11 +8,13 @@ import {
   createTheory,
   deleteTheory,
   getChapterById,
+  getChaptersBySubject,
   getSubjectById,
   getTheoriesByChapter,
   updateChapter,
   updateTheory,
 } from "../../../services/contentService";
+import { clampChapterDisplayOrder } from "../utils/displayOrder";
 import { getErrorMessage } from "../../../services/apiClient";
 import { useToast } from "../../../components/ui/Toast/Toast";
 import { formatScaledThetaValue } from "../../../services/mappers";
@@ -34,6 +36,7 @@ export default function AdminChapterEdit() {
   const [activeTab, setActiveTab] = useState("theories"); // "theories" | "info"
   const [form, setForm] = useState(null);
   const [subject, setSubject] = useState(null);
+  const [chapters, setChapters] = useState([]);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [skills, setSkills] = useState([]);
@@ -52,14 +55,19 @@ export default function AdminChapterEdit() {
 
   const loadChapterData = useCallback(async () => {
     try {
-      const [chapter, skillRows, subjectData] = await Promise.all([
+      const [chapter, skillRows, subjectData, chapterList] = await Promise.all([
         getChapterById(chapterId),
         getSkills(),
         getSubjectById(subjectId),
+        getChaptersBySubject(subjectId),
       ]);
-      setForm(chapter);
+      const list = chapterList || [];
+      const total = Math.max(1, list.length);
+      const safeDisplayOrder = clampChapterDisplayOrder(chapter?.displayOrder, total);
+      setForm({ ...chapter, displayOrder: safeDisplayOrder });
       setSkills(skillRows);
       setSubject(subjectData);
+      setChapters(list);
     } catch (loadError) {
       setError(getErrorMessage(loadError, "Không thể tải chương."));
     }
@@ -162,15 +170,43 @@ export default function AdminChapterEdit() {
     }
   };
 
+  const totalChapters = Math.max(1, chapters.length || 1);
+
+  const handleDisplayOrderChange = (e) => {
+    const raw = e.target.value;
+    if (raw === "") {
+      setForm((prev) => ({ ...prev, displayOrder: "" }));
+      return;
+    }
+    const num = Number(raw);
+    if (isNaN(num) || num < 1) {
+      setForm((prev) => ({ ...prev, displayOrder: 1 }));
+      return;
+    }
+    if (num > totalChapters) {
+      setForm((prev) => ({ ...prev, displayOrder: totalChapters }));
+      return;
+    }
+    setForm((prev) => ({ ...prev, displayOrder: Math.floor(num) }));
+  };
+
+  const handleDisplayOrderBlur = () => {
+    setForm((prev) => {
+      const clamped = clampChapterDisplayOrder(prev?.displayOrder, totalChapters);
+      return { ...prev, displayOrder: clamped };
+    });
+  };
+
   // Save chapter info & skills
   const save = async (event) => {
     event.preventDefault();
     try {
       setSaving(true);
       setError("");
+      const finalOrder = clampChapterDisplayOrder(form.displayOrder, totalChapters);
       await updateChapter(chapterId, {
-        name: form.name,
-        displayOrder: Number(form.displayOrder),
+        name: form.name.trim(),
+        displayOrder: finalOrder,
         skills: form.skills || [],
       });
       toast.success("Cập nhật chương thành công.");
@@ -186,6 +222,17 @@ export default function AdminChapterEdit() {
   const currentEditingTheory = theories.find(
     (t) => (t.theoryId || t.theory_id) === selectedTheoryId,
   );
+  const currentOrderNum = Number(form?.displayOrder);
+  const swappedChapter =
+    Number.isInteger(currentOrderNum) &&
+    currentOrderNum >= 1 &&
+    currentOrderNum <= totalChapters
+      ? chapters.find(
+          (c) =>
+            (c.chapterId || c.id) !== chapterId &&
+            Number(c.displayOrder) === currentOrderNum,
+        )
+      : null;
 
   return (
     <>
@@ -387,10 +434,20 @@ export default function AdminChapterEdit() {
                         <input
                           type="number"
                           min="1"
+                          max={totalChapters}
                           value={form.displayOrder}
-                          onChange={(e) => setForm({ ...form, displayOrder: e.target.value })}
+                          onChange={handleDisplayOrderChange}
+                          onBlur={handleDisplayOrderBlur}
                           required
                         />
+                        <span
+                          className="adm2-note--muted"
+                          style={{ fontSize: "12px", marginTop: "4px", display: "block" }}
+                        >
+                          {swappedChapter
+                            ? `Sẽ đổi vị trí với: "${swappedChapter.name}" (hiện ở vị trí ${swappedChapter.displayOrder})`
+                            : `Hợp lệ từ 1 đến ${totalChapters}`}
+                        </span>
                       </label>
                     </div>
 
