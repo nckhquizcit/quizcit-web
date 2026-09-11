@@ -56,6 +56,35 @@ export async function getQuizzesByChapter(chapterId) {
   return (quizzes || []).map(mapQuiz).sort((a, b) => a.displayOrder - b.displayOrder);
 }
 
+export async function getSubjectQuizzesOverview(subjectId) {
+  const data = await request({
+    method: "GET",
+    url: `/api/v1/admin/subjects/${subjectId}/quizzes-overview`,
+  });
+  return {
+    subjectId: data?.subjectId,
+    subjectName: data?.subjectName,
+    chapters: (data?.chapters || []).map((chapter) => ({
+      chapterId: chapter.chapterId,
+      name: chapter.name || chapter.chapterName,
+      chapterName: chapter.chapterName || chapter.name,
+      displayOrder: chapter.displayOrder,
+      quizzes: (chapter.quizzes || []).map(mapQuiz).sort((a, b) => a.displayOrder - b.displayOrder),
+    })),
+  };
+}
+
+export async function getQuizDetailWithQuestions(quizId) {
+  const data = await request({
+    method: "GET",
+    url: `/api/v1/admin/quizzes/${quizId}/detail-with-questions`,
+  });
+  return {
+    quiz: mapQuiz(data?.quiz),
+    questions: (data?.questions || []).map(mapQuestion),
+  };
+}
+
 export async function getQuizzesBySubject(subjectId) {
   const quizzes = await request({ method: "GET", url: `/api/subjects/${subjectId}/quizzes` });
   return (quizzes || []).map(mapQuiz).sort((a, b) => a.displayOrder - b.displayOrder);

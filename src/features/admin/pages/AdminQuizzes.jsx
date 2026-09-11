@@ -14,7 +14,7 @@ import ConfirmDeleteModal from "../components/modals/ConfirmDeleteModal";
 import { useToast } from "../../../components/ui/Toast/Toast";
 import { getChaptersBySubject, getSubjects } from "../../../services/contentService";
 import { getErrorMessage } from "../../../services/apiClient";
-import { deleteQuiz, getQuizzesByChapter, reorderQuizzes } from "../services/quizService";
+import { deleteQuiz, getQuizzesByChapter, getSubjectQuizzesOverview, reorderQuizzes } from "../services/quizService";
 import { reorderById } from "../utils/displayOrder";
 
 const getSubjectId = (subject) => String(subject?.subjectId ?? subject?.id ?? "");
@@ -72,63 +72,83 @@ export default function AdminQuizzes() {
     if (!selectedSubjectId) {
       setChapters([]);
       setSelectedChapterId("");
+      setQuizzes([]);
       return undefined;
     }
     let isMounted = true;
     setIsLoadingChapters(true);
-    getChaptersBySubject(selectedSubjectId)
-      .then((rows) => {
+    setIsLoadingQuizzes(true);
+    setError("");
+    setIsOrdering(false);
+    setOrderSnapshot([]);
+    setDraggedQuizId(null);
+
+    async function loadSubjectData() {
+      try {
+        const overview = await getSubjectQuizzesOverview(selectedSubjectId);
         if (!isMounted) return;
-        const list = rows || [];
-        setChapters(list);
+        const chapList = overview?.chapters || [];
+        setChapters(chapList);
         setSelectedChapterId((current) => {
-          const has = list.some((chapter) => getChapterId(chapter) === current);
-          return has ? current : getChapterId(list[0]);
+          const has = chapList.some((chapter) => getChapterId(chapter) === current);
+          const target = has ? current : getChapterId(chapList[0]);
+          const activeChap = chapList.find((c) => getChapterId(c) === target);
+          setQuizzes(activeChap?.quizzes || []);
+          return target;
         });
-      })
-      .catch((loadError) => {
-        if (isMounted) {
-          setError(getErrorMessage(loadError, "Không thể tải danh sách chương."));
-          setChapters([]);
-          setSelectedChapterId("");
+      } catch (overviewErr) {
+        // Resilient fallback for older backend
+        console.warn("Failed to fetch quizzes overview, falling back:", overviewErr);
+        try {
+          const rows = (await getChaptersBySubject(selectedSubjectId)) || [];
+          if (!isMounted) return;
+          setChapters(rows);
+          setSelectedChapterId((current) => {
+            const has = rows.some((chapter) => getChapterId(chapter) === current);
+            return has ? current : getChapterId(rows[0]);
+          });
+        } catch (chapErr) {
+          if (isMounted) {
+            setError(getErrorMessage(chapErr, "Không thể tải danh sách chương."));
+            setChapters([]);
+            setSelectedChapterId("");
+            setQuizzes([]);
+          }
         }
-      })
-      .finally(() => {
-        if (isMounted) setIsLoadingChapters(false);
-      });
+      } finally {
+        if (isMounted) {
+          setIsLoadingChapters(false);
+          setIsLoadingQuizzes(false);
+        }
+      }
+    }
+
+    loadSubjectData();
     return () => {
       isMounted = false;
     };
   }, [selectedSubjectId, reloadTick]);
 
-  useEffect(() => {
-    if (!selectedChapterId) {
-      setQuizzes([]);
-      return undefined;
-    }
+  const handleChapterChange = (nextChapterId) => {
+    setSelectedChapterId(nextChapterId);
     setIsOrdering(false);
     setOrderSnapshot([]);
     setDraggedQuizId(null);
-    let isMounted = true;
-    setIsLoadingQuizzes(true);
-    setError("");
-    getQuizzesByChapter(selectedChapterId)
-      .then((rows) => {
-        if (isMounted) setQuizzes(rows || []);
-      })
-      .catch((loadError) => {
-        if (isMounted) {
-          setError(getErrorMessage(loadError, "Không thể tải danh sách đề thi."));
-          setQuizzes([]);
-        }
-      })
-      .finally(() => {
-        if (isMounted) setIsLoadingQuizzes(false);
-      });
-    return () => {
-      isMounted = false;
-    };
-  }, [selectedChapterId, reloadTick]);
+
+    const found = chapters.find((c) => getChapterId(c) === nextChapterId);
+    if (found?.quizzes) {
+      setQuizzes(found.quizzes);
+    } else if (nextChapterId) {
+      setIsLoadingQuizzes(true);
+      setError("");
+      getQuizzesByChapter(nextChapterId)
+        .then((rows) => setQuizzes(rows || []))
+        .catch((loadErr) => setError(getErrorMessage(loadErr, "Không thể tải danh sách đề thi.")))
+        .finally(() => setIsLoadingQuizzes(false));
+    } else {
+      setQuizzes([]);
+    }
+  };
 
   const selectedChapter = useMemo(
     () => chapters.find((chapter) => getChapterId(chapter) === selectedChapterId),
@@ -322,7 +342,7 @@ export default function AdminQuizzes() {
           <span>Chương</span>
           <select
             value={selectedChapterId}
-            onChange={(event) => setSelectedChapterId(event.target.value)}
+            onChange={(event) => handleChapterChange(event.target.value)}
             disabled={isLoadingChapters || !chapters.length}
           >
             {chapters.map((chapter) => (

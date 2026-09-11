@@ -75,6 +75,23 @@ export const adminProfileService = {
     return result;
   },
 
+  async getAdminProfileSummary() {
+    const data = await request({ method: "GET", url: "/api/v1/admin/profile" });
+    if (data?.admin) {
+      syncStoredUser(data.admin);
+    }
+    return {
+      admin: data?.admin || null,
+      stats: {
+        totalUsers: Number(data?.stats?.totalUsers || 0),
+        totalSubjects: Number(data?.stats?.totalSubjects || 0),
+        totalQuestions: Number(data?.stats?.totalQuestions || 0),
+        totalAttempts: Number(data?.stats?.totalAttempts || 0),
+        totalSkills: Number(data?.stats?.totalSkills || 0),
+      },
+    };
+  },
+
   async getAdminProfileStats() {
     const stats = await request({ method: "GET", url: "/api/admin/data-stats" });
     return {

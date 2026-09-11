@@ -11,6 +11,7 @@ export {
   createChapter,
   deleteChapter,
   getChapterById,
+  getChapterEditContext,
   getAllChapters,
   getAllChaptersForAdmin,
   getChaptersBySubject,

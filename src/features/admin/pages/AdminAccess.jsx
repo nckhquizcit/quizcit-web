@@ -11,6 +11,7 @@ import { getErrorMessage } from "../../../services/apiClient";
 import {
   deletePermission,
   deleteRole,
+  getAccessMatrix,
   getPermissions,
   getRoles,
 } from "../../../services/rbacService";
@@ -43,7 +44,16 @@ export default function AdminAccess() {
     setLoading(true);
     setError("");
     try {
-      const [nextRoles, nextPermissions] = await Promise.all([getRoles(), getPermissions()]);
+      let nextRoles;
+      let nextPermissions;
+      try {
+        const matrix = await getAccessMatrix();
+        nextRoles = matrix?.roles || [];
+        nextPermissions = matrix?.permissions || [];
+      } catch {
+        // Resilient fallback for older backend
+        [nextRoles, nextPermissions] = await Promise.all([getRoles(), getPermissions()]);
+      }
       setRoles(nextRoles);
       setPermissions(nextPermissions);
     } catch (loadError) {

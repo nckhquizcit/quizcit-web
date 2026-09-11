@@ -1,6 +1,6 @@
 import { request } from "./apiClient";
 import { getDeleteParams } from "./apiContracts";
-import { mapChapter } from "./mappers";
+import { mapChapter, mapTheory } from "./mappers";
 
 export async function getChaptersBySubject(subjectId) {
   const chapters = await request({ method: "GET", url: `/api/subjects/${subjectId}/chapters` });
@@ -55,6 +55,26 @@ export async function getAllChaptersForAdmin(subjects = []) {
   }
 
   return getAllChapters();
+}
+
+/**
+ * Full edit context for a chapter (including subject name, sibling chapters count/list, available skills, and theories).
+ * Allows AdminChapterEdit to load in 1 single HTTP roundtrip instead of 5.
+ */
+export async function getChapterEditContext(chapterId) {
+  const data = await request({
+    method: "GET",
+    url: `/api/v1/admin/chapters/${chapterId}/edit-context`,
+  });
+  return {
+    chapter: mapChapter(data?.chapter),
+    subjectId: data?.subjectId,
+    subjectName: data?.subjectName,
+    siblingChaptersCount: Number(data?.siblingChaptersCount || 0),
+    siblingChapters: (data?.siblingChapters || []).map(mapChapter).sort((a, b) => a.displayOrder - b.displayOrder),
+    availableSkills: data?.availableSkills || [],
+    theories: (data?.theories || []).map(mapTheory),
+  };
 }
 
 export async function getChapterById(chapterId) {

@@ -77,6 +77,17 @@ export default function AdminProfile() {
       setLoading(true);
       setError("");
 
+      try {
+        const summary = await adminProfileService.getAdminProfileSummary();
+        if (!isMounted) return;
+        if (summary?.admin) setAdmin(summary.admin);
+        if (summary?.stats) setStats({ ...emptyStats, ...summary.stats });
+        setLoading(false);
+        return;
+      } catch {
+        // Resilient fallback to legacy parallel calls
+      }
+
       const [adminResult, statsResult] = await Promise.allSettled([
         adminProfileService.getCurrentAdmin(),
         adminProfileService.getAdminProfileStats(),
