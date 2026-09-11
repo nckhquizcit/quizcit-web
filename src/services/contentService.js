@@ -14,6 +14,7 @@ export {
   getAllChapters,
   getAllChaptersForAdmin,
   getChaptersBySubject,
+  getChaptersSummary,
   updateChapter,
   reorderChapters,
 } from "./chapterService";

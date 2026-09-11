@@ -299,7 +299,12 @@ export default function AdminQuestions() {
     try {
       setLoading(true);
       setError("");
-      const [subjectData, allQuestions] = await Promise.all([getSubjects(), getAllQuestions()]);
+      const questionParams = chapterId
+        ? { chapterId }
+        : subjectId
+          ? { subjectId }
+          : undefined;
+      const [subjectData, allQuestions] = await Promise.all([getSubjects(), getAllQuestions(questionParams)]);
       const normalizedSubjects = (subjectData || []).map(normalizeSubject);
       const allChapters = await getAllChaptersForAdmin(normalizedSubjects);
       const { chapters: normalizedChapters, questions } = loadQuestionsFromChapters(

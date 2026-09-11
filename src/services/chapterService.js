@@ -7,6 +7,23 @@ export async function getChaptersBySubject(subjectId) {
   return (chapters || []).map(mapChapter).sort((a, b) => a.displayOrder - b.displayOrder);
 }
 
+/**
+ * Optimized chapter summary endpoint for admin UI (includes questionCount and theoryCount).
+ * Resilient fallback to getChaptersBySubject if endpoint is unavailable.
+ */
+export async function getChaptersSummary(subjectId) {
+  try {
+    const chapters = await request({
+      method: "GET",
+      url: `/api/admin/subjects/${subjectId}/chapters-summary`,
+    });
+    return (chapters || []).map(mapChapter).sort((a, b) => a.displayOrder - b.displayOrder);
+  } catch (err) {
+    console.warn("Failed to get chapters summary, falling back to getChaptersBySubject:", err);
+    return getChaptersBySubject(subjectId);
+  }
+}
+
 export async function getAllChapters() {
   const chapters = await request({ method: "GET", url: "/api/chapters" });
   return (chapters || []).map(mapChapter).sort((a, b) => a.displayOrder - b.displayOrder);
@@ -14,10 +31,19 @@ export async function getAllChapters() {
 
 /**
  * Full non-bank chapter catalog for admin UI.
- * Uses per-subject endpoints so counts/placement stay complete even if
- * GET /api/chapters is filtered (e.g. view-as user).
+ * Calls flattened GET /api/admin/chapters-flat in 1 request (avoiding N+1 loops).
+ * Resilient fallback to per-subject queries if chapters-flat is unavailable.
  */
 export async function getAllChaptersForAdmin(subjects = []) {
+  try {
+    const flatChapters = await request({ method: "GET", url: "/api/admin/chapters-flat" });
+    if (Array.isArray(flatChapters) && flatChapters.length > 0) {
+      return flatChapters.map(mapChapter).sort((a, b) => a.displayOrder - b.displayOrder);
+    }
+  } catch (err) {
+    console.warn("Failed to fetch flat chapters, falling back to per-subject fetch:", err);
+  }
+
   const subjectIds = (subjects || [])
     .map((subject) => subject?.subjectId ?? subject?.subject_id ?? subject?.id)
     .filter(Boolean);

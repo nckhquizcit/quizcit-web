@@ -5,12 +5,22 @@ import { mapQuestion } from "./mappers";
 import { enrichSkillNames, getSkills } from "./skillService";
 
 async function mapQuestionsWithSkillNames(rawQuestions = []) {
-  const questions = (rawQuestions || []).map(mapQuestion);
+  const isPaged = rawQuestions && !Array.isArray(rawQuestions) && Array.isArray(rawQuestions.content);
+  const rawList = isPaged ? rawQuestions.content : (rawQuestions || []);
+  const questions = rawList.map(mapQuestion);
   const skills = await getSkills().catch(() => []);
-  return questions.map((question) => ({
+  const mappedList = questions.map((question) => ({
     ...question,
     skills: enrichSkillNames(question.skills, skills),
   }));
+
+  if (isPaged) {
+    return {
+      ...rawQuestions,
+      content: mappedList,
+    };
+  }
+  return mappedList;
 }
 
 function mapQuestionPayload(payload = {}) {
@@ -38,9 +48,9 @@ export async function getQuestionsByChapter(chapterId) {
   return mapQuestionsWithSkillNames(questions);
 }
 
-export async function getAllQuestions() {
+export async function getAllQuestions(params) {
   return mapQuestionsWithSkillNames(
-    await request({ method: "GET", url: "/api/questions" }),
+    await request({ method: "GET", url: "/api/questions", params }),
   );
 }
 

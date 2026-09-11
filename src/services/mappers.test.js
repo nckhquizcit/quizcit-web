@@ -134,5 +134,17 @@ describe("chapter mapping and unlock status", () => {
     assert.equal(chapter.skills[2].requiredTheta, 0);
     assert.equal(chapter.skills[2].currentTheta, null);
   });
+
+  it("maps questionCount, theoryCount and chapterName aliases", () => {
+    const chapter = mapChapter({
+      chapterId: "c6",
+      chapterName: "Chương 6",
+      questionCount: 15,
+      theoryCount: 3,
+    });
+    assert.equal(chapter.name, "Chương 6");
+    assert.equal(chapter.questionCount, 15);
+    assert.equal(chapter.theoryCount, 3);
+  });
 });
 
