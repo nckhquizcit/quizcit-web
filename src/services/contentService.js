@@ -5,15 +5,23 @@ export {
   getSubjects,
   updateSubject,
   reorderSubjects,
+  getSubjectStudyOverview,
+  getSubjectCatalogSummary,
 } from "./subjectService";
+
+export {
+  getHomeSummary,
+} from "./homeService";
 
 export {
   createChapter,
   deleteChapter,
   getChapterById,
+  getChapterEditContext,
   getAllChapters,
   getAllChaptersForAdmin,
   getChaptersBySubject,
+  getChaptersSummary,
   updateChapter,
   reorderChapters,
 } from "./chapterService";
@@ -26,6 +34,7 @@ export {
   getTheoryById,
   updateTheory,
   reindexTheoriesBySubject,
+  getTheoryReaderView,
 } from "./theoryService";
 
 export { getQuizzesBySubject } from "./quizService";

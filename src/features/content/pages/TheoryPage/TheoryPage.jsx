@@ -5,6 +5,7 @@ import {
   getChaptersBySubject,
   getTheoriesByChapter,
   getTheoryById,
+  getTheoryReaderView,
 } from "../../../../services/contentService";
 import { getErrorMessage, isAccessDenied } from "../../../../services/apiClient";
 import { Button, Card, EmptyState, ErrorState, Spinner } from "../../../../components/ui";
@@ -37,21 +38,38 @@ export default function TheoryPage() {
         setLoading(true);
         setError(null);
         setAccessDenied(false);
-        const [chapters = [], theoryData] = await Promise.all([
-          getChaptersBySubject(subjectId),
-          getTheoryById(theoryId),
-        ]);
-        const chapterId = theoryData.chapterId || theoryData.chapter_id;
-        const idx = chapters.findIndex(
-          (item) => (item.chapterId || item.chapter_id) === chapterId
-        );
-        const theories = chapterId ? await getTheoriesByChapter(chapterId) : [];
 
-        if (!alive) return;
-        setChapter(idx >= 0 ? chapters[idx] : null);
-        setChapterIndex(idx);
-        setTheory(theoryData);
-        setChapterTheories(theories);
+        try {
+          // Primary: 1 request duy nhất tới reader-view (Phase 3 optimization)
+          const readerView = await getTheoryReaderView(theoryId);
+          if (!alive) return;
+          setChapter(readerView.chapter || null);
+          setChapterIndex(readerView.chapterIndex ?? -1);
+          setTheory(readerView);
+          setChapterTheories(readerView.chapterTheories || []);
+          return;
+        } catch (readerErr) {
+          if (isAccessDenied(readerErr)) {
+            if (alive) setAccessDenied(true);
+            return;
+          }
+          // Fallback: waterfall 2 đợt cũ nếu endpoint reader-view lỗi hoặc 404
+          const [chapters = [], theoryData] = await Promise.all([
+            getChaptersBySubject(subjectId),
+            getTheoryById(theoryId),
+          ]);
+          const chapterId = theoryData.chapterId || theoryData.chapter_id;
+          const idx = chapters.findIndex(
+            (item) => (item.chapterId || item.chapter_id) === chapterId
+          );
+          const theories = chapterId ? await getTheoriesByChapter(chapterId) : [];
+
+          if (!alive) return;
+          setChapter(idx >= 0 ? chapters[idx] : null);
+          setChapterIndex(idx);
+          setTheory(theoryData);
+          setChapterTheories(theories);
+        }
       } catch (err) {
         if (!alive) return;
         // BE trả 403 khi chưa đăng ký môn, hướng người dùng về trang đăng ký.

@@ -8,6 +8,7 @@ import {
   createTheory,
   deleteTheory,
   getChapterById,
+  getChapterEditContext,
   getChaptersBySubject,
   getSubjectById,
   getTheoriesByChapter,
@@ -53,58 +54,84 @@ export default function AdminChapterEdit() {
 
   const returnPath = `/admin/subjects/${subjectId}/chapters`;
 
-  const loadChapterData = useCallback(async () => {
-    try {
-      const [chapter, skillRows, subjectData, chapterList] = await Promise.all([
-        getChapterById(chapterId),
-        getSkills(),
-        getSubjectById(subjectId),
-        getChaptersBySubject(subjectId),
-      ]);
-      const list = chapterList || [];
-      const total = Math.max(1, list.length);
-      const safeDisplayOrder = clampChapterDisplayOrder(chapter?.displayOrder, total);
-      setForm({ ...chapter, displayOrder: safeDisplayOrder });
-      setSkills(skillRows);
-      setSubject(subjectData);
-      setChapters(list);
-    } catch (loadError) {
-      setError(getErrorMessage(loadError, "Không thể tải chương."));
+  const applyTheories = useCallback((data) => {
+    setTheories(data || []);
+    if (data && data.length > 0) {
+      setSelectedTheoryId((prevId) => {
+        const found = data.find((t) => (t.theoryId || t.theory_id) === prevId);
+        const target = found || data[0];
+        const tid = target.theoryId || target.theory_id;
+        setTheoryContent(target.content || "");
+        setTheoryFormat(target.contentFormat || THEORY_FORMAT_BLOCKNOTE);
+        return tid;
+      });
+    } else {
+      setSelectedTheoryId("new");
+      setTheoryContent("");
+      setTheoryFormat(THEORY_FORMAT_BLOCKNOTE);
     }
-  }, [chapterId, subjectId]);
+  }, []);
 
   const loadTheories = useCallback(async () => {
     setTheoriesLoading(true);
     setTheoriesError("");
     try {
       const data = (await getTheoriesByChapter(chapterId)) || [];
-      setTheories(data);
-
-      if (data.length > 0) {
-        setSelectedTheoryId((prevId) => {
-          const found = data.find((t) => (t.theoryId || t.theory_id) === prevId);
-          const target = found || data[0];
-          const tid = target.theoryId || target.theory_id;
-          setTheoryContent(target.content || "");
-          setTheoryFormat(target.contentFormat || THEORY_FORMAT_BLOCKNOTE);
-          return tid;
-        });
-      } else {
-        setSelectedTheoryId("new");
-        setTheoryContent("");
-        setTheoryFormat(THEORY_FORMAT_BLOCKNOTE);
-      }
+      applyTheories(data);
     } catch (err) {
       setTheoriesError(getErrorMessage(err, "Không thể tải danh sách lý thuyết."));
     } finally {
       setTheoriesLoading(false);
     }
-  }, [chapterId]);
+  }, [chapterId, applyTheories]);
+
+  const loadChapterData = useCallback(async () => {
+    try {
+      setError("");
+      let context;
+      try {
+        context = await getChapterEditContext(chapterId);
+      } catch {
+        // Resilient fallback for older backend
+        const [chapter, skillRows, subjectData, chapterList] = await Promise.all([
+          getChapterById(chapterId),
+          getSkills(),
+          getSubjectById(subjectId),
+          getChaptersBySubject(subjectId),
+        ]);
+        context = {
+          chapter,
+          subjectId: subjectData?.subjectId || subjectId,
+          subjectName: subjectData?.name || "",
+          availableSkills: skillRows || [],
+          siblingChapters: chapterList || [],
+          siblingChaptersCount: (chapterList || []).length,
+          theories: null,
+        };
+      }
+
+      const chapter = context.chapter;
+      const list = context.siblingChapters || [];
+      const total = Math.max(1, context.siblingChaptersCount || list.length);
+      const safeDisplayOrder = clampChapterDisplayOrder(chapter?.displayOrder, total);
+      setForm({ ...chapter, displayOrder: safeDisplayOrder });
+      setSkills(context.availableSkills || []);
+      setSubject({ subjectId: context.subjectId || subjectId, name: context.subjectName || "" });
+      setChapters(list);
+
+      if (Array.isArray(context.theories)) {
+        applyTheories(context.theories);
+      } else {
+        await loadTheories();
+      }
+    } catch (loadError) {
+      setError(getErrorMessage(loadError, "Không thể tải chương."));
+    }
+  }, [chapterId, subjectId, applyTheories, loadTheories]);
 
   useEffect(() => {
     loadChapterData();
-    loadTheories();
-  }, [loadChapterData, loadTheories]);
+  }, [loadChapterData]);
 
   // Select an existing theory
   const handleSelectTheory = (theory) => {

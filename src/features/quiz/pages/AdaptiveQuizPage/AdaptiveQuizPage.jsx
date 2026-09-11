@@ -58,16 +58,20 @@ export default function AdaptiveQuizPage() {
   }, [attemptId, navigate]);
 
   useEffect(() => {
+    // Phase 3: Tận dụng subjectName được trả về trực tiếp trong AdaptiveQuizResponse
+    if (state?.subjectName) {
+      setMeta({ subjectName: state.subjectName });
+      return;
+    }
     if (!state?.quizId || metaRequestedRef.current) return;
     metaRequestedRef.current = true;
 
-    // Each batch can draw from any unlocked chapter in the subject, so there is
-    // no single "current chapter" to show — only the subject name is reliable.
+    // Fallback: chỉ tra cứu phụ nếu backend chưa có subjectName
     getQuizById(state.quizId)
       .then((quiz) => (quiz?.subjectId ? getSubjectById(quiz.subjectId) : null))
       .then((subject) => setMeta({ subjectName: subject?.name || "" }))
       .catch(() => setMeta({ subjectName: "" }));
-  }, [state?.quizId]);
+  }, [state?.quizId, state?.subjectName]);
 
   const handleSelectAnswer = useCallback((questionId, optionId) => {
     setAnswers((current) => {
@@ -149,7 +153,7 @@ export default function AdaptiveQuizPage() {
   const questions = state.questions || [];
   const totalGroups = Math.ceil((state.totalQuestion || 0) / ADAPTIVE_PAGE_SIZE);
   const isLastBatch = state.answeredQuestion + questions.length >= state.totalQuestion;
-  const subjectLine = meta?.subjectName || "";
+  const subjectLine = state?.subjectName || meta?.subjectName || "";
   const batchReady = hasAnsweredAdaptiveBatch(questions, answers);
   const answeredInBatch = questions.filter(
     (question) => answers[question.questionId],

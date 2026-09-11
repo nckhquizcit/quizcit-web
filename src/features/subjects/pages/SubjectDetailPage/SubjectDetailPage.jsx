@@ -14,6 +14,7 @@ import {
 import {
   getChaptersBySubject,
   getSubjectById,
+  getSubjectStudyOverview,
   getTheoriesBySubject,
 } from "../../../../services/contentService";
 import {
@@ -159,8 +160,51 @@ export default function SubjectDetailPage() {
     return adminAccess || enrolled;
   }, [subjectId]);
 
-  // Nội dung trong môn yêu cầu đã đăng ký, nên tách khỏi request thông tin môn.
-  const loadContent = useCallback(async () => {
+  const applyStudyOverview = useCallback((data) => {
+    setSubject({
+      subjectId: data.subjectId,
+      name: data.name,
+      courseCode: data.courseCode,
+      description: data.description,
+      imageUrl: data.imageUrl,
+    });
+
+    if (!data.enrolled) {
+      setContentBlocked(true);
+      setChapters([]);
+      setTheoriesByChapter({});
+      setQuizzesByChapter({});
+      setUserAbilities([]);
+      setActiveChapterId(null);
+      return;
+    }
+
+    setContentBlocked(false);
+    const chapterData = data.chapters || [];
+    const chapterIds = chapterData.map((ch) => ch.chapterId || ch.chapter_id);
+    const theoryEntries = chapterData.map((ch) => [
+      ch.chapterId || ch.chapter_id,
+      ch.theories || [],
+    ]);
+    const quizEntries = chapterData.map((ch) => [
+      ch.chapterId || ch.chapter_id,
+      ch.quizzes || [],
+    ]);
+
+    setChapters(chapterData);
+    setTheoriesByChapter(Object.fromEntries(theoryEntries));
+    setQuizzesByChapter(Object.fromEntries(quizEntries));
+
+    const targetChapterId = location.state?.chapterId || location.state?.activeChapterId;
+    setActiveChapterId((current) => {
+      if (current && chapterIds.includes(current)) return current;
+      if (targetChapterId && chapterIds.includes(targetChapterId)) return targetChapterId;
+      return chapterIds[0] || null;
+    });
+  }, [location.state?.chapterId, location.state?.activeChapterId]);
+
+  // Dự phòng: luồng multi-request cũ phòng trường hợp endpoint mới gặp lỗi
+  const loadContentLegacy = useCallback(async () => {
     const loadId = loadIdRef.current;
     setContentError(null);
 
@@ -241,20 +285,33 @@ export default function SubjectDetailPage() {
     const loadId = (loadIdRef.current += 1);
     setLoading(true);
     setError(null);
+    setContentError(null);
 
-    const [subjectResult] = await Promise.allSettled([
-      getSubjectById(subjectId),
-      loadContent(),
-    ]);
-    if (loadIdRef.current !== loadId) return;
+    try {
+      // Primary: Endpoint tổng hợp study-overview (Phase 3 optimization)
+      const overview = await getSubjectStudyOverview(subjectId);
+      if (loadIdRef.current !== loadId) return;
+      applyStudyOverview(overview);
+    } catch {
+      // Resilient Fallback: Gọi luồng Promise.allSettled cũ nếu endpoint tổng hợp lỗi
+      if (loadIdRef.current !== loadId) return;
+      const [subjectResult] = await Promise.allSettled([
+        getSubjectById(subjectId),
+        loadContentLegacy(),
+      ]);
+      if (loadIdRef.current !== loadId) return;
 
-    if (subjectResult.status === "rejected") {
-      setError(getErrorMessage(subjectResult.reason, "Không thể tải thông tin môn học."));
-    } else {
-      setSubject(subjectResult.value);
+      if (subjectResult.status === "rejected") {
+        setError(getErrorMessage(subjectResult.reason, "Không thể tải thông tin môn học."));
+      } else {
+        setSubject(subjectResult.value);
+      }
+    } finally {
+      if (loadIdRef.current === loadId) {
+        setLoading(false);
+      }
     }
-    setLoading(false);
-  }, [subjectId, loadContent]);
+  }, [subjectId, applyStudyOverview, loadContentLegacy]);
 
   useEffect(() => {
     if (!subjectId) return undefined;
@@ -273,7 +330,7 @@ export default function SubjectDetailPage() {
         if (!isAlreadyEnrolled(enrollError)) throw enrollError;
       }
       toast.success("Đã đăng ký môn học.");
-      await loadContent();
+      await load();
     } catch (err) {
       toast.error(getErrorMessage(err, "Không thể đăng ký môn học."));
     } finally {
@@ -388,7 +445,7 @@ export default function SubjectDetailPage() {
         <ErrorState
           title="Không tải được nội dung môn học"
           description={contentError}
-          onRetry={loadContent}
+          onRetry={load}
         />
       ) : (
         <>

@@ -1,10 +1,27 @@
 import { request } from "./apiClient";
 import { getDeleteParams } from "./apiContracts";
-import { mapChapter } from "./mappers";
+import { mapChapter, mapTheory } from "./mappers";
 
 export async function getChaptersBySubject(subjectId) {
   const chapters = await request({ method: "GET", url: `/api/subjects/${subjectId}/chapters` });
   return (chapters || []).map(mapChapter).sort((a, b) => a.displayOrder - b.displayOrder);
+}
+
+/**
+ * Optimized chapter summary endpoint for admin UI (includes questionCount and theoryCount).
+ * Resilient fallback to getChaptersBySubject if endpoint is unavailable.
+ */
+export async function getChaptersSummary(subjectId) {
+  try {
+    const chapters = await request({
+      method: "GET",
+      url: `/api/admin/subjects/${subjectId}/chapters-summary`,
+    });
+    return (chapters || []).map(mapChapter).sort((a, b) => a.displayOrder - b.displayOrder);
+  } catch (err) {
+    console.warn("Failed to get chapters summary, falling back to getChaptersBySubject:", err);
+    return getChaptersBySubject(subjectId);
+  }
 }
 
 export async function getAllChapters() {
@@ -14,10 +31,19 @@ export async function getAllChapters() {
 
 /**
  * Full non-bank chapter catalog for admin UI.
- * Uses per-subject endpoints so counts/placement stay complete even if
- * GET /api/chapters is filtered (e.g. view-as user).
+ * Calls flattened GET /api/admin/chapters-flat in 1 request (avoiding N+1 loops).
+ * Resilient fallback to per-subject queries if chapters-flat is unavailable.
  */
 export async function getAllChaptersForAdmin(subjects = []) {
+  try {
+    const flatChapters = await request({ method: "GET", url: "/api/admin/chapters-flat" });
+    if (Array.isArray(flatChapters) && flatChapters.length > 0) {
+      return flatChapters.map(mapChapter).sort((a, b) => a.displayOrder - b.displayOrder);
+    }
+  } catch (err) {
+    console.warn("Failed to fetch flat chapters, falling back to per-subject fetch:", err);
+  }
+
   const subjectIds = (subjects || [])
     .map((subject) => subject?.subjectId ?? subject?.subject_id ?? subject?.id)
     .filter(Boolean);
@@ -29,6 +55,26 @@ export async function getAllChaptersForAdmin(subjects = []) {
   }
 
   return getAllChapters();
+}
+
+/**
+ * Full edit context for a chapter (including subject name, sibling chapters count/list, available skills, and theories).
+ * Allows AdminChapterEdit to load in 1 single HTTP roundtrip instead of 5.
+ */
+export async function getChapterEditContext(chapterId) {
+  const data = await request({
+    method: "GET",
+    url: `/api/v1/admin/chapters/${chapterId}/edit-context`,
+  });
+  return {
+    chapter: mapChapter(data?.chapter),
+    subjectId: data?.subjectId,
+    subjectName: data?.subjectName,
+    siblingChaptersCount: Number(data?.siblingChaptersCount || 0),
+    siblingChapters: (data?.siblingChapters || []).map(mapChapter).sort((a, b) => a.displayOrder - b.displayOrder),
+    availableSkills: data?.availableSkills || [],
+    theories: (data?.theories || []).map(mapTheory),
+  };
 }
 
 export async function getChapterById(chapterId) {

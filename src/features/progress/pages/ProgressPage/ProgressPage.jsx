@@ -5,6 +5,7 @@ import {
   getAverageAbility,
   getAbilityHistories,
   getUserSkillAbilities,
+  getUserProgressOverview,
 } from "../../../../services/progressService";
 import { getSkills } from "../../../../services/skillService";
 import { getStoredUser, getErrorMessage } from "../../../../services/apiClient";
@@ -21,6 +22,7 @@ import {
   ProgressRing,
   SkeletonCard,
 } from "../../../../components/ui";
+import { normalizeProgressOverview } from "../../utils/progressOverview";
 import SkillTile from "../../components/SkillTile/SkillTile";
 import { getProgressTone } from "../../../home/components/progressTone.js";
 import {
@@ -69,6 +71,22 @@ export default function ProgressPage() {
     try {
       setLoading(true);
       setError("");
+      try {
+        const overview = await getUserProgressOverview(user.userId);
+        if (!isCurrent()) return;
+
+        if (overview) {
+          const normalized = normalizeProgressOverview(overview);
+          setAbilities(normalized.abilities);
+          setHistories(normalized.histories);
+          setSkills(normalized.skills);
+          setAverageAbility(normalized.averageAbility);
+          return;
+        }
+      } catch (overviewError) {
+        console.warn("getUserProgressOverview failed, falling back to legacy flow:", overviewError);
+      }
+
       const [abilityRows, historyRows, skillRows, average] = await Promise.allSettled([
         getUserSkillAbilities(user.userId),
         getAbilityHistories(user.userId),

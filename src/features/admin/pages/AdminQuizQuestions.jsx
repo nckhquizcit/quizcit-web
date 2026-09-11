@@ -4,7 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import AdminPageHeader from "../components/AdminPageHeader";
 import ErrorState from "../../../components/ui/ErrorState/ErrorState";
 import { getErrorMessage } from "../../../services/apiClient";
-import { getQuestionsByChapter, getQuestionsByQuiz, getQuizById, updateQuiz } from "../../../services/quizService";
+import { getQuestionsByChapter, getQuestionsByQuiz, getQuizById, getQuizDetailWithQuestions, updateQuiz } from "../../../services/quizService";
 import { useToast } from "../../../components/ui/Toast/Toast";
 import { toPreviewText } from "../../../components/richtext/richTextUtils";
 import { getDifficultyLabelVi, getDifficultyTone } from "../utils/difficultyLevels";
@@ -49,10 +49,20 @@ export default function AdminQuizQuestions() {
   const load = useCallback(async () => {
     try {
       setError("");
-      const [quizData, currentQuestions] = await Promise.all([
-        getQuizById(quizId),
-        getQuestionsByQuiz(quizId),
-      ]);
+      let quizData;
+      let currentQuestions;
+      try {
+        const detail = await getQuizDetailWithQuestions(quizId);
+        quizData = detail?.quiz;
+        currentQuestions = detail?.questions;
+      } catch {
+        const [loadedQuiz, loadedQuestions] = await Promise.all([
+          getQuizById(quizId),
+          getQuestionsByQuiz(quizId),
+        ]);
+        quizData = loadedQuiz;
+        currentQuestions = loadedQuestions;
+      }
       setQuiz(quizData);
       setQuizQuestions(currentQuestions || []);
     } catch (loadError) {

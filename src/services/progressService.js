@@ -38,3 +38,18 @@ export async function getAverageAbility(userId) {
   const value = Number(result);
   return Number.isFinite(value) ? value : null;
 }
+
+export async function getUserProgressOverview(userId) {
+  return request({ method: "GET", url: `/api/v1/progress/users/${userId}/overview` });
+}
+
+export async function getUserSkillsSummary(userId) {
+  return request({ method: "GET", url: `/api/v1/progress/users/${userId}/skills-summary` });
+}
+
+export async function getUserSkillDetailOverview(userId, skillId) {
+  return request({
+    method: "GET",
+    url: `/api/v1/progress/users/${userId}/skills/${skillId}/detail-overview`,
+  });
+}

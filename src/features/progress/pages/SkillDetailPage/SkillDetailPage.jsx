@@ -4,6 +4,7 @@ import { ArrowLeft, ChevronRight } from "lucide-react";
 import {
   getAbilityHistoriesBySkill,
   getUserSkillAbilities,
+  getUserSkillDetailOverview,
 } from "../../../../services/progressService";
 import { getSkills } from "../../../../services/skillService";
 import { getErrorMessage, getStoredUser } from "../../../../services/apiClient";
@@ -22,6 +23,7 @@ import {
   StatTile,
 } from "../../../../components/ui";
 import ProgressBar from "../../../home/components/ProgressBar";
+import { normalizeSkillDetailOverview } from "../../utils/progressOverview";
 import ThetaTrendChart from "../../components/ThetaTrendChart/ThetaTrendChart";
 import {
   TREND_BADGE_VARIANT,
@@ -94,6 +96,21 @@ export default function SkillDetailPage() {
     try {
       setLoading(true);
       setError("");
+      try {
+        const detail = await getUserSkillDetailOverview(user.userId, skillId);
+        if (!isCurrent()) return;
+
+        if (detail) {
+          const normalized = normalizeSkillDetailOverview(detail);
+          setAbilities(normalized.abilities);
+          setSkills(normalized.skills);
+          setHistories(normalized.histories);
+          return;
+        }
+      } catch (detailError) {
+        console.warn("getUserSkillDetailOverview failed, falling back to legacy flow:", detailError);
+      }
+
       const [abilityRows, skillRows, historyRows] = await Promise.allSettled([
         getUserSkillAbilities(user.userId),
         getSkills(),

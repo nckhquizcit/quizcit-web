@@ -8,6 +8,14 @@ const mapAccessItem = (item = {}, idKey) => ({
   deletedAt: item.deletedAt ?? item.deleted_at ?? null,
 });
 
+export async function getAccessMatrix() {
+  const data = await request({ method: "GET", url: "/api/v1/admin/access/matrix" });
+  return {
+    roles: (data?.roles || []).map((role) => mapAccessItem(role, "roleId")),
+    permissions: (data?.permissions || []).map((permission) => mapAccessItem(permission, "permissionId")),
+  };
+}
+
 export async function getRoles() {
   const roles = await request({ method: "GET", url: RBAC_ENDPOINTS.roles });
   return (roles || []).map((role) => mapAccessItem(role, "roleId"));

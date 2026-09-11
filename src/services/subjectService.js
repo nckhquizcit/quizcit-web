@@ -35,3 +35,11 @@ export async function reorderSubjects(subjects) {
     data: { items: subjects.map((subject) => ({ id: subject.subjectId, displayOrder: subject.displayOrder })) },
   });
 }
+
+export async function getSubjectStudyOverview(subjectId) {
+  return request({ method: "GET", url: `/api/v1/content/subjects/${subjectId}/study-overview` });
+}
+
+export async function getSubjectCatalogSummary() {
+  return request({ method: "GET", url: "/api/v1/content/subjects/catalog-summary" });
+}

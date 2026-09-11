@@ -12,6 +12,8 @@ import {
 } from "../../../../components/ui";
 import ProgressBar from "../../components/ProgressBar";
 import { buildEnrolledSubjects } from "../../utils/homeSubjects";
+import { getHomeSummary } from "../../../../services/homeService";
+import { normalizeHomeSummary } from "../../utils/homeSummary";
 import { getAllChapters } from "../../../../services/chapterService";
 import { getMyEnrollments } from "../../../../services/enrollmentService";
 import { getSubjects } from "../../../../services/subjectService";
@@ -42,9 +44,8 @@ function getFirstName(displayName) {
 }
 
 export default function HomePage() {
-  const [subjects, setSubjects] = useState([]);
-  const [chapters, setChapters] = useState([]);
-  const [enrollments, setEnrollments] = useState([]);
+  const [enrolledSubjects, setEnrolledSubjects] = useState([]);
+  const [totalUnlockedChapters, setTotalUnlockedChapters] = useState(0);
   const [skillCount, setSkillCount] = useState(0);
   const [averageTheta, setAverageTheta] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -61,7 +62,24 @@ export default function HomePage() {
     try {
       setLoading(true);
       setError("");
-      // Enrollment lỗi thì degrade về rỗng, không làm chết trang chủ.
+
+      try {
+        const summary = await getHomeSummary();
+        if (!isCurrent()) return;
+
+        if (summary) {
+          const normalized = normalizeHomeSummary(summary);
+          setEnrolledSubjects(normalized.enrolledSubjects);
+          setTotalUnlockedChapters(normalized.totalUnlockedChapters);
+          setSkillCount(normalized.skillCount);
+          setAverageTheta(normalized.averageTheta);
+          return;
+        }
+      } catch {
+        // Resilient Fallback to legacy multi-request flow
+      }
+
+      // Fallback:
       const [subjectData = [], chaptersData = [], enrolledData = []] = await Promise.all([
         getSubjects(),
         getAllChapters(),
@@ -69,9 +87,9 @@ export default function HomePage() {
       ]);
 
       if (!isCurrent()) return;
-      setSubjects(subjectData);
-      setChapters(chaptersData.filter(Boolean));
-      setEnrollments(enrolledData);
+      const validChapters = chaptersData.filter(Boolean);
+      setTotalUnlockedChapters(validChapters.length);
+      setEnrolledSubjects(buildEnrolledSubjects(enrolledData, subjectData, validChapters));
 
       if (user?.userId) {
         const [abilitiesResult, averageResult] = await Promise.allSettled([
@@ -110,11 +128,6 @@ export default function HomePage() {
   const hasAbilityData = averageTheta !== null;
   const abilityLevel = hasAbilityData ? getAbilityLevel(averageTheta) : null;
   const abilityProgress = hasAbilityData ? thetaRawToPercent(averageTheta) : 0;
-
-  const enrolledSubjects = useMemo(
-    () => buildEnrolledSubjects(enrollments, subjects, chapters),
-    [enrollments, subjects, chapters]
-  );
 
   if (loading) {
     return (
@@ -200,7 +213,7 @@ export default function HomePage() {
             />
             <StatTile
               icon={<Layers3 size={18} />}
-              value={chapters.length}
+              value={totalUnlockedChapters}
               label="Chương đã mở"
             />
           </div>

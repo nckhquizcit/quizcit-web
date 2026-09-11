@@ -10,20 +10,16 @@ import AdminPageState from "../components/AdminPageState";
 import SearchBar from "../components/SearchBar";
 import {
   createChapter,
-  getChaptersBySubject,
+  getChaptersSummary,
   getSubjectById,
   reorderChapters,
   deleteChapter,
   updateChapter,
   getTheoriesByChapter,
 } from "../../../services/contentService";
-import { getAllQuestions } from "../../../services/quizService";
 import { getErrorMessage } from "../../../services/apiClient";
 import { useToast } from "../../../components/ui/Toast/Toast";
 import { reorderById } from "../utils/displayOrder";
-
-const getQuestionChapterId = (question) =>
-  question?.chapterId ?? question?.chapter?.chapterId ?? question?.chapter?.id;
 
 export default function AdminChapters() {
   const { subjectId } = useParams();
@@ -58,14 +54,13 @@ export default function AdminChapters() {
       try {
         setLoading(true);
         setLoadError("");
-        const [subjectData, chapters = [], questions = []] = await Promise.all([
-          getSubjectById(subjectId), getChaptersBySubject(subjectId), getAllQuestions(),
+        const [subjectData, chapters = []] = await Promise.all([
+          getSubjectById(subjectId),
+          getChaptersSummary(subjectId),
         ]);
         const entries = chapters.map((chapter) => [
           chapter.chapterId,
-          questions.filter(
-            (question) => String(getQuestionChapterId(question)) === String(chapter.chapterId),
-          ).length,
+          chapter.questionCount ?? 0,
         ]);
 
         if (!alive) return;

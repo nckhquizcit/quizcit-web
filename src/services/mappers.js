@@ -159,9 +159,11 @@ export function mapChapter(raw = {}) {
     chapter_id: chapterId,
     subjectId,
     subject_id: subjectId,
-    name: normalizeVietnameseDisplayText(pick(raw, ["name"], "")),
+    name: normalizeVietnameseDisplayText(pick(raw, ["name", "chapterName", "chapter_name"], "")),
     createdAt: pick(raw, ["createdAt", "created_at"], null),
     displayOrder: toNumber(pick(raw, ["displayOrder", "display_order"], 0)),
+    questionCount: toNumber(pick(raw, ["questionCount", "question_count"], 0)),
+    theoryCount: toNumber(pick(raw, ["theoryCount", "theory_count"], 0)),
     unlocked: Boolean(raw.unlocked ?? raw.isUnlocked ?? true),
     skills: toArray(pick(raw, ["skills"], [])).map((skill) => {
       const currentThetaRaw = pick(skill, ["currentTheta", "current_theta"]);
