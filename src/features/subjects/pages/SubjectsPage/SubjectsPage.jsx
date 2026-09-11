@@ -3,6 +3,7 @@ import { BookOpen, GraduationCap, Layers3, Library, Search, X } from "lucide-rea
 import {
   getAllChapters,
   getSubjects,
+  getSubjectCatalogSummary,
 } from "../../../../services/contentService";
 import {
   enrollCourse,
@@ -20,6 +21,7 @@ import {
   useToast,
 } from "../../../../components/ui";
 import { getErrorMessage } from "../../../../services/apiClient";
+import { normalizeCatalogSummary } from "../../utils/catalogSummary";
 import SubjectCard from "../../components/SubjectCard";
 import "./SubjectsPage.css";
 
@@ -62,6 +64,21 @@ export default function SubjectsPage() {
         setLoading(true);
         setError("");
       }
+      try {
+        const catalog = await getSubjectCatalogSummary();
+        if (!aliveRef.current) return;
+
+        if (Array.isArray(catalog)) {
+          const { subjectCollection: collection, enrollments: enrolledItems } =
+            normalizeCatalogSummary(catalog);
+          setSubjectCollection(collection);
+          setEnrollments(enrolledItems);
+          return;
+        }
+      } catch (catalogError) {
+        console.warn("getSubjectCatalogSummary failed, falling back to legacy flow:", catalogError);
+      }
+
       // Chi getSubjects fail moi coi la loi ca trang; chapters/enrollments fail
       // thi degrade ve rong de nut Dang ky van dung duoc.
       const [subjectsResult, chaptersResult, enrolledResult] = await Promise.allSettled([

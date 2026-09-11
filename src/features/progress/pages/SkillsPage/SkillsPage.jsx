@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
-import { getUserSkillAbilities } from "../../../../services/progressService";
+import { getUserSkillAbilities, getUserSkillsSummary } from "../../../../services/progressService";
 import { getSkills } from "../../../../services/skillService";
 import { getErrorMessage, getStoredUser } from "../../../../services/apiClient";
 import { EmptyState, ErrorState, SkeletonCard } from "../../../../components/ui";
@@ -37,6 +37,19 @@ export default function SkillsPage() {
     try {
       setLoading(true);
       setError("");
+      try {
+        const skillsSummary = await getUserSkillsSummary(user.userId);
+        if (!isCurrent()) return;
+
+        if (Array.isArray(skillsSummary)) {
+          setAbilities(skillsSummary);
+          setSkills(skillsSummary);
+          return;
+        }
+      } catch (summaryError) {
+        console.warn("getUserSkillsSummary failed, falling back to legacy flow:", summaryError);
+      }
+
       const [abilityRows, skillRows] = await Promise.allSettled([
         getUserSkillAbilities(user.userId),
         getSkills(),

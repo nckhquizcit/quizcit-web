@@ -39,3 +39,7 @@ export async function reorderSubjects(subjects) {
 export async function getSubjectStudyOverview(subjectId) {
   return request({ method: "GET", url: `/api/v1/content/subjects/${subjectId}/study-overview` });
 }
+
+export async function getSubjectCatalogSummary() {
+  return request({ method: "GET", url: "/api/v1/content/subjects/catalog-summary" });
+}

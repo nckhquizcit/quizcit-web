@@ -6,7 +6,12 @@ export {
   updateSubject,
   reorderSubjects,
   getSubjectStudyOverview,
+  getSubjectCatalogSummary,
 } from "./subjectService";
+
+export {
+  getHomeSummary,
+} from "./homeService";
 
 export {
   createChapter,
