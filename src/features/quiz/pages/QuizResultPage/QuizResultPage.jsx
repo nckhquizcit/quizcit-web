@@ -48,9 +48,15 @@ const isMissingName = (value) => {
 
 async function resolveResultMetadata(result) {
   let { quizName, subjectName } = result;
-  let duration = 0;
+  let duration = Number(result.durationMinutes ?? result.duration ?? 0);
 
-  if (result.quizId) {
+  // Phase 3: Dữ liệu đã được làm giàu từ backend (quizName, subjectName, durationMinutes)
+  if (!isMissingName(quizName) && !isMissingName(subjectName) && duration > 0) {
+    return { ...result, quizName, subjectName, duration };
+  }
+
+  // Fallback: Tra cứu phụ khi backend chưa trả đủ metadata
+  if (result.quizId && (isMissingName(quizName) || isMissingName(subjectName) || duration === 0)) {
     try {
       const quiz = await getQuizById(result.quizId);
       if (isMissingName(quizName) && quiz?.name) {
@@ -60,7 +66,9 @@ async function resolveResultMetadata(result) {
         const subject = await getSubjectById(quiz.subjectId).catch(() => null);
         if (subject?.name) subjectName = subject.name;
       }
-      duration = Number(quiz?.duration) || 0;
+      if (duration === 0) {
+        duration = Number(quiz?.duration) || 0;
+      }
     } catch {
       // Best-effort enrichment; keep fallbacks if lookups fail.
     }

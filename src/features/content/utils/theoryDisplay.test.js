@@ -102,3 +102,8 @@ test("derives display title from first heading of blocknote content", () => {
   assert.equal(getTheoryDisplayTitle({ content: JSON.stringify(blocks), contentFormat: "blocknote" }, 0), TITLE);
   assert.equal(getTheoryDisplayTitle({ content: "chỉ là chữ", contentFormat: "plain" }, 2), "Bài lý thuyết 3");
 });
+
+test("uses title directly when provided by backend", () => {
+  assert.equal(getTheoryDisplayTitle({ title: "Bài 1: Giới thiệu biến", content: "" }, 0), "Bài 1: Giới thiệu biến");
+  assert.equal(getTheoryDisplayTitle({ title: "  Bài 2: Vòng lặp for  " }, 1), "Bài 2: Vòng lặp for");
+});

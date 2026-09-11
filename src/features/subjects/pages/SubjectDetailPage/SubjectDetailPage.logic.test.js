@@ -111,4 +111,16 @@ describe("SubjectDetailPage.logic", () => {
       assert.equal(isSkillRequirementMet(undefined, 0.0), false);
     });
   });
+
+  describe("isSkillRequirementMet with backend met flag", () => {
+    it("returns true when current theta satisfies required theta", () => {
+      const skill = { skillId: "sk-1", requiredTheta: 1.0, currentTheta: 1.5, met: true };
+      assert.equal(isSkillRequirementMet(skill.currentTheta, skill.requiredTheta), true);
+    });
+
+    it("returns false when current theta is below required theta", () => {
+      const skill = { skillId: "sk-2", requiredTheta: 1.0, currentTheta: 0.5, met: false };
+      assert.equal(isSkillRequirementMet(skill.currentTheta, skill.requiredTheta), false);
+    });
+  });
 });

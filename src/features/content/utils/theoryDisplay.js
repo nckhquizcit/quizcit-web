@@ -13,6 +13,9 @@ import { blockToPlainText, blocksToPlainText } from "../../../components/richtex
  * thứ tự theo vị trí trong chương.
  */
 export function getTheoryDisplayTitle(theory, index) {
+  if (theory?.title && typeof theory.title === "string" && theory.title.trim()) {
+    return theory.title.trim();
+  }
   const content = theory?.content ?? "";
   const format = resolveContentFormat(content, theory?.contentFormat);
 

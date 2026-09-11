@@ -5,6 +5,7 @@ export {
   getSubjects,
   updateSubject,
   reorderSubjects,
+  getSubjectStudyOverview,
 } from "./subjectService";
 
 export {
@@ -28,6 +29,7 @@ export {
   getTheoryById,
   updateTheory,
   reindexTheoriesBySubject,
+  getTheoryReaderView,
 } from "./theoryService";
 
 export { getQuizzesBySubject } from "./quizService";

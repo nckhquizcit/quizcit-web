@@ -38,3 +38,7 @@ export async function deleteTheory(theoryId) {
 export async function reindexTheoriesBySubject(subjectId) {
   return request({ method: "POST", url: `/api/subjects/${subjectId}/theories/reindex` });
 }
+
+export async function getTheoryReaderView(theoryId) {
+  return request({ method: "GET", url: `/api/v1/content/theories/${theoryId}/reader-view` });
+}
