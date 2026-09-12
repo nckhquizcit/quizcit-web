@@ -52,6 +52,20 @@ const FORMAT_OPTIONS = [
 
 const SUPPORTED_FILE_EXTENSIONS = [".txt", ".csv", ".xml", ".gift", ".aiken"];
 
+// File duoc doc tron vao bo nho roi phan tich dong bo tren luong giao dien,
+// nen phai chan o mot nguong an toan truoc khi doc.
+const MAX_IMPORT_FILE_BYTES = 5 * 1024 * 1024;
+
+const formatFileSize = (bytes) => {
+  const mb = bytes / (1024 * 1024);
+  return `${Number(mb.toFixed(2))}MB`;
+};
+
+const isFileTooLarge = (file) => Number(file?.size) > MAX_IMPORT_FILE_BYTES;
+
+const tooLargeFileMessage = (file) =>
+  `File "${file?.name || "không rõ"}" có kích thước ${formatFileSize(file?.size || 0)}, vượt quá giới hạn ${formatFileSize(MAX_IMPORT_FILE_BYTES)}. Vui lòng chia nhỏ file rồi import lại.`;
+
 const normalizeId = (value) => (value === undefined || value === null ? "" : String(value));
 
 const getSubjectId = (subject) => subject?.subjectId ?? subject?.id;
@@ -595,6 +609,16 @@ ANSWER: B`;
       return;
     }
 
+    if (isFileTooLarge(file)) {
+      setSourceText("");
+      setSourceName(file.name);
+      setRows([]);
+      setParseMessage("");
+      setFormError(tooLargeFileMessage(file));
+      event.target.value = "";
+      return;
+    }
+
     const reader = new FileReader();
     setFileLoading(true);
     setSourceName(file.name);
@@ -637,6 +661,13 @@ ANSWER: B`;
       event.target.value = "";
       return;
     }
+    if (isFileTooLarge(file)) {
+      setDifficultyText("");
+      setDifficultyFileName(file.name);
+      setFormError(tooLargeFileMessage(file));
+      event.target.value = "";
+      return;
+    }
     const reader = new FileReader();
     setDifficultyFileLoading(true);
     setDifficultyFileName(file.name);
@@ -669,6 +700,13 @@ ANSWER: B`;
     setFormError("");
     if (!file.name.toLowerCase().endsWith(".txt")) {
       setFormError("File mảng kỹ năng phải có định dạng .txt.");
+      event.target.value = "";
+      return;
+    }
+    if (isFileTooLarge(file)) {
+      setSkillText("");
+      setSkillFileName(file.name);
+      setFormError(tooLargeFileMessage(file));
       event.target.value = "";
       return;
     }
@@ -1261,7 +1299,7 @@ ANSWER: B`;
                   />
                 </label>
                 {sourceName && <em>Đã chọn: {sourceName}</em>}
-                {fileLoading && <em>Đang đọc file câu hỏi...</em>}
+                {fileLoading && <em role="status">Đang đọc file câu hỏi...</em>}
               </div>
 
               {/* File mảng độ khó - CHỈ HIỂN THỊ KHI KHÔNG PHẢI CSV */}
@@ -1276,7 +1314,7 @@ ANSWER: B`;
                     <input type="file" accept=".txt" onChange={handleDifficultyFileChange} />
                   </label>
                   {difficultyFileName && <em>Đã chọn: {difficultyFileName}</em>}
-                  {difficultyFileLoading && <em>Đang đọc file độ khó...</em>}
+                  {difficultyFileLoading && <em role="status">Đang đọc file độ khó...</em>}
                   {parsedDifficultyInfo && (
                     <span className="file-diff-count">
                       ({parsedDifficultyInfo.values.length} giá trị)
@@ -1300,7 +1338,7 @@ ANSWER: B`;
                   <input type="file" accept=".txt" onChange={handleSkillFileChange} />
                 </label>
                 {skillFileName && <em>Đã chọn: {skillFileName}</em>}
-                {skillFileLoading && <em>Đang đọc file kỹ năng...</em>}
+                {skillFileLoading && <em role="status">Đang đọc file kỹ năng...</em>}
                 {parsedSkillInfo && (
                   <span className="file-diff-count">
                     ({parsedSkillInfo.mappings.length} câu)

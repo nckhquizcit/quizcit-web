@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useId, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ChevronDown,
@@ -360,17 +360,21 @@ export default function AdminQuestions() {
     [chapters, questionRows],
   );
 
+  // O nhap van bam theo searchQuery de go khong giat; phan loc dung gia tri
+  // hoan lai nen danh sach lon khong bi tinh lai moi phim.
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+
   const visibleQuestions = useMemo(
     () =>
       filterQuestionBankQuestions(questionRows, {
-        search: searchQuery,
+        search: deferredSearchQuery,
         subjectId: subjectFilter,
         difficulty: difficultyFilter,
         skillId: skillFilter,
         knownSubjectIds,
         knownChapterIds,
       }),
-    [questionRows, searchQuery, subjectFilter, difficultyFilter, skillFilter, knownSubjectIds, knownChapterIds],
+    [questionRows, deferredSearchQuery, subjectFilter, difficultyFilter, skillFilter, knownSubjectIds, knownChapterIds],
   );
 
   const sortedQuestions = useMemo(() => {
@@ -445,13 +449,16 @@ export default function AdminQuestions() {
     try {
       setLoadingEditQuestionId(row.questionId);
       const detail = await getQuestionById(row.questionId);
+      // Chi tiết có thể thiếu đáp án; khi đó giữ lại đáp án đã có sẵn ở dòng
+      // trong bảng thay vì ghi đè bằng mảng rỗng rồi bỏ cuộc.
+      const detailOptions = detail?.options?.length ? detail.options : null;
       const nextQuestion = enrichQuestion(
         {
           ...row,
           ...detail,
           subjectId: detail?.subjectId ?? row.subjectId,
           chapterId: detail?.chapterId ?? row.chapterId,
-          options: detail?.options || [],
+          options: detailOptions || row.options || [],
           skills: detail?.skills ?? row.skills,
         },
         chapterMap,
@@ -584,7 +591,7 @@ export default function AdminQuestions() {
         "Tổng quan",
         "Môn học",
         {
-          label: currentSubject?.name || "Chương",
+          label: currentSubject?.name || "Môn học",
           href: `/admin/subjects/${subjectId}/chapters`,
         },
         currentChapter
@@ -847,7 +854,7 @@ export default function AdminQuestions() {
                                 {
                                   label: "Sửa",
                                   icon: <Pencil size={14} />,
-                                  disabled: Boolean(loadingEditQuestionId),
+                                  disabled: loadingEditQuestionId === row.questionId,
                                   onClick: () => handleStartEditQuestion(row),
                                 },
                                 {
