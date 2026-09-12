@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, Save, Search, Trash2, X } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { ListChecks, Plus, Save, Search, Trash2, X } from "lucide-react";
+import { useBlocker, useNavigate, useParams } from "react-router-dom";
 import AdminPageHeader from "../components/AdminPageHeader";
+import ConfirmActionModal from "../components/modals/ConfirmActionModal";
+import EmptyState from "../../../components/ui/EmptyState/EmptyState";
 import ErrorState from "../../../components/ui/ErrorState/ErrorState";
 import { getErrorMessage } from "../../../services/apiClient";
 import { getQuestionsByChapter, getQuestionsByQuiz, getQuizById, getQuizDetailWithQuestions, updateQuiz } from "../../../services/quizService";
@@ -12,6 +14,10 @@ import "./AdminQuizzes.css";
 
 const BANK_CACHE_PREFIX = "quizcit:question-bank:";
 const getQuestionId = (question) => String(question?.questionId ?? question?.id ?? "");
+
+// De thich ung chon cau theo nang luc nguoi lam, khong co danh sach cau co dinh.
+const ADAPTIVE_QUIZ_TYPE = "ADAPTIVE";
+const isAdaptiveQuiz = (quiz) => quiz?.type === ADAPTIVE_QUIZ_TYPE;
 
 function readCachedBank(chapterId) {
   try {
@@ -42,8 +48,12 @@ export default function AdminQuizQuestions() {
   const [bankLoading, setBankLoading] = useState(false);
   const [bankQuery, setBankQuery] = useState("");
   const [error, setError] = useState("");
+  const [saveError, setSaveError] = useState("");
   const [bankError, setBankError] = useState("");
   const [saving, setSaving] = useState(false);
+  // Ban goc ngay sau khi nap xong, dung de biet nguoi dung co sua gi khong.
+  const [originalQuestionIds, setOriginalQuestionIds] = useState(null);
+  const [pendingLeave, setPendingLeave] = useState(null);
   const returnPath = `/admin/quizzes/${quizId}/edit`;
 
   const load = useCallback(async () => {
@@ -63,8 +73,10 @@ export default function AdminQuizQuestions() {
         quizData = loadedQuiz;
         currentQuestions = loadedQuestions;
       }
+      const loaded = currentQuestions || [];
       setQuiz(quizData);
-      setQuizQuestions(currentQuestions || []);
+      setQuizQuestions(loaded);
+      setOriginalQuestionIds(loaded.map(getQuestionId));
     } catch (loadError) {
       setError(getErrorMessage(loadError, "Không thể tải câu hỏi của đề thi."));
     }
@@ -124,6 +136,40 @@ export default function AdminQuizQuestions() {
     });
   }, [bankQuestions, bankQuery, currentIds]);
 
+  // Chi coi la co thay doi khi danh sach cau khac ban goc (thu tu cung tinh).
+  const isDirty = useMemo(() => {
+    if (!originalQuestionIds) return false;
+    const current = quizQuestions.map(getQuestionId);
+    return (
+      current.length !== originalQuestionIds.length ||
+      current.some((id, index) => id !== originalQuestionIds[index])
+    );
+  }, [quizQuestions, originalQuestionIds]);
+
+  // Chan roi trang khi danh sach cau chua luu, copy tu AdminChapterEdit.
+  const shouldBlock = isDirty && !saving;
+  const blocker = useBlocker(
+    useCallback(
+      ({ currentLocation, nextLocation }) =>
+        shouldBlock && currentLocation.pathname !== nextLocation.pathname,
+      [shouldBlock],
+    ),
+  );
+
+  useEffect(() => {
+    if (!shouldBlock) return undefined;
+
+    const handleBeforeUnload = (event) => {
+      event.preventDefault();
+      event.returnValue =
+        "Bạn có danh sách câu hỏi chưa lưu, nếu rời trang thì thay đổi sẽ mất.";
+      return event.returnValue;
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [shouldBlock]);
+
   const toggleBankQuestion = (questionId) => setBankSelection((current) =>
     current.includes(questionId) ? current.filter((id) => id !== questionId) : [...current, questionId],
   );
@@ -139,10 +185,20 @@ export default function AdminQuizQuestions() {
     setQuizQuestions((current) => current.filter((question) => getQuestionId(question) !== questionId));
   };
 
+  // Nut huy cung phai hoi lai khi dang co thay doi chua luu.
+  const handleCancelChanges = () => {
+    if (isDirty) {
+      setPendingLeave(() => () => navigate(returnPath));
+      return;
+    }
+    navigate(returnPath);
+  };
+
   const save = async () => {
-    if (!quizQuestions.length) { setError("Đề thi phải có ít nhất một câu hỏi."); return; }
+    // Loi kiem tra hop le hien inline canh nut luu, khong dung ErrorState cua trang.
+    if (!quizQuestions.length) { setSaveError("Đề thi phải có ít nhất một câu hỏi."); return; }
     try {
-      setSaving(true); setError("");
+      setSaving(true); setSaveError("");
       await updateQuiz(quizId, {
         name: quiz.name,
         duration: quiz.durationMinutes ?? quiz.duration,
@@ -152,9 +208,42 @@ export default function AdminQuizQuestions() {
       });
       toast.success("Đã cập nhật câu hỏi của đề thi.");
       navigate(returnPath);
-    } catch (saveError) { setError(getErrorMessage(saveError, "Không thể cập nhật câu hỏi.")); }
+    } catch (saveError) { setSaveError(getErrorMessage(saveError, "Không thể cập nhật câu hỏi.")); }
     finally { setSaving(false); }
   };
+
+  const isAdaptive = isAdaptiveQuiz(quiz);
+
+  // De thich ung khong cau hinh danh sach cau: dung som, khong hien giao dien them bot.
+  if (isAdaptive) {
+    return <>
+      <AdminPageHeader
+        breadcrumb={[
+          "Tổng quan",
+          "Đề thi",
+          { label: quiz.name || "Chỉnh sửa đề", href: returnPath },
+          "Câu hỏi trong đề",
+        ]}
+        title="Câu hỏi trong đề"
+        subtitle={quiz.name}
+        backHref={returnPath}
+        backLabel="Chỉnh sửa đề"
+      />
+
+      <div className="admin-section-card adm2-card-pad quiz-questions-page">
+        <EmptyState
+          icon={<ListChecks size={28} />}
+          title="Đề thích ứng chọn câu tự động"
+          description="Đề thích ứng chọn câu hỏi theo năng lực của người làm bài nên không cấu hình danh sách câu cố định."
+          action={
+            <button className="cancel-btn" type="button" onClick={() => navigate(returnPath)}>
+              Quay lại chỉnh sửa đề
+            </button>
+          }
+        />
+      </div>
+    </>;
+  }
 
   return <>
     <AdminPageHeader
@@ -197,15 +286,28 @@ export default function AdminQuizQuestions() {
             </div>
           );
         })}
-        {quiz && !quizQuestions.length && <div className="quiz-inline-empty">Đề thi hiện chưa có câu hỏi.</div>}
         {!quiz && !error && <div className="quiz-inline-empty">Đang tải câu hỏi của đề thi...</div>}
       </div>
 
+      {quiz && !quizQuestions.length && (
+        <EmptyState
+          icon={<ListChecks size={28} />}
+          title="Đề thi chưa có câu hỏi"
+          description="Thêm câu hỏi từ ngân hàng của chương để lưu được đề thi."
+          action={
+            <button className="add-btn" type="button" onClick={openQuestionBank}>
+              <Plus size={17} /> Thêm từ ngân hàng
+            </button>
+          }
+        />
+      )}
+
       <div className="question-modal-actions">
-        <button className="cancel-btn" type="button" onClick={() => navigate(returnPath)} disabled={saving}>
+        {saveError && <div className="modal-inline-error">{saveError}</div>}
+        <button className="cancel-btn" type="button" onClick={handleCancelChanges} disabled={saving}>
           Hủy thay đổi
         </button>
-        <button className="add-btn" type="button" onClick={save} disabled={saving || !quiz}>
+        <button className="add-btn" type="button" onClick={save} disabled={saving || !quiz || !quizQuestions.length}>
           <Save size={17} /> {saving ? "Đang lưu..." : `Lưu danh sách ${quizQuestions.length} câu`}
         </button>
       </div>
@@ -242,5 +344,26 @@ export default function AdminQuizQuestions() {
         </footer>
       </section>
     </div>}
+
+    <ConfirmActionModal
+      isOpen={blocker.state === "blocked" || Boolean(pendingLeave)}
+      onClose={() => { blocker.reset?.(); setPendingLeave(null); }}
+      onConfirm={() => {
+        if (pendingLeave) {
+          const action = pendingLeave;
+          setPendingLeave(null);
+          action();
+          return;
+        }
+        blocker.proceed?.();
+      }}
+      user={{ displayName: "danh sách câu hỏi" }}
+      message={
+        <>
+          Danh sách câu hỏi của đề <strong>chưa được lưu</strong>. Rời trang sẽ mất các thay đổi vừa
+          thực hiện. Bạn có muốn rời trang?
+        </>
+      }
+    />
   </>;
 }
