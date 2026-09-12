@@ -17,6 +17,9 @@
   border: 1px solid var(--color-border, #e2e8f0);
   max-width: 640px !important;
   width: 95% !important;
+  /* Giới hạn theo khung nhìn: header/footer luôn thấy, phần giữa co lại và cuộn được. */
+  max-height: calc(100vh - var(--space-8));
+  max-height: calc(100dvh - var(--space-8));
   padding: 0 !important;
   overflow: hidden;
   display: flex;
@@ -55,6 +58,7 @@
 }
 
 .image-crop-modal__header {
+  flex-shrink: 0;
   padding: var(--space-4) var(--space-5);
   border-bottom: 1px solid var(--color-border);
   display: flex;
@@ -84,12 +88,17 @@
 .image-crop-modal__cropper-container {
   position: relative;
   width: 100%;
-  height: 360px;
+  /* Co theo khung nhìn thay vì cố định 360px, để không đẩy footer ra ngoài màn hình. */
+  height: min(360px, 45vh);
+  min-height: 140px;
+  flex-shrink: 1;
+  overflow: hidden;
   background: #111827;
   user-select: none;
 }
 
 .image-crop-modal__controls {
+  flex-shrink: 0;
   padding: var(--space-4) var(--space-5);
   display: flex;
   flex-direction: column;
@@ -128,7 +137,7 @@
 
 .image-crop-modal__zoom-btn:hover:not(:disabled) {
   background: var(--color-surface-3);
-  border-color: var(--color-border-hover);
+  border-color: var(--color-border-strong);
 }
 
 .image-crop-modal__slider {
@@ -161,10 +170,11 @@
 
 .image-crop-modal__tool-btn:hover:not(:disabled) {
   background: var(--color-surface-3);
-  border-color: var(--color-border-hover);
+  border-color: var(--color-border-strong);
 }
 
 .image-crop-modal__footer {
+  flex-shrink: 0;
   padding: var(--space-3) var(--space-5) var(--space-4);
   display: flex;
   align-items: center;
@@ -175,9 +185,22 @@
 }
 
 .image-crop-modal__error {
+  flex-shrink: 0;
   padding: var(--space-2) var(--space-5);
   background: var(--color-error-soft);
   color: var(--color-error);
   font-size: var(--fs-xs);
   font-weight: 500;
+}
+
+/* Màn thấp / điện thoại nằm ngang: cho phần giữa cuộn dọc, header và footer vẫn cố định. */
+@media (max-height: 560px) {
+  .image-crop-modal__cropper-container {
+    height: min(360px, 40vh);
+    min-height: 100px;
+    overflow-y: auto;
+  }
+  .image-crop-modal__controls {
+    padding: var(--space-3) var(--space-5);
+  }
 }
