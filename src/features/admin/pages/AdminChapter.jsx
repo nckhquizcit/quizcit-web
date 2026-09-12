@@ -1,8 +1,9 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
-import { Brain, Check, ChevronDown, ChevronRight, FileText, GripVertical, ListOrdered, Plus, Pencil, Trash2, X } from "lucide-react";
+import { Brain, Check, ChevronDown, ChevronRight, ChevronUp, FileText, GripVertical, ListOrdered, Plus, Pencil, Trash2, X } from "lucide-react";
 import AddChapterModal from "../components/modals/AddChapterModal";
 import { formatScaledThetaValue } from "../../../services/mappers";
+import ConfirmActionModal from "../components/modals/ConfirmActionModal";
 import ConfirmDeleteModal from "../components/modals/ConfirmDeleteModal";
 import TheoryContent from "../../content/components/TheoryContent";
 import AdminPageHeader from "../components/AdminPageHeader";
@@ -28,6 +29,8 @@ export default function AdminChapters() {
   const [search, setSearch] = useState("");
   const [openAddChapter, setOpenAddChapter] = useState(false);
   const [deletingChapter, setDeletingChapter] = useState(null);
+  // { chapter, skill } dang cho xac nhan go ky nang khoi chuong
+  const [removingSkill, setRemovingSkill] = useState(null);
   const [subject, setSubject] = useState(null);
   const [subjectChapters, setSubjectChapters] = useState([]);
   const [questionCountByChapter, setQuestionCountByChapter] = useState({});
@@ -111,6 +114,14 @@ export default function AdminChapters() {
         ),
       );
     }
+  };
+
+  // Xac nhan truoc khi go ky nang: day la thao tac xoa du lieu, truoc day chay thang.
+  const confirmRemoveSkill = async () => {
+    const pending = removingSkill;
+    if (!pending) return;
+    setRemovingSkill(null);
+    await handleRemoveSkillFromChapter(pending.chapter, pending.skill);
   };
 
   const loadTheories = async (chapterId) => {
@@ -214,6 +225,25 @@ export default function AdminChapters() {
     setDraggedChapterId(null);
   };
 
+  // Di chuyen bang ban phim va tren dien thoai, noi keo tha cua trinh duyet khong chay.
+  const moveChapterTo = (fromIndex, toIndex) => {
+    if (pendingAction) return;
+    setSubjectChapters((current) => {
+      if (toIndex < 0 || toIndex >= current.length) return current;
+      const reordered = [...current];
+      const [moved] = reordered.splice(fromIndex, 1);
+      reordered.splice(toIndex, 0, moved);
+      return reordered.map((item, index) => ({ ...item, displayOrder: index + 1 }));
+    });
+  };
+
+  const moveChapterBy = (event, index, offset) => {
+    event.stopPropagation();
+    // Ngan the cha bat dau keo tha khi nguoi dung bam nut di chuyen.
+    event.preventDefault();
+    moveChapterTo(index, index + offset);
+  };
+
   const startOrdering = () => { setOrderSnapshot(subjectChapters); setExpandedChapter(null); setIsOrdering(true); };
   const cancelOrdering = () => { setSubjectChapters(orderSnapshot); setIsOrdering(false); setDraggedChapterId(null); };
   const saveOrdering = async () => {
@@ -308,9 +338,33 @@ export default function AdminChapters() {
                 }}
               >
                 <div className="chapter-left">
-                  {isOrdering && <span className="display-order-drag-handle" title="Kéo để đổi thứ tự" aria-label="Kéo để đổi thứ tự">
-                    <GripVertical size={17} />
-                  </span>}
+                  {isOrdering && (
+                    <div className="display-order-move-group">
+                      <span className="display-order-drag-handle" title="Kéo để đổi thứ tự" aria-label="Kéo để đổi thứ tự">
+                        <GripVertical size={17} />
+                      </span>
+                      <button
+                        type="button"
+                        className="display-order-move-btn"
+                        title="Đưa chương lên trên"
+                        aria-label={`Đưa chương "${chapter.name}" lên trên`}
+                        disabled={index === 0 || isMutating}
+                        onClick={(e) => moveChapterBy(e, index, -1)}
+                      >
+                        <ChevronUp size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        className="display-order-move-btn"
+                        title="Đưa chương xuống dưới"
+                        aria-label={`Đưa chương "${chapter.name}" xuống dưới`}
+                        disabled={index === filteredChapters.length - 1 || isMutating}
+                        onClick={(e) => moveChapterBy(e, index, 1)}
+                      >
+                        <ChevronDown size={16} />
+                      </button>
+                    </div>
+                  )}
                   <div className="chapter-index">{index + 1}</div>
 
                   <div>
@@ -383,7 +437,7 @@ export default function AdminChapters() {
                                 title={`Gỡ kỹ năng "${skill.name}" khỏi chương`}
                                 aria-label={`Gỡ kỹ năng "${skill.name}" khỏi chương`}
                                 disabled={isMutating}
-                                onClick={() => handleRemoveSkillFromChapter(chapter, skill)}
+                                onClick={() => setRemovingSkill({ chapter, skill })}
                               >
                                 <X size={12} />
                               </button>
@@ -497,6 +551,20 @@ export default function AdminChapters() {
         message="Bạn có muốn xóa chương này không? Dữ liệu liên quan (lý thuyết, câu hỏi, đề thi) sẽ không còn truy cập được. Hành động này không thể hoàn tác."
         itemName={deletingChapter?.name}
         onConfirm={handleDeleteChapter}
+      />
+
+      {/* CONFIRM REMOVE SKILL FROM CHAPTER */}
+      <ConfirmActionModal
+        isOpen={Boolean(removingSkill)}
+        onClose={() => setRemovingSkill(null)}
+        onConfirm={confirmRemoveSkill}
+        user={{ displayName: removingSkill?.skill?.name || "kỹ năng" }}
+        message={
+          <>
+            Bạn có muốn gỡ kỹ năng "<strong>{removingSkill?.skill?.name}</strong>" khỏi chương "
+            <strong>{removingSkill?.chapter?.name}</strong>" không?
+          </>
+        }
       />
 
 

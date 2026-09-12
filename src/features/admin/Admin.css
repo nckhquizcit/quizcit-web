@@ -640,6 +640,59 @@
   transform: translateX(-50%) rotate(90deg);
   color: var(--admin-subtle, #8a9aac);
 }
+
+/* Nhom dieu khien thu tu: grip keo tha + hai nut di chuyen.
+   Nut di chuyen danh cho ban phim va man hinh cam ung, noi keo tha HTML5 khong chay. */
+.display-order-move-group {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.subject-card > .display-order-move-group {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.subject-card > .display-order-move-group .display-order-drag-handle {
+  transform: rotate(90deg);
+  color: var(--admin-subtle, #8a9aac);
+}
+
+.display-order-move-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--admin-border, #e2e8f0);
+  border-radius: var(--admin-radius-control, 8px);
+  background: var(--admin-surface, #fff);
+  color: var(--admin-muted, #64748b);
+  cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+
+.display-order-move-btn:hover:not(:disabled) {
+  border-color: var(--admin-primary, #10b981);
+  background: var(--admin-primary-soft, #ecfdf5);
+  color: var(--admin-primary-hover, #059669);
+}
+
+.display-order-move-btn:focus-visible {
+  outline: 2px solid var(--color-primary-600, #059669);
+  outline-offset: 2px;
+}
+
+.display-order-move-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 .subject-title {
   font-size: 18px;
   font-weight: 600;
@@ -4352,11 +4405,24 @@
   color: var(--admin-text);
   font-size: 17px;
   font-weight: 700;
+  /* Ten mon/chuong cho phep toi 200 ky tu va co the go lien khong dau cach,
+     phai ngat duoc o moi vi tri thi moi khong tran ra khoi the. */
+  overflow-wrap: anywhere;
+}
+
+/* Tieu de mon gioi han 2 dong cho the trong luoi khong bi lech chieu cao. */
+.subject-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-height: 1.4;
 }
 
 .subject-code {
   color: #047857;
   font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 .subject-footer {
@@ -6259,6 +6325,101 @@
   color: var(--color-text-muted, #64748b);
 }
 
+/* ---- Chapter edit: tab strip + theory selector pills ------------------- */
+/* Truoc day hai class nay chi xuat hien trong JSX, khong co dinh nghia CSS
+   nao nen nut render ra kieu mac dinh cua trinh duyet. */
+.subject-skills-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border, #e2e8f0);
+}
+
+.subject-skills-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: var(--radius-pill, 999px);
+  background: var(--color-surface, #fff);
+  color: var(--color-text-muted, #64748b);
+  font: inherit;
+  font-size: var(--fs-sm, 0.875rem);
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+
+.subject-skills-tab-btn:hover {
+  border-color: var(--color-primary-200, #a7f3d0);
+  background: var(--color-primary-soft, #ecfdf5);
+  color: var(--color-primary-700, #047857);
+}
+
+.subject-skills-tab-btn:focus-visible {
+  outline: 2px solid var(--color-primary-600, #059669);
+  outline-offset: 2px;
+}
+
+.subject-skills-tab-btn.is-active {
+  border-color: var(--color-primary, #10b981);
+  background: var(--color-primary-soft, #ecfdf5);
+  color: var(--color-primary-700, #047857);
+}
+
+.subject-skills-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill, 999px);
+  background: var(--color-surface-3, #f1f5f9);
+  color: var(--color-text-muted, #64748b);
+  font-size: var(--fs-xs, 0.75rem);
+  font-weight: 800;
+}
+
+.subject-skills-tab-btn.is-active .subject-skills-tab-count {
+  background: var(--color-surface, #fff);
+  color: var(--color-primary-700, #047857);
+}
+
+/* Nut chon bai ly thuyet: nho hon tab chinh. */
+.subject-skills-pill-list {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.subject-skills-tab-btn--pill {
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: var(--fs-xs, 0.75rem);
+}
+
+/* Nut "Them bai moi": vien dut, truoc day mau nam thang trong JSX. */
+.subject-skills-tab-btn--dashed {
+  border-style: dashed;
+  border-color: var(--color-primary-600, #059669);
+  color: var(--color-primary-600, #059669);
+}
+
+.subject-skills-tab-btn--dashed.is-active {
+  border-style: dashed;
+  border-color: var(--color-primary-600, #059669);
+  background: var(--color-primary-soft, #ecfdf5);
+  color: var(--color-primary-600, #059669);
+}
+
 /* ---- Theory row head (label + format badge) --------------------------- */
 .adm2-theory-row-head {
   display: flex;
@@ -6312,14 +6473,16 @@
   display: block;
 }
 
-/* Admin subject cards stay aligned despite different description lengths. */
+/* Admin subject cards stay aligned despite different description lengths.
+   Khong ghim chieu cao cung: mon khong co anh bia thieu khoang 200px noi dung
+   nen se chua mot mang trong lon. Canh chan the da co san bang
+   `.adm2-card-footer { margin-top: auto }` ben duoi. */
 .subject-grid {
   align-items: stretch;
 }
 
 .subject-grid > .subject-card {
-  height: 604px;
-  min-height: 604px;
+  min-height: 178px;
   overflow: hidden;
 }
 
@@ -6341,11 +6504,6 @@
 }
 
 @media (max-width: 760px) {
-  .subject-grid > .subject-card {
-    height: auto;
-    min-height: 0;
-  }
-
   .subject-grid > .subject-card .subject-desc {
     min-height: 0;
   }
