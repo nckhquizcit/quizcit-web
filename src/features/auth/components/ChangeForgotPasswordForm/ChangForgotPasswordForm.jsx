@@ -9,7 +9,7 @@ import "../../styles/authShared.css";
 
 export default function ChangeForgotPasswordForm() {
   const navigate = useNavigate();
-  const { confirmedToken } = useForgotPassword();
+  const { confirmedToken, clearSessionReset } = useForgotPassword();
   const [formData, setFormData] = useState({
     newPassword: "",
     confirmNewPassword: "",
@@ -45,6 +45,7 @@ export default function ChangeForgotPasswordForm() {
         throw new Error("Đặt lại mật khẩu thất bại. Vui lòng thử lại.");
       }
       saveAuthSession(auth);
+      clearSessionReset();
       navigate("/app");
     } catch (apiError) {
       setError(getErrorMessage(apiError, "Đặt lại mật khẩu thất bại."));
@@ -59,7 +60,7 @@ export default function ChangeForgotPasswordForm() {
         <p>Mật khẩu tối thiểu 6 ký tự.</p>
       </div>
 
-      {error && <div className="auth-form__error">{error}</div>}
+      {error && <div className="auth-form__error" role="alert">{error}</div>}
 
       <Field label="Mật khẩu mới" htmlFor="new-password">
         <div className="auth-form__pwd">

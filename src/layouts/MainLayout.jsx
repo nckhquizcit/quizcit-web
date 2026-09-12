@@ -145,6 +145,7 @@ function MainLayoutContent() {
                 className="app-topbar__user"
                 onClick={() => navigate("/app/profile")}
                 title="Trang cá nhân"
+                aria-label={`Trang cá nhân của ${displayName}`}
               >
                 <span className="app-topbar__avatar">
                   {user?.avatarUrl && !avatarError ? (

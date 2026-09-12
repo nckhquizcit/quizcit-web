@@ -19,6 +19,7 @@ const RATE_LIMIT_COOLDOWN_SECONDS = 600;
 export default function VerifyForm({
   email: initialEmail = "",
   verificationToken = "",
+  sessionExpired = false,
 }) {
   const navigate = useNavigate();
   const [email, setEmail] = useState(initialEmail);
@@ -49,13 +50,28 @@ export default function VerifyForm({
   }, [verificationToken, token]);
 
   const handleChange = (element, index) => {
-    if (isNaN(element.value)) return false;
+    if (element.value && !/^\d$/.test(element.value)) return;
     const newOtp = [...otp];
     newOtp[index] = element.value;
     setOtp(newOtp);
     if (element.value !== "" && index < 5) {
       inputRefs.current[index + 1].focus();
     }
+  };
+
+  // Dan ma 6 so tu email: do lan luot tu o dang dan, bo ky tu khong phai chu so.
+  const handlePaste = (e) => {
+    const digits = (e.clipboardData.getData("text") || "")
+      .replace(/\D/g, "")
+      .slice(0, 6);
+    if (!digits) return;
+    e.preventDefault();
+    const newOtp = new Array(6).fill("");
+    digits.split("").forEach((digit, offset) => {
+      newOtp[offset] = digit;
+    });
+    setOtp(newOtp);
+    inputRefs.current[Math.min(digits.length, 5)]?.focus();
   };
 
   const handleKeyDown = (e, index) => {
@@ -90,6 +106,11 @@ export default function VerifyForm({
         setToken("");
         setOtp(new Array(6).fill(""));
         setError(DEAD_TOKEN_MESSAGE);
+      } else if (apiError?.status === 401) {
+        // 401 la nhap sai ma nhung challenge con song: giu token, chi xoa OTP de nhap lai.
+        setOtp(new Array(6).fill(""));
+        setError(getErrorMessage(apiError, "Xác minh thất bại."));
+        inputRefs.current[0]?.focus();
       } else {
         setError(getErrorMessage(apiError, "Xác minh thất bại."));
       }
@@ -143,9 +164,11 @@ export default function VerifyForm({
       <div className="auth-form__head">
         <h1>Xác minh tài khoản</h1>
         <p>
-          {token
-            ? "Nhập mã 6 số đã gửi tới email."
-            : "Bấm Gửi lại mã để nhận mã xác minh 6 số."}
+          {sessionExpired
+            ? "Phiên xác minh đã kết thúc. Nhập email đã đăng ký để nhận mã mới."
+            : token
+              ? "Nhập mã 6 số đã gửi tới email."
+              : "Bấm Gửi lại mã để nhận mã xác minh 6 số."}
         </p>
       </div>
 
@@ -174,9 +197,9 @@ export default function VerifyForm({
         </Field>
       )}
 
-      {error && <div className="auth-form__error">{error}</div>}
+      {error && <div className="auth-form__error" role="alert">{error}</div>}
 
-      <div className="auth-otp" role="group" aria-label="Mã xác minh 6 số">
+      <div className="auth-otp" role="group" aria-label="Mã xác minh 6 số" onPaste={handlePaste}>
         {otp.map((data, index) => (
           <input
             key={index}

@@ -111,6 +111,16 @@
   border: 1px solid var(--color-error);
 }
 
+/* Hết giờ nhưng chưa nộp được: thông báo kèm nút thử nộp lại */
+.quiz-inline-error--autosubmit {
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+.quiz-inline-error--autosubmit > span {
+  flex: 1;
+  min-width: 0;
+}
+
 /* Info banner */
 .quiz-info-banner {
   display: flex;

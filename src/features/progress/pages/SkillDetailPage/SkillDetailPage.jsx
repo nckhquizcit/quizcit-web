@@ -146,6 +146,12 @@ export default function SkillDetailPage() {
     return (
       <div className="skill-detail-page">
         <SkeletonCard lines={3} />
+        {/* Hàng thống kê thật là lưới 4 cột (2 cột dưới 768px) — dựng đúng lưới đó. */}
+        <div className="skill-detail-stats">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <SkeletonCard key={index} lines={1} />
+          ))}
+        </div>
         <SkeletonCard lines={5} />
       </div>
     );
@@ -195,10 +201,11 @@ export default function SkillDetailPage() {
   const percent = thetaRawToPercent(thetaRaw);
   const latestDelta = formatDelta(latestHistory?.deltaScaled ?? 0);
   const LatestTrendIcon = TREND_ICON[latestDelta.trend];
-  const peakScaled = ascendingHistories.reduce(
-    (max, item) => Math.max(max, Number(item.thetaScaled ?? 0)),
-    level.thetaScaled,
-  );
+  // Bỏ qua phần tử không ép được sang số hợp lệ, tránh NaN lan ra ô thống kê.
+  const peakValues = ascendingHistories
+    .map((item) => Number(item.thetaScaled))
+    .filter((value) => Number.isFinite(value));
+  const peakScaled = peakValues.length > 0 ? Math.max(...peakValues) : null;
   const lastUpdatedAt = ability?.updatedAt || latestHistory?.createdAt;
   const chartPoints = buildChartPoints(ascendingHistories);
   const descendingHistories = [...ascendingHistories].reverse();
@@ -251,7 +258,10 @@ export default function SkillDetailPage() {
           }
           label="Thay đổi gần nhất"
         />
-        <StatTile value={peakScaled.toFixed(2)} label="Mức cao nhất" />
+        <StatTile
+          value={peakScaled === null ? "—" : peakScaled.toFixed(2)}
+          label="Mức cao nhất"
+        />
         <StatTile
           value={
             <span className="skill-detail-stats__datetime">

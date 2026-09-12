@@ -55,6 +55,9 @@ import {
 } from "./SubjectDetailPage.logic.js";
 import "./SubjectDetailPage.css";
 
+// Dùng chung cho cả nhánh đặt lỗi lẫn nhánh render để nhận diện trường hợp 404.
+const NOT_FOUND_MESSAGE = "Không tìm thấy môn học này.";
+
 export default function SubjectDetailPage() {
   const { subjectId } = useParams();
   const location = useLocation();
@@ -301,8 +304,13 @@ export default function SubjectDetailPage() {
       ]);
       if (loadIdRef.current !== loadId) return;
 
+      // Chốt phòng thủ: BE có thể trả 200 kèm data rỗng cho id sai, khi đó
+      // không được coi là môn học hợp lệ để tránh render trang trống vô nghĩa.
+      const subjectIdValue = subjectResult.value?.subjectId || subjectResult.value?.subject_id;
       if (subjectResult.status === "rejected") {
         setError(getErrorMessage(subjectResult.reason, "Không thể tải thông tin môn học."));
+      } else if (!subjectIdValue) {
+        setError(NOT_FOUND_MESSAGE);
       } else {
         setSubject(subjectResult.value);
       }
@@ -372,14 +380,29 @@ export default function SubjectDetailPage() {
     );
   }
 
+  // Môn không tồn tại thì thử lại là vô nghĩa, chỉ cần lối về danh sách môn.
+  const subjectNotFound = error === NOT_FOUND_MESSAGE;
+
   if (error) {
     return (
       <div className="subject-detail-page">
-        <ErrorState
-          title="Không tải được môn học"
-          description={error}
-          onRetry={() => window.location.reload()}
-        />
+        {subjectNotFound ? (
+          <EmptyState
+            title="Không tìm thấy môn học"
+            description={NOT_FOUND_MESSAGE}
+            action={
+              <Button variant="primary" onClick={() => navigate("/app/subjects")}>
+                Về danh sách môn học
+              </Button>
+            }
+          />
+        ) : (
+          <ErrorState
+            title="Không tải được môn học"
+            description={error}
+            onRetry={load}
+          />
+        )}
       </div>
     );
   }
@@ -605,14 +628,18 @@ export default function SubjectDetailPage() {
                     <div className="chapter-locked-banner" role="alert">
                       <AlertTriangle size={18} className="chapter-locked-banner__icon" />
                       <div className="chapter-locked-banner__content">
-                        <strong>Cảnh báo năng lực chưa đạt:</strong> Năng lực (theta) của bạn ở các chương trước chưa đạt yêu cầu mở khóa chương này. Bạn vẫn có thể học và làm bài kiểm tra, nhưng nên hoàn thiện các chương trước đó.
+                        <strong>Chương này chưa mở khóa.</strong>{" "}
+                        {activeChapterSkills.length > 0
+                          ? "Bạn cần đạt các kỹ năng yêu cầu liệt kê ngay bên dưới để mở khóa chương này."
+                          : "Hãy hoàn thành bài kiểm tra của chương trước để mở khóa chương này."}{" "}
+                        Bạn vẫn có thể học và làm bài kiểm tra, nhưng nên hoàn thiện các chương trước đó.
                       </div>
                     </div>
                   )}
                   {activeChapterSkills.length > 0 && (
                     <div className="chapter-overview-card__skills">
                       <span className="chapter-overview-card__skills-label">
-                        Yêu cầu kỹ năng
+                        Kỹ năng cần đạt để mở khóa
                       </span>
                       {activeChapterSkills.map((skill) => {
                         const currentThetaRaw = resolveSkillCurrentTheta(skill, userAbilityMap);

@@ -13,7 +13,22 @@ export default function HistoryCard({
   percentage,
   onViewDetail,
 }) {
-  const scoreTier = percentage >= 80 ? "good" : percentage >= 60 ? "fair" : "low";
+  // Bài không có câu hỏi (tổng số câu <= 0) là thiếu dữ liệu, không phải làm kém:
+  // không được rơi vào bậc màu đỏ của thang điểm.
+  const hasQuestions = Number(totalQuestions) > 0;
+  const scoreTier = !hasQuestions
+    ? "neutral"
+    : percentage >= 80
+      ? "good"
+      : percentage >= 60
+        ? "fair"
+        : "low";
+
+  // Một nhãn mô tả duy nhất cho cả nút; phần bên trong chỉ để hiển thị nên ẩn khỏi
+  // trình đọc màn hình để tránh đọc lặp.
+  const cardLabel = hasQuestions
+    ? `${title}, ${subjectName}, ${percentage}%, ${score} trên ${totalQuestions} câu, năng lực ${formatScaledThetaValue(estimatedAbility)} trên 4, làm lúc ${date}`
+    : `${title}, ${subjectName}, chưa có dữ liệu câu hỏi, năng lực ${formatScaledThetaValue(estimatedAbility)} trên 4, làm lúc ${date}`;
 
   return (
     <Card
@@ -23,24 +38,24 @@ export default function HistoryCard({
       padding="none"
       className="history-row"
       onClick={onViewDetail}
+      aria-label={cardLabel}
     >
-      <span className={`history-row__badge history-row__badge--${scoreTier}`}>
-        {percentage}%
+      <span
+        className={`history-row__badge history-row__badge--${scoreTier}`}
+        aria-hidden="true"
+      >
+        {hasQuestions ? `${percentage}%` : "—"}
       </span>
 
-      <span className="history-row__main">
+      <span className="history-row__main" aria-hidden="true">
         <span className="history-row__name">{title}</span>
         <span className="history-row__meta">
-          {subjectName} · {score}/{totalQuestions} câu
+          {hasQuestions ? `${subjectName} · ${score}/${totalQuestions} câu` : `${subjectName} · Chưa có dữ liệu câu hỏi`}
         </span>
       </span>
 
-      <span className="history-row__side">
-        <span
-          className="history-row__theta"
-          title="Năng lực"
-          aria-label={`Năng lực ${formatScaledThetaValue(estimatedAbility)} trên 4`}
-        >
+      <span className="history-row__side" aria-hidden="true">
+        <span className="history-row__theta" title="Năng lực">
           θ {formatScaledThetaValue(estimatedAbility)} / 4
         </span>
         <span className="history-row__date">{date}</span>

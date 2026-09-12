@@ -1,0 +1,19 @@
+/* Khung xương card môn học: bám đúng class của card thật để chiều cao khớp nhau. */
+.subject-card-skeleton {
+  gap: var(--space-2);
+  border: 1px solid var(--color-border);
+}
+
+/* Vùng ảnh dùng chung tỉ lệ 16:9 với .home-subject-card__cover của card thật. */
+.subject-card-skeleton__cover {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  flex-shrink: 0;
+  margin-bottom: var(--space-1);
+}
+
+/* Đẩy xuống đáy giống .home-subject-card__link (margin-top: auto). */
+.subject-card-skeleton__link {
+  margin-top: auto;
+  margin-bottom: var(--space-2);
+}

@@ -184,12 +184,17 @@ export default function QuizTakingPage() {
   const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
   // Phiếu trả lời dạng bottom sheet, chỉ dùng trên mobile (bar mở sheet ẩn ở desktop)
   const [answerSheetOpen, setAnswerSheetOpen] = useState(false);
+  // Hết giờ nhưng nộp tự động thất bại — cần báo rõ và cho thử lại.
+  const [autoSubmitFailed, setAutoSubmitFailed] = useState(false);
   const startedRef = useRef(false);
   const submittedRef = useRef(false);
   const timerStartedRef = useRef(false);
   const autoSubmittedRef = useRef(false);
   const deadlineRef = useRef(0);
   const questionRefs = useRef(new Map());
+  // Bản sao đáp án luôn cập nhật ngay, để lúc tự nộp không đọc phải giá trị cũ
+  // trong closure của effect (đáp án cuối có thể rơi cùng nhịp với đồng hồ về 0).
+  const answersRef = useRef({});
 
   useEffect(() => {
     if (startedRef.current) return;
@@ -301,6 +306,7 @@ export default function QuizTakingPage() {
         if (resumableDraft) {
           if (resumableDraft.answers) {
             setAnswers(resumableDraft.answers);
+            answersRef.current = resumableDraft.answers;
           }
           setFlaggedQuestionIds(new Set(resumableDraft.flaggedQuestionIds || []));
         }
@@ -437,6 +443,7 @@ export default function QuizTakingPage() {
         });
         clearQuizDraft(attempt.attemptId, currentUser?.userId);
         clearQuizDraftsByQuizId(quizId, currentUser?.userId);
+        setAutoSubmitFailed(false);
         navigate(`/app/quiz/result/${attempt.attemptId}`);
         return true;
       } catch (submitError) {
@@ -469,9 +476,17 @@ export default function QuizTakingPage() {
       !autoSubmittedRef.current
     ) {
       autoSubmittedRef.current = true;
-      doSubmit(answers);
+      // Đọc đáp án từ ref: closure của effect có thể đang giữ bản cũ nếu người
+      // dùng vừa chọn đáp án cuối cùng nhịp với lúc đồng hồ về 0.
+      doSubmit(answersRef.current).then((ok) => {
+        // Nộp tự động thất bại thì hạ cờ để người dùng còn nút thử lại.
+        if (!ok) {
+          autoSubmittedRef.current = false;
+          setAutoSubmitFailed(true);
+        }
+      });
     }
-  }, [answers, attempt, doSubmit, hasTimeLimit, timeLeft]);
+  }, [attempt, doSubmit, hasTimeLimit, timeLeft]);
 
   // Modal xác nhận nộp và modal kỹ năng tự xử lý Escape (Modal dùng chung);
   // chỉ còn bottom sheet phiếu trả lời cần đóng bằng Escape ở đây.
@@ -490,7 +505,10 @@ export default function QuizTakingPage() {
     setActiveQuestionId((prev) => (prev === questionId ? prev : questionId));
     setAnswers((current) => {
       if (current[questionId] === optionId) return current;
-      return { ...current, [questionId]: optionId };
+      const next = { ...current, [questionId]: optionId };
+      // Cập nhật ngay trong updater để ref không bao giờ lệch khỏi state.
+      answersRef.current = next;
+      return next;
     });
   }, []);
 
@@ -671,7 +689,11 @@ export default function QuizTakingPage() {
     );
   }
 
-  const answeredCount = Object.keys(answers).length;
+  // Chỉ đếm câu thật sự có trong đề: object đáp án có thể còn khoá của câu đã
+  // bị gỡ khỏi đề (khôi phục từ nháp cũ), khiến số đã trả lời vượt tổng số câu.
+  const answeredCount = questions.filter(
+    (question) => answers[question.questionId] != null,
+  ).length;
   const answeredPercent = questions.length
     ? Math.round((answeredCount / questions.length) * 100)
     : 0;
@@ -696,6 +718,25 @@ export default function QuizTakingPage() {
           <span className="quiz-timer__value">{timerLabel}</span>
         </div>
       </header>
+
+      {autoSubmitFailed && (
+        <div className="quiz-inline-error quiz-inline-error--autosubmit" role="alert">
+          <AlertCircle size={16} />
+          <span>
+            Đã hết thời gian làm bài nhưng bài của bạn chưa được nộp thành công.
+            Vui lòng thử nộp lại.
+          </span>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => doSubmit(answersRef.current)}
+            loading={submitting}
+            disabled={submitting}
+          >
+            Thử nộp lại
+          </Button>
+        </div>
+      )}
 
       {error && (
         <div className="quiz-inline-error">

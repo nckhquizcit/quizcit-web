@@ -33,6 +33,11 @@ button.history-row {
   background: var(--color-error-soft);
   color: #b91c1c;
 }
+/* Bài chưa có dữ liệu câu hỏi: trung tính, không dùng màu cảnh báo. */
+.history-row__badge--neutral {
+  background: var(--color-surface-3);
+  color: var(--color-text-muted);
+}
 
 .history-row__main {
   display: flex;

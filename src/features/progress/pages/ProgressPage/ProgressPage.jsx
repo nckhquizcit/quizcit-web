@@ -125,8 +125,14 @@ export default function ProgressPage() {
   if (loading) {
     return (
       <div className="progress-page">
-        <SkeletonCard lines={2} />
-        <SkeletonCard lines={4} />
+        {/* Dựng khung xương theo đúng bố cục thật: lưới trên 2 cột + mục lịch sử. */}
+        <div className="progress-top-grid">
+          <SkeletonCard lines={4} />
+          <SkeletonCard lines={5} />
+        </div>
+        <div className="progress-section">
+          <SkeletonCard lines={6} />
+        </div>
       </div>
     );
   }

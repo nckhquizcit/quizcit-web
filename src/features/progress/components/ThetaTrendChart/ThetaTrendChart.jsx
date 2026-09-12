@@ -33,6 +33,9 @@ export default function ThetaTrendChart({ points = [], ariaLabel = "Diễn biế
       setViewW(Math.max(MIN_W, Math.round(element.clientWidth) || DEFAULT_W));
     };
     syncWidth();
+    // Môi trường thiếu ResizeObserver (trình duyệt cũ, test runner) vẫn phải vẽ được
+    // biểu đồ với kích thước mặc định thay vì ném lỗi làm trắng trang.
+    if (typeof ResizeObserver === "undefined") return undefined;
     const observer = new ResizeObserver(syncWidth);
     observer.observe(element);
     return () => observer.disconnect();

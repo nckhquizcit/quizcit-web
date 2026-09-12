@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { BookOpen, ChevronDown, ChevronUp, History } from "lucide-react";
-import { getErrorMessage } from "../../../../services/apiClient";
+import { getErrorMessage, isAccessDenied, isNotFound } from "../../../../services/apiClient";
 import {
   getAttemptResult,
   getQuizById,
@@ -11,7 +11,7 @@ import {
   formatScaledThetaValue,
   thetaScaledToPercent,
 } from "../../../../services/mappers";
-import { Badge, Button, Card, Spinner, StatTile } from "../../../../components/ui";
+import { Badge, Button, Card, ErrorState, Spinner, StatTile } from "../../../../components/ui";
 import RichTextView from "../../../../components/richtext/RichTextView";
 import { isRichTextEmpty, toPreviewText } from "../../../../components/richtext/richTextUtils";
 import { formatSubmittedAt } from "../../../../utils/dateFormat";
@@ -88,34 +88,35 @@ export default function QuizResultPage() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  // Giữ nguyên đối tượng lỗi để phân nhánh thông điệp theo loại (403/404/khác).
+  const [loadError, setLoadError] = useState(null);
   const [reviewFilter, setReviewFilter] = useState("all");
   const [expandedIds, setExpandedIds] = useState(() => new Set());
 
   const cameFromHistory = location.state?.from === "history";
 
-  useEffect(() => {
-    let alive = true;
-
-    async function loadResult() {
-      try {
-        setLoading(true);
-        setError("");
-        const resultData = await getAttemptResult(attemptId);
-        const enriched = await resolveResultMetadata(resultData);
-        if (alive) setResult(enriched);
-      } catch (loadError) {
-        if (alive)
-          setError(getErrorMessage(loadError, "Không thể tải kết quả."));
-      } finally {
-        if (alive) setLoading(false);
-      }
+  // Tách riêng để nút "Thử lại" gọi lại đúng luồng tải này.
+  const loadResult = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
+      setLoadError(null);
+      const resultData = await getAttemptResult(attemptId);
+      const enriched = await resolveResultMetadata(resultData);
+      setResult(enriched);
+      return true;
+    } catch (err) {
+      setError(getErrorMessage(err, "Không thể tải kết quả."));
+      setLoadError(err);
+      return false;
+    } finally {
+      setLoading(false);
     }
-
-    loadResult();
-    return () => {
-      alive = false;
-    };
   }, [attemptId]);
+
+  useEffect(() => {
+    loadResult();
+  }, [loadResult]);
 
 
   const questionResults = useMemo(
@@ -156,15 +157,43 @@ export default function QuizResultPage() {
   }
 
   if (error || !result) {
+    // Phân nhánh theo loại lỗi: bị từ chối quyền khác với không tồn tại,
+    // và lỗi hệ thống/mạng thì phải cho thử lại.
+    const errorContent = isAccessDenied(loadError)
+      ? {
+          title: "Không có quyền xem kết quả này",
+          description:
+            "Kết quả bài làm này thuộc về người dùng khác. Bạn chỉ xem được kết quả của chính mình.",
+          onRetry: null,
+        }
+      : isNotFound(loadError)
+        ? {
+            title: "Kết quả không tồn tại",
+            description:
+              error || "Kết quả bài làm này không tồn tại hoặc đã bị gỡ.",
+            onRetry: null,
+          }
+        : {
+            title: "Không thể tải kết quả",
+            description:
+              error ||
+              "Hệ thống đang gặp sự cố khi tải kết quả. Vui lòng thử lại.",
+            onRetry: loadResult,
+          };
+
     return (
       <div className="quiz-result-page">
-        <Card padding="lg" className="result-error-card">
-          <h2>Không tìm thấy kết quả</h2>
-          <p>{error || "Kết quả bài làm không tồn tại."}</p>
+        <ErrorState
+          title={errorContent.title}
+          description={errorContent.description}
+          onRetry={errorContent.onRetry}
+          retryLabel="Thử lại"
+        />
+        <div className="result-actions">
           <Button variant="primary" onClick={() => navigate("/app/subjects")}>
             Về danh sách môn học
           </Button>
-        </Card>
+        </div>
       </div>
     );
   }

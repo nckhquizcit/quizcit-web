@@ -185,6 +185,11 @@
 .skill-detail-others__row:hover {
   background: var(--color-surface-2);
 }
+/* Cùng kiểu focus với SkillTile để đi bằng phím Tab vẫn thấy vị trí. */
+.skill-detail-others__row:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
 .skill-detail-others__row svg {
   color: var(--color-text-subtle);
   flex-shrink: 0;

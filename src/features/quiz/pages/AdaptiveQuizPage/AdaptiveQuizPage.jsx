@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useBlocker, useNavigate, useParams } from "react-router-dom";
 import { AlertCircle } from "lucide-react";
-import { Button, EmptyState, ErrorState, Spinner } from "../../../../components/ui";
+import { Button, EmptyState, ErrorState, Modal, Spinner, StatTile } from "../../../../components/ui";
 import RichTextView from "../../../../components/richtext/RichTextView";
 import SkillInfoModal from "../../components/SkillInfoModal";
 import ExamExitModal from "../../components/ExamExitModal";
@@ -33,6 +33,8 @@ export default function AdaptiveQuizPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  // Hộp xác nhận trước khi nộp ở nhóm câu cuối (không hoàn tác được).
+  const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
   const metaRequestedRef = useRef(false);
   const submittedRef = useRef(false);
 
@@ -97,7 +99,7 @@ export default function AdaptiveQuizPage() {
     const questions = state?.questions || [];
     if (!hasAnsweredAdaptiveBatch(questions, answers)) {
       setError("Vui lòng trả lời đủ 5 câu trước khi tiếp tục.");
-      return;
+      return false;
     }
     try {
       setSubmitting(true);
@@ -111,16 +113,36 @@ export default function AdaptiveQuizPage() {
       if (next.completed) {
         submittedRef.current = true;
         navigate(`/app/quiz/result/${attemptId}`);
-        return;
+        return true;
       }
       setState(next);
       setAnswers({});
       window.scrollTo({ top: 0, behavior: "smooth" });
+      return true;
     } catch (err) {
       setError(getErrorMessage(err, "Không thể nộp nhóm câu hỏi này."));
+      return false;
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // Nhóm cuối là hành động không hoàn tác được nên hỏi lại trước;
+  // các nhóm giữa vẫn nộp thẳng để không thêm bước cản.
+  const handleSubmitClick = () => {
+    if (submitting) return;
+    if (isLastBatch) {
+      setSubmitConfirmOpen(true);
+      return;
+    }
+    submitPage();
+  };
+
+  const confirmSubmit = async () => {
+    if (submitting) return;
+    // Chỉ đóng hộp thoại khi nộp xong, để lỗi hiện ngay trong hộp.
+    const ok = await submitPage();
+    if (ok) setSubmitConfirmOpen(false);
   };
 
   const shouldBlock = Boolean(state && !state.completed && !submittedRef.current && !submitting);
@@ -269,7 +291,7 @@ export default function AdaptiveQuizPage() {
                 variant="primary"
                 loading={submitting}
                 disabled={!batchReady}
-                onClick={submitPage}
+                onClick={handleSubmitClick}
               >
                 {isLastBatch ? "Nộp bài" : "Nộp 5 câu và tiếp tục"}
               </Button>
@@ -293,12 +315,72 @@ export default function AdaptiveQuizPage() {
             variant="primary"
             loading={submitting}
             disabled={!batchReady}
-            onClick={submitPage}
+            onClick={handleSubmitClick}
           >
             {isLastBatch ? "Nộp bài" : "Nộp và tiếp tục"}
           </Button>
         </div>
       )}
+
+      <Modal
+        open={submitConfirmOpen}
+        onClose={() => {
+          if (!submitting) setSubmitConfirmOpen(false);
+        }}
+        title="Xác nhận nộp bài"
+        size="md"
+        footer={
+          <div className="submit-confirm-footer">
+            <Button
+              variant="ghost"
+              onClick={() => setSubmitConfirmOpen(false)}
+              disabled={submitting}
+            >
+              Quay lại làm bài
+            </Button>
+            <Button
+              variant="primary"
+              onClick={confirmSubmit}
+              loading={submitting}
+            >
+              Nộp và xem kết quả
+            </Button>
+          </div>
+        }
+      >
+        <div className="submit-confirm-content">
+          <div className="submit-confirm-stats">
+            <StatTile
+              value={answeredInBatch}
+              label="Đã trả lời"
+              tone="success"
+            />
+            <StatTile
+              value={questions.length - answeredInBatch}
+              label="Chưa trả lời"
+              tone={questions.length - answeredInBatch > 0 ? "danger" : "default"}
+            />
+          </div>
+
+          {questions.length - answeredInBatch > 0 && (
+            <p className="submit-confirm-warning">
+              Bạn còn {questions.length - answeredInBatch} câu chưa trả lời trong
+              nhóm này. Có thể quay lại làm tiếp trước khi nộp.
+            </p>
+          )}
+
+          <p className="submit-confirm-note">
+            Sau khi nộp, bạn không thể sửa đáp án và trang kết quả được mở.
+          </p>
+
+          {error && (
+            <div className="quiz-inline-error">
+              <AlertCircle size={16} />
+              <span>{error}</span>
+            </div>
+          )}
+        </div>
+      </Modal>
 
       <SkillInfoModal
         question={activeSkillQuestion}

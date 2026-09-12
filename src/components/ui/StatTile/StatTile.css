@@ -31,6 +31,9 @@
   line-height: 1.2;
   color: var(--color-text);
   font-variant-numeric: tabular-nums;
+  /* Chuỗi số dài liền mạch không có điểm ngắt nên tràn khỏi ô ở màn hẹp. */
+  overflow-wrap: anywhere;
+  min-width: 0;
 }
 .ui-stat-tile__label {
   font-size: var(--fs-sm);

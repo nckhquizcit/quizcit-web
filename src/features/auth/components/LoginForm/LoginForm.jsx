@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, LockKeyhole, User } from "lucide-react";
 import {
   getErrorMessage,
@@ -17,6 +17,7 @@ const RATE_LIMIT_COOLDOWN_SECONDS = 900;
 
 export default function LoginForm() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -56,7 +57,10 @@ export default function LoginForm() {
         throw new Error("Đăng nhập thất bại. Vui lòng thử lại.");
       }
       saveAuthSession(auth);
-      navigate(auth.role === "ADMINISTRATOR" ? "/admin" : "/app");
+      // Quay lai dung trang bi chan truoc do (ProtectedRoute gan state.from), tranh ve /login.
+      const fallback = auth.role === "ADMINISTRATOR" ? "/admin" : "/app";
+      const from = location.state?.from?.pathname;
+      navigate(from && from !== "/login" ? from : fallback, { replace: true });
     } catch (apiError) {
       if (isRateLimited(apiError)) {
         setError("Bạn đã thử quá nhiều lần. Vui lòng thử lại sau khoảng 15 phút.");
@@ -103,7 +107,7 @@ export default function LoginForm() {
         <p>Nhập thông tin để tiếp tục học.</p>
       </div>
 
-      {error && <div className="auth-form__error">{error}</div>}
+      {error && <div className="auth-form__error" role="alert">{error}</div>}
 
       <Field label="Tên đăng nhập hoặc email" htmlFor="username">
         <Input

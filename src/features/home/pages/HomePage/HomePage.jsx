@@ -11,6 +11,7 @@ import {
   StatTile,
 } from "../../../../components/ui";
 import ProgressBar from "../../components/ProgressBar";
+import SubjectCardSkeleton from "../../components/SubjectCardSkeleton";
 import { buildEnrolledSubjects } from "../../utils/homeSubjects";
 import { getHomeSummary } from "../../../../services/homeService";
 import { normalizeHomeSummary } from "../../utils/homeSummary";
@@ -43,6 +44,9 @@ function getFirstName(displayName) {
   return parts[parts.length - 1];
 }
 
+// Lưới môn thật là 3 cột ở màn rộng, 2 ở màn vừa, 1 ở màn hẹp — 6 khung xương phủ được hai hàng ở mọi khổ.
+const SUBJECT_SKELETON_KEYS = ["s1", "s2", "s3", "s4", "s5", "s6"];
+
 export default function HomePage() {
   const [enrolledSubjects, setEnrolledSubjects] = useState([]);
   const [totalUnlockedChapters, setTotalUnlockedChapters] = useState(0);
@@ -50,6 +54,8 @@ export default function HomePage() {
   const [averageTheta, setAverageTheta] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  // Lấy danh sách đăng ký thất bại khác với "chưa đăng ký môn nào": không được mời đăng ký khi đang lỗi tải.
+  const [enrollmentsFailed, setEnrollmentsFailed] = useState(false);
   const user = useMemo(() => getStoredUser(), []);
   const navigate = useNavigate();
   const loadIdRef = useRef(0);
@@ -62,6 +68,7 @@ export default function HomePage() {
     try {
       setLoading(true);
       setError("");
+      setEnrollmentsFailed(false);
 
       try {
         const summary = await getHomeSummary();
@@ -80,14 +87,19 @@ export default function HomePage() {
       }
 
       // Fallback:
+      let enrollmentsFailedThisLoad = false;
       const [subjectData = [], chaptersData = [], enrolledData = []] = await Promise.all([
         getSubjects(),
         getAllChapters(),
-        getMyEnrollments().catch(() => []),
+        getMyEnrollments().catch(() => {
+          enrollmentsFailedThisLoad = true;
+          return [];
+        }),
       ]);
 
       if (!isCurrent()) return;
       const validChapters = chaptersData.filter(Boolean);
+      setEnrollmentsFailed(enrollmentsFailedThisLoad);
       setTotalUnlockedChapters(validChapters.length);
       setEnrolledSubjects(buildEnrolledSubjects(enrolledData, subjectData, validChapters));
 
@@ -137,9 +149,9 @@ export default function HomePage() {
           <SkeletonCard lines={3} />
         </div>
         <div className="home-subjects-grid">
-          <SkeletonCard lines={3} />
-          <SkeletonCard lines={3} />
-          <SkeletonCard lines={3} />
+          {SUBJECT_SKELETON_KEYS.map((key) => (
+            <SubjectCardSkeleton key={key} />
+          ))}
         </div>
       </div>
     );
@@ -247,20 +259,28 @@ export default function HomePage() {
         </div>
 
         {enrolledSubjects.length === 0 ? (
-          <EmptyState
-            icon={<BookOpen size={28} />}
-            title="Bạn chưa đăng ký môn học nào"
-            description="Hãy khám phá danh sách môn học và bấm đăng ký để mở khóa lý thuyết cùng bài kiểm tra ôn tập."
-            action={
-              <Button
-                variant="primary"
-                iconRight={<ArrowRight size={16} />}
-                onClick={() => navigate("/app/subjects")}
-              >
-                Khám phá và đăng ký môn học
-              </Button>
-            }
-          />
+          enrollmentsFailed ? (
+            <ErrorState
+              title="Không tải được danh sách môn học"
+              description="Không thể tải danh sách môn bạn đã đăng ký. Vui lòng thử lại."
+              onRetry={loadData}
+            />
+          ) : (
+            <EmptyState
+              icon={<BookOpen size={28} />}
+              title="Bạn chưa đăng ký môn học nào"
+              description="Hãy khám phá danh sách môn học và bấm đăng ký để mở khóa lý thuyết cùng bài kiểm tra ôn tập."
+              action={
+                <Button
+                  variant="primary"
+                  iconRight={<ArrowRight size={16} />}
+                  onClick={() => navigate("/app/subjects")}
+                >
+                  Khám phá và đăng ký môn học
+                </Button>
+              }
+            />
+          )
         ) : (
           <div className="home-subjects-grid">
             {enrolledSubjects.map((subject) => (
@@ -295,6 +315,20 @@ export default function HomePage() {
                     ? `${subject.chapterCount} chương đã mở · Lý thuyết và bài kiểm tra`
                     : "Chưa mở khóa chương nào"}
                 </p>
+                {/* Chỉ vẽ thanh tiến độ khi biết tổng số chương: chia cho 0 sẽ ra Infinity và thanh đầy 100%. */}
+                {subject.totalChapterCount > 0 && (
+                  <div className="home-subject-card__progress">
+                    <div className="home-subject-card__progress-labels">
+                      <span>Chương đã mở</span>
+                      <span>
+                        {subject.chapterCount}/{subject.totalChapterCount}
+                      </span>
+                    </div>
+                    <ProgressBar
+                      value={(subject.chapterCount / subject.totalChapterCount) * 100}
+                    />
+                  </div>
+                )}
                 <span className="home-subject-card__link">
                   Vào học ngay <ArrowRight size={14} />
                 </span>

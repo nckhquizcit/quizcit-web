@@ -6,15 +6,20 @@ import "./ForgotPasswordPage.css";
 import { useForgotPassword } from "../../../../stores/contexts/ForgotPasswordContext.jsx";
 
 export default function ForgotPasswordPage() {
-  const { currentState } = useForgotPassword();
+  const { currentState, sessionReset } = useForgotPassword();
 
   return (
     <div className="auth-split">
       <LoginCard />
       <div className="auth-form-panel">
-        {currentState === 1 && <ForgotPasswordForm />}
-        {currentState === 2 && <VerifyForgotPasswordForm />}
-        {currentState === 3 && <ChangeForgotPasswordForm />}
+        {/* Fallback ve buoc 1: khong de vung form trong neu currentState la gia tri la. */}
+        {currentState === 2 ? (
+          <VerifyForgotPasswordForm />
+        ) : currentState === 3 ? (
+          <ChangeForgotPasswordForm />
+        ) : (
+          <ForgotPasswordForm sessionReset={sessionReset} />
+        )}
       </div>
     </div>
   );

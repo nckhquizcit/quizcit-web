@@ -14,8 +14,15 @@ import { useChatSession } from "../../../../components/ChatBox/useChatSession";
 import ChatMessages from "../../../../components/ChatBox/ChatMessages";
 import ChatComposer from "../../../../components/ChatBox/ChatComposer";
 import TheoryContent from "../../components/TheoryContent";
+import {
+  isRichTextEmpty,
+  resolveContentFormat,
+} from "../../../../components/richtext/richTextUtils.js";
 import { getTheoryDisplayTitle, stripLeadingTitleBlock } from "../../utils/theoryDisplay.js";
 import "./TheoryPage.css";
+
+// Dùng chung cho cả nhánh đặt lỗi lẫn nhánh render để nhận diện trường hợp 404.
+const NOT_FOUND_MESSAGE = "Không tìm thấy bài học này.";
 
 export default function TheoryPage() {
   const { subjectId, theoryId } = useParams();
@@ -29,6 +36,8 @@ export default function TheoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [accessDenied, setAccessDenied] = useState(false);
+  // Tăng lên khi bấm "Thử lại" để chạy lại effect tải thay vì reload cả trang.
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -43,6 +52,11 @@ export default function TheoryPage() {
           // Primary: 1 request duy nhất tới reader-view (Phase 3 optimization)
           const readerView = await getTheoryReaderView(theoryId);
           if (!alive) return;
+          // Chốt phòng thủ: 200 kèm data rỗng cho id sai vẫn phải coi là không tìm thấy.
+          if (!(readerView?.theoryId || readerView?.theory_id)) {
+            setError(NOT_FOUND_MESSAGE);
+            return;
+          }
           setChapter(readerView.chapter || null);
           setChapterIndex(readerView.chapterIndex ?? -1);
           setTheory(readerView);
@@ -58,6 +72,11 @@ export default function TheoryPage() {
             getChaptersBySubject(subjectId),
             getTheoryById(theoryId),
           ]);
+          if (!alive) return;
+          if (!(theoryData?.theoryId || theoryData?.theory_id)) {
+            setError(NOT_FOUND_MESSAGE);
+            return;
+          }
           const chapterId = theoryData.chapterId || theoryData.chapter_id;
           const idx = chapters.findIndex(
             (item) => (item.chapterId || item.chapter_id) === chapterId
@@ -87,7 +106,7 @@ export default function TheoryPage() {
     return () => {
       alive = false;
     };
-  }, [subjectId, theoryId]);
+  }, [subjectId, theoryId, reloadToken]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -129,14 +148,29 @@ export default function TheoryPage() {
     );
   }
 
+  // Bài học không tồn tại thì thử lại là vô nghĩa, chỉ cần lối về trang môn học.
+  const theoryNotFound = error === NOT_FOUND_MESSAGE;
+
   if (error) {
     return (
       <div className="theory-page">
-        <ErrorState
-          title="Không tải được bài học"
-          description={error}
-          onRetry={() => window.location.reload()}
-        />
+        {theoryNotFound ? (
+          <EmptyState
+            title="Không tìm thấy bài học"
+            description={NOT_FOUND_MESSAGE}
+            action={
+              <Button variant="primary" onClick={() => navigate(`/app/subjects/${subjectId}`)}>
+                Về trang môn học
+              </Button>
+            }
+          />
+        ) : (
+          <ErrorState
+            title="Không tải được bài học"
+            description={error}
+            onRetry={() => setReloadToken((token) => token + 1)}
+          />
+        )}
       </div>
     );
   }
@@ -264,7 +298,16 @@ export default function TheoryPage() {
           <div className="theory-content-card__head">
             <h1>{displayTitle}</h1>
           </div>
-          <TheoryContent content={contentForDisplay} contentFormat={theory?.contentFormat} />
+          {/* TheoryContent trả null khi nội dung rỗng; báo rõ thay vì để vùng trắng.
+              Dùng chung isRichTextEmpty để bắt cả trường hợp "[]" hoặc toàn khoảng trắng. */}
+          {isRichTextEmpty(contentForDisplay, resolveContentFormat(contentForDisplay, theory?.contentFormat)) ? (
+            <EmptyState
+              title="Bài học chưa có nội dung"
+              description="Nội dung của bài lý thuyết này đang trống. Vui lòng quay lại sau."
+            />
+          ) : (
+            <TheoryContent content={contentForDisplay} contentFormat={theory?.contentFormat} />
+          )}
 
           <footer className="theory-content-card__footer">
             <div className="theory-footer-nav">
@@ -309,7 +352,7 @@ export default function TheoryPage() {
               <Button
                 variant="secondary"
                 onClick={handleGoBack}
-                leftIcon={<ArrowLeft size={16} />}
+                iconLeft={<ArrowLeft size={16} />}
               >
                 {chapterIndex >= 0 && chapter?.name
                   ? `Quay lại Chương ${chapterIndex + 1} · ${chapter.name}`

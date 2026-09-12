@@ -27,10 +27,14 @@ export function normalizeHomeSummary(summary) {
     enrolledSubjects,
     totalUnlockedChapters: stats.totalUnlockedChapters ?? 0,
     skillCount: abilityOverview.skillCount ?? 0,
-    averageTheta:
-      abilityOverview.averageTheta !== undefined && abilityOverview.averageTheta !== null
-        ? Number(abilityOverview.averageTheta)
-        : null,
+    averageTheta: toFiniteTheta(abilityOverview.averageTheta),
     abilityLevel: abilityOverview.abilityLevel || null,
   };
+}
+
+// Chuỗi không phải số vẫn qua được Number() thành NaN: phải chặn để không hiện năng lực 0.00.
+function toFiniteTheta(raw) {
+  if (raw === undefined || raw === null) return null;
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : null;
 }

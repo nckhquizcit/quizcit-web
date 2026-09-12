@@ -22,6 +22,7 @@ export default function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
+  const [usernameError, setUsernameError] = useState("");
   const [confirmError, setConfirmError] = useState("");
   const [loading, setLoading] = useState(false);
   const [cooldown, startCooldown] = useCountdown();
@@ -35,15 +36,16 @@ export default function RegisterForm() {
     e.preventDefault();
     if (cooldown > 0) return;
     setError("");
+    setUsernameError("");
     setConfirmError("");
 
     const trimmedUsername = formData.username.trim();
     if (trimmedUsername.length < 3 || trimmedUsername.length > 50) {
-      setError("Tên đăng nhập phải từ 3 đến 50 ký tự.");
+      setUsernameError("Tên đăng nhập phải từ 3 đến 50 ký tự.");
       return;
     }
     if (!USERNAME_REGEX.test(trimmedUsername)) {
-      setError("Tên đăng nhập không được chứa khoảng trắng, dấu tiếng Việt hoặc ký tự đặc biệt.");
+      setUsernameError("Tên đăng nhập không được chứa khoảng trắng, dấu tiếng Việt hoặc ký tự đặc biệt.");
       return;
     }
     if (formData.password !== formData.confirmPassword) {
@@ -84,9 +86,9 @@ export default function RegisterForm() {
         <p>Bắt đầu ôn tập cùng QuizCIT.</p>
       </div>
 
-      {error && <div className="auth-form__error">{error}</div>}
+      {error && <div className="auth-form__error" role="alert">{error}</div>}
 
-      <Field label="Tên đăng nhập" htmlFor="username">
+      <Field label="Tên đăng nhập" htmlFor="username" error={usernameError}>
         <Input
           id="username"
           name="username"
@@ -98,6 +100,7 @@ export default function RegisterForm() {
           autoComplete="username"
           minLength={3}
           maxLength={50}
+          invalid={Boolean(usernameError)}
           required
         />
       </Field>

@@ -11,8 +11,9 @@ import "../../styles/authShared.css";
 // BE gioi han FORGOT_PASSWORD 3 lan / 600s.
 const RATE_LIMIT_COOLDOWN_SECONDS = 600;
 
-export default function ForgotPasswordForm() {
-  const { setCurrentState, setEmail, setResetToken } = useForgotPassword();
+export default function ForgotPasswordForm({ sessionReset = false }) {
+  const { setCurrentState, setEmail, setResetToken, markStepAdvanced } =
+    useForgotPassword();
   const [formData, setFormData] = useState({
     email: "",
   });
@@ -40,6 +41,7 @@ export default function ForgotPasswordForm() {
       }
       setEmail(res.email);
       setResetToken(res.resetToken);
+      markStepAdvanced();
       setCurrentState(2);
     } catch (apiError) {
       if (isRateLimited(apiError) && isWindowRateLimit(apiError)) {
@@ -62,7 +64,13 @@ export default function ForgotPasswordForm() {
         <p>Nhập email để nhận mã xác minh.</p>
       </div>
 
-      {error && <div className="auth-form__error">{error}</div>}
+      {sessionReset && (
+        <p className="auth-info-box" role="status">
+          Phiên đặt lại mật khẩu đã hết hạn, vui lòng bắt đầu lại.
+        </p>
+      )}
+
+      {error && <div className="auth-form__error" role="alert">{error}</div>}
 
       <Field label="Email" htmlFor="forgot-email">
         <Input

@@ -203,7 +203,7 @@ export default function SubjectsPage() {
     if (!normalized) return subjectCollection;
     return subjectCollection.filter(
       (subject) =>
-        subject.name.toLowerCase().includes(normalized) ||
+        (subject.name || "").toLowerCase().includes(normalized) ||
         (subject.course_code || "").toLowerCase().includes(normalized)
     );
   }, [searchTerm, subjectCollection]);
@@ -312,10 +312,7 @@ export default function SubjectsPage() {
               <SkeletonCard lines={4} />
             </div>
           ) : error ? (
-            <ErrorState
-              description={error}
-              onRetry={() => window.location.reload()}
-            />
+            <ErrorState description={error} onRetry={() => loadData()} />
           ) : filteredSubjects.length === 0 ? (
             <EmptyState
               title={
@@ -354,10 +351,7 @@ export default function SubjectsPage() {
               <SkeletonCard lines={4} />
             </div>
           ) : error ? (
-            <ErrorState
-              description={error}
-              onRetry={() => window.location.reload()}
-            />
+            <ErrorState description={error} onRetry={() => loadData()} />
           ) : mySubjects.length === 0 ? (
             <EmptyState
               title="Bạn chưa đăng ký môn nào"

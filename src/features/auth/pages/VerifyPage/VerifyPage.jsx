@@ -5,6 +5,8 @@ import "./VerifyPage.css";
 
 export default function VerifyPage() {
   const { state } = useLocation();
+  // Reload lam mat location.state (gioi han cua router): bao cho user biet phien da ket thuc.
+  const sessionExpired = !state?.email && !state?.verificationToken;
 
   return (
     <div className="auth-split">
@@ -13,6 +15,7 @@ export default function VerifyPage() {
         <VerifyForm
           email={state?.email}
           verificationToken={state?.verificationToken}
+          sessionExpired={sessionExpired}
         />
       </div>
     </div>

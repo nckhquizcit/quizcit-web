@@ -44,6 +44,10 @@
   background: var(--color-surface-2);
   color: var(--color-primary-700);
 }
+.theory-nav-card__back-btn:focus-visible {
+  outline: 2px solid var(--color-primary-600);
+  outline-offset: 2px;
+}
 .theory-nav-card__divider {
   height: 1px;
   background: var(--color-border);
@@ -84,6 +88,11 @@
 .theory-nav-card__item.active {
   background: var(--color-primary-soft);
   color: var(--color-primary-700);
+}
+/* Mục lục bài học là button tự dựng: cần focus nhìn thấy được khi Tab bằng bàn phím. */
+.theory-nav-card__item:focus-visible {
+  outline: 2px solid var(--color-primary-600);
+  outline-offset: 2px;
 }
 .theory-nav-card__index {
   display: inline-flex;
@@ -160,6 +169,10 @@
 .theory-page__back:hover {
   color: var(--color-primary-700);
 }
+.theory-page__back:focus-visible {
+  outline: 2px solid var(--color-primary-600);
+  outline-offset: 2px;
+}
 
 .theory-page__back-text {
   overflow: hidden;
@@ -209,6 +222,10 @@
 .theory-page__bar-arrow:disabled {
   opacity: 0.35;
   cursor: not-allowed;
+}
+.theory-page__bar-arrow:focus-visible {
+  outline: 2px solid var(--color-primary-600);
+  outline-offset: 2px;
 }
 
 .theory-content-card {
@@ -271,6 +288,10 @@
   border-color: var(--color-primary-400);
   background: var(--color-primary-50);
   box-shadow: var(--shadow-sm);
+}
+.theory-footer-nav-btn:focus-visible {
+  outline: 2px solid var(--color-primary-600);
+  outline-offset: 2px;
 }
 
 .theory-footer-nav-btn__icon {

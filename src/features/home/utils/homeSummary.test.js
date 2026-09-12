@@ -37,4 +37,11 @@ describe("normalizeHomeSummary", () => {
     assert.equal(emptyResult.skillCount, 0);
     assert.equal(emptyResult.averageTheta, null);
   });
+
+  it("returns null averageTheta when the backend sends a non-numeric value", () => {
+    const result = normalizeHomeSummary({
+      abilityOverview: { averageTheta: "không phải số", skillCount: 1 },
+    });
+    assert.equal(result.averageTheta, null);
+  });
 });

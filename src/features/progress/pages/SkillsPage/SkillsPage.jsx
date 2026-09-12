@@ -91,7 +91,12 @@ export default function SkillsPage() {
       </header>
 
       {loading ? (
-        <SkeletonCard lines={5} />
+        // Khung xương dùng đúng lưới thật để chiều cao trang không đổi khi dữ liệu về.
+        <div className="skills-page__grid">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <SkeletonCard key={index} lines={3} />
+          ))}
+        </div>
       ) : error ? (
         <ErrorState description={error} onRetry={loadSkills} />
       ) : abilities.length === 0 ? (
