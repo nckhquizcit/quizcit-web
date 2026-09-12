@@ -119,10 +119,11 @@ export default function DataTable({
       setQuery(val);
     }
     onSearchChange?.(val);
+    // Chi doi trang o che do client. Che do server khong goi onPageChange o day:
+    // tu khoa con tre 300ms nen request se ban di kem tu khoa cu, va trang goi
+    // (AdminUsers) da tu tai lai khi tu khoa da tre thay doi.
     if (!isServer) {
       setPage(1);
-    } else {
-      onPageChange?.(0);
     }
   };
 

@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from "react";
 import Modal from "../ui/Modal";
+import { ROLE_LABELS } from "../../utils/adminUsersLogic";
 import "./modal.css";
 
 export default function AuthorizationModal({ isOpen, onClose, user, onSave }) {
@@ -60,6 +61,14 @@ export default function AuthorizationModal({ isOpen, onClose, user, onSave }) {
             <option value="USER">Người dùng</option>
             <option value="ADMINISTRATOR">Quản trị viên</option>
           </select>
+
+          <p className="admin-field-hint">
+            {role === user.role
+              ? "Chưa có thay đổi vai trò."
+              : `Sẽ đổi từ ${ROLE_LABELS[user.role] || user.role} sang ${
+                  ROLE_LABELS[role] || role
+                } sau khi lưu.`}
+          </p>
         </div>
       </div>
 

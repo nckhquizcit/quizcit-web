@@ -9,8 +9,15 @@ const MENU_ESTIMATED_HEIGHT = 200;
  * items: [{ label, icon, onClick, danger, disabled, title }]
  * labelled: show icon + visible text label instead of icon-only buttons
  * variant: "menu" renders a single "···" trigger that opens a dropdown of items
+ * triggerLabel: nhan mo ta rieng cho nut mo menu; truyen kem ten dong de trinh doc
+ * man hinh phan biet duoc nut nao thuoc dong nao.
  */
-export default function RowActions({ items = [], labelled = false, variant = "default" }) {
+export default function RowActions({
+  items = [],
+  labelled = false,
+  variant = "default",
+  triggerLabel = "Mở menu hành động",
+}) {
   const [open, setOpen] = useState(false);
   const [menuPos, setMenuPos] = useState(null);
   const rootRef = useRef(null);
@@ -61,7 +68,7 @@ export default function RowActions({ items = [], labelled = false, variant = "de
           type="button"
           className="row-actions__trigger"
           onClick={toggleMenu}
-          aria-label="Mở menu hành động"
+          aria-label={triggerLabel}
           aria-expanded={open}
         >
           <MoreHorizontal size={18} />

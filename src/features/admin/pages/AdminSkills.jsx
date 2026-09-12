@@ -16,6 +16,9 @@ import { createSkill, deleteSkill, getSkills, updateSkill } from "../services/sk
 
 const getSkillId = (skill) => skill?.skillId ?? skill?.id ?? "";
 
+// Khoa dong: thieu dinh danh thi roi ve khoa theo chi so, tranh nhieu dong cung khoa rong.
+const getSkillRowKey = (skill, index) => getSkillId(skill) || `skill-row-${index}`;
+
 export default function AdminSkills() {
   const toast = useToast();
   const [skills, setSkills] = useState([]);
@@ -108,7 +111,12 @@ export default function AdminSkills() {
 
     const skillId = getSkillId(deletingSkill);
     await deleteSkill(skillId);
-    setSkills((currentRows) => currentRows.filter((skill) => getSkillId(skill) !== skillId));
+    if (!skillId) {
+      // Khong co dinh danh thi khong loc theo dinh danh, tranh quet sach moi dong id rong.
+      await loadSkills();
+    } else {
+      setSkills((currentRows) => currentRows.filter((skill) => getSkillId(skill) !== skillId));
+    }
     setDeletingSkill(null);
     toast.success("Xóa kỹ năng thành công.");
   };
@@ -191,7 +199,7 @@ export default function AdminSkills() {
         <DataTable
           columns={columns}
           rows={skills}
-          getRowKey={getSkillId}
+          getRowKey={getSkillRowKey}
           loading={isLoading}
           searchPlaceholder="Tìm tên hoặc mô tả kỹ năng..."
           searchKeys={["name", "description"]}

@@ -14,6 +14,7 @@ import {
 import AdminPageHeader from "../components/AdminPageHeader";
 import Skeleton from "../../../components/ui/Skeleton/Skeleton";
 import ErrorState from "../../../components/ui/ErrorState/ErrorState";
+import { getErrorMessage, isAccessDenied } from "../../../services/apiClient";
 import "../Admin.css";
 import "./AdminDashboard.css";
 import { adminDashboardService } from "../services/dashboardService";
@@ -77,6 +78,7 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState(emptyStats);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [forbidden, setForbidden] = useState(false);
   const numberFormatter = useMemo(() => new Intl.NumberFormat("vi-VN"), []);
 
   const loadStats = useCallback(async () => {
@@ -87,7 +89,9 @@ export default function AdminDashboard() {
       setStats({ ...emptyStats, ...data });
     } catch (loadError) {
       console.error("Failed to load admin dashboard stats:", loadError);
-      setError("Không thể tải thống kê hệ thống.");
+      // 403 do bi ha quyen giua phien thi thu lai chac chan lai hong -> khoa nut thu lai.
+      setForbidden(isAccessDenied(loadError));
+      setError(getErrorMessage(loadError, "Không thể tải thống kê hệ thống."));
     } finally {
       setLoading(false);
     }
@@ -105,43 +109,45 @@ export default function AdminDashboard() {
         subtitle="Theo dõi dữ liệu cốt lõi và đi nhanh tới tác vụ quản trị."
       />
 
-      {error ? (
-        <ErrorState description={error} onRetry={loadStats} />
-      ) : (
-        <>
-          <div className="stats-grid">
-            {statCards.map((card) => (
-              <Link className={`stat-card stat-card--${card.tone}`} to={card.to} key={card.key}>
-                <div className="stat-card__icon">{card.icon}</div>
-                <div className="stat-card__body">
-                  <div className="stat-card__value">
-                    {loading ? (
-                      <Skeleton height={28} width="60%" />
-                    ) : (
-                      numberFormatter.format(stats[card.key] ?? 0)
-                    )}
-                  </div>
-                  <div className="stat-card__label">{card.label}</div>
+      <div className="stats-grid">
+        {error ? (
+          <ErrorState
+            className="stats-grid__error"
+            description={error}
+            onRetry={forbidden ? null : loadStats}
+          />
+        ) : (
+          statCards.map((card) => (
+            <Link className={`stat-card stat-card--${card.tone}`} to={card.to} key={card.key}>
+              <div className="stat-card__icon">{card.icon}</div>
+              <div className="stat-card__body">
+                <div className="stat-card__value">
+                  {loading ? (
+                    <Skeleton height={28} width="60%" />
+                  ) : (
+                    numberFormatter.format(stats[card.key] ?? 0)
+                  )}
                 </div>
-                <ArrowRight size={16} className="stat-card__arrow" />
-              </Link>
-            ))}
-          </div>
+                <div className="stat-card__label">{card.label}</div>
+              </div>
+              <ArrowRight size={16} className="stat-card__arrow" />
+            </Link>
+          ))
+        )}
+      </div>
 
-          <section className="adm2-card adm2-card-pad dashboard-section">
-            <h2 className="dashboard-section__title">Thao tác nhanh</h2>
-            <div className="quick-actions">
-              {quickActions.map((action) => (
-                <Link className="quick-action" to={action.to} key={action.label}>
-                  <span className="quick-action__icon">{action.icon}</span>
-                  <span className="quick-action__label">{action.label}</span>
-                  <ArrowRight size={16} className="quick-action__arrow" />
-                </Link>
-              ))}
-            </div>
-          </section>
-        </>
-      )}
+      <section className="adm2-card adm2-card-pad dashboard-section">
+        <h2 className="dashboard-section__title">Thao tác nhanh</h2>
+        <div className="quick-actions">
+          {quickActions.map((action) => (
+            <Link className="quick-action" to={action.to} key={action.label}>
+              <span className="quick-action__icon">{action.icon}</span>
+              <span className="quick-action__label">{action.label}</span>
+              <ArrowRight size={16} className="quick-action__arrow" />
+            </Link>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

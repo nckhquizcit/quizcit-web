@@ -55,6 +55,8 @@ export default function AdminUsers() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isRoleConfirmModalOpen, setIsRoleConfirmModalOpen] = useState(false);
+  const [pendingRole, setPendingRole] = useState("");
   const [deletingUser, setDeletingUser] = useState(null);
   const [resetUser, setResetUser] = useState(null);
   const currentUser = useMemo(() => getStoredUser(), []);
@@ -194,13 +196,31 @@ export default function AdminUsers() {
       closeAuthModal();
       return;
     }
+    // Doi vai tro la leo thang dac quyen -> bat buoc qua buoc xac nhan.
+    if (newRole !== selectedUser.role) {
+      setPendingRole(newRole);
+      setIsRoleConfirmModalOpen(true);
+      return;
+    }
+    closeAuthModal();
+  };
+
+  const closeRoleConfirmModal = () => {
+    setIsRoleConfirmModalOpen(false);
+    setPendingRole("");
+  };
+
+  // Chi goi API sau khi nguoi dung xac nhan o modal xac nhan vai tro.
+  const handleConfirmRoleChange = async () => {
+    if (!selectedUser?.userId || !pendingRole) return;
     try {
-      await changeUserRole(selectedUser.userId, newRole);
+      await changeUserRole(selectedUser.userId, pendingRole);
       toast.success("Đã cập nhật vai trò người dùng.");
       loadUsers(page);
     } catch (actionError) {
       toast.error(getErrorMessage(actionError, "Không thể cập nhật vai trò người dùng."));
     } finally {
+      closeRoleConfirmModal();
       closeAuthModal();
     }
   };
@@ -276,6 +296,7 @@ export default function AdminUsers() {
       align: "right",
       render: (user) => {
         const isSelf = String(user.userId) === currentUserId;
+        const triggerLabel = `Hành động cho ${user.displayName || user.username || "người dùng này"}`;
         const resetPasswordAction = {
           label: "Đặt lại mật khẩu",
           icon: <KeyRound size={16} />,
@@ -284,12 +305,15 @@ export default function AdminUsers() {
 
         // BE chi chan tu khoa/xoa/doi vai tro chinh minh, van cho tu dat lai mat khau.
         if (isSelf) {
-          return <RowActions variant="menu" items={[resetPasswordAction]} />;
+          return (
+            <RowActions variant="menu" triggerLabel={triggerLabel} items={[resetPasswordAction]} />
+          );
         }
 
         return (
           <RowActions
             variant="menu"
+            triggerLabel={triggerLabel}
             items={[
               {
                 label: "Đổi vai trò",
@@ -461,6 +485,19 @@ export default function AdminUsers() {
         onClose={closeAuthModal}
         onSave={handleAuthSave}
         user={selectedUser}
+      />
+
+      <ConfirmActionModal
+        isOpen={isRoleConfirmModalOpen}
+        onClose={closeRoleConfirmModal}
+        onConfirm={handleConfirmRoleChange}
+        user={selectedUser}
+        message={
+          <>
+            Đổi vai trò của "<strong>{selectedUser?.displayName || selectedUser?.username}</strong>" từ{" "}
+            <strong>{formatRole(selectedUser?.role)}</strong> sang <strong>{formatRole(pendingRole)}</strong>?
+          </>
+        }
       />
 
       <ConfirmDeleteModal

@@ -133,8 +133,12 @@ export default function AdminProfile() {
   const email = currentAdmin?.email || "—";
   const avatarUrl = currentAdmin?.avatarUrl;
 
-  const formatStat = (value) =>
-    loading ? <Skeleton height={22} width={56} /> : numberFormatter.format(value ?? 0);
+  // Tai that bai thi hien gach ngang, khong hien 0 de tranh bi doc thanh so lieu that.
+  const formatStat = (value) => {
+    if (loading) return <Skeleton height={22} width={56} />;
+    if (error) return "—";
+    return numberFormatter.format(value ?? 0);
+  };
 
   const handlePreviewAsUser = () => {
     enterUserPreview("/admin/profile");
