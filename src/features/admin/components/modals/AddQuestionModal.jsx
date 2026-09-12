@@ -29,6 +29,8 @@ const MIN_ANSWER_COUNT = 2;
 const MAX_ANSWER_COUNT = 10;
 const SKILL_WEIGHT_SUM_TOLERANCE = 0.000001;
 const EMPTY_LIST = Object.freeze([]);
+const BANK_SUBJECT_STUB = { subjectId: "QUESTION_BANK", courseCode: "QUESTION_BANK", name: "Ngân hàng câu hỏi" };
+const BANK_CHAPTER_STUB = { chapterId: "QUESTION_BANK", name: "Chưa phân loại" };
 const createEmptyAnswers = (count = MIN_ANSWER_COUNT) => Array.from({ length: count }, () => "");
 
 /**
@@ -243,6 +245,20 @@ export function QuestionForm({
   const skillSearchRef = useRef(null);
   const formErrorRef = useRef(null);
 
+const resolveInitialSubjectId = (question, routeSubject, fallbackSubject) => {
+  if (question?.subject?.courseCode === "QUESTION_BANK" || question?.subject?.name === "Ngân hàng câu hỏi") {
+    return "QUESTION_BANK";
+  }
+  return normalizeId(question?.subjectId || getSubjectId(routeSubject) || getSubjectId(fallbackSubject));
+};
+
+const resolveInitialChapterId = (question, routeChapter, fallbackChapter) => {
+  if (question?.chapter?.name === "Chưa phân loại" || question?.chapter?.chapterId === "QUESTION_BANK" || question?.subject?.courseCode === "QUESTION_BANK") {
+    return "QUESTION_BANK";
+  }
+  return normalizeId(question?.chapterId || getChapterId(routeChapter) || getChapterId(fallbackChapter));
+};
+
   useEffect(() => {
     if (formError) {
       formErrorRef.current?.scrollIntoView({ block: "nearest" });
@@ -268,6 +284,13 @@ export function QuestionForm({
       setLoadingSkills(true);
 
       try {
+        if (selectedChapterId === "QUESTION_BANK") {
+          if (cancelled) return;
+          setAvailableSkills([]);
+          setSelectedSkills((current) => []);
+          return;
+        }
+
         const selectedChapter = await getChapterById(selectedChapterId);
         if (cancelled) return;
 
@@ -304,7 +327,7 @@ export function QuestionForm({
         const subjectData = await getSubjects();
         if (cancelled) return;
 
-        const normalizedSubjects = (subjectData || []).map(normalizeSubject);
+        const normalizedSubjects = [BANK_SUBJECT_STUB, ...(subjectData || []).map(normalizeSubject)];
         setAvailableSubjects(normalizedSubjects);
         setSelectedSubjectId((currentSubjectId) => {
           const hasCurrent = normalizedSubjects.some(
@@ -313,13 +336,11 @@ export function QuestionForm({
 
           if (hasCurrent) return currentSubjectId;
 
-          return normalizeId(
-            initialQuestion?.subjectId || getSubjectId(subject) || normalizedSubjects[0]?.subjectId,
-          );
+          return resolveInitialSubjectId(initialQuestion, subject, normalizedSubjects[0]);
         });
       } catch {
         if (!cancelled) {
-          setAvailableSubjects(subjects.map(normalizeSubject));
+          setAvailableSubjects([BANK_SUBJECT_STUB, ...subjects.map(normalizeSubject)]);
         }
       } finally {
         if (!cancelled) {
@@ -356,14 +377,8 @@ export function QuestionForm({
     setCustomDifficultyB(String(nextDifficulty.customValue));
     setAnswers(nextAnswers);
     setCorrectIndex(nextCorrectIndex >= 0 && nextCorrectIndex < nextAnswers.length ? nextCorrectIndex : null);
-    setSelectedSubjectId(
-      normalizeId(
-        initialQuestion?.subjectId || getSubjectId(subject) || getSubjectId(subjects[0]),
-      ),
-    );
-    setSelectedChapterId(
-      normalizeId(initialQuestion?.chapterId || getChapterId(chapter) || getChapterId(chapters[0])),
-    );
+    setSelectedSubjectId(resolveInitialSubjectId(initialQuestion, subject, subjects[0]));
+    setSelectedChapterId(resolveInitialChapterId(initialQuestion, chapter, chapters[0]));
     setSelectedSkills(normalizeQuestionSkills(initialQuestion?.skills || initialQuestion?.questionSkills));
     setSubjectSearch("");
     setChapterSearch("");
@@ -401,6 +416,13 @@ export function QuestionForm({
       setLoadingChapters(true);
 
       try {
+        if (selectedSubjectId === "QUESTION_BANK") {
+          if (cancelled) return;
+          setAvailableChapters([BANK_CHAPTER_STUB]);
+          setSelectedChapterId("QUESTION_BANK");
+          return;
+        }
+
         const chapterData = await getChaptersBySubject(selectedSubjectId);
         if (cancelled) return;
 
