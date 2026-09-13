@@ -8,6 +8,7 @@ export { default as Skeleton, SkeletonCard } from "./Skeleton/Skeleton";
 export { default as ProgressRing } from "./ProgressRing/ProgressRing";
 export { default as EmptyState } from "./EmptyState/EmptyState";
 export { default as ErrorState } from "./ErrorState/ErrorState";
+export { default as ErrorBoundary } from "./ErrorBoundary/ErrorBoundary";
 export { default as Modal } from "./Modal/Modal";
 export { default as StatTile } from "./StatTile/StatTile";
 export { default as ImageCropModal } from "./ImageCropModal/ImageCropModal";

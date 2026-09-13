@@ -14,6 +14,9 @@ const getChapterId = (chapter) => String(chapter?.chapterId ?? chapter?.id ?? ""
 const getQuestionId = (question) => String(question?.questionId ?? question?.id ?? "");
 const EMPTY_LIST = [];
 
+const MIN_DURATION_MINUTES = 1;
+const MAX_DURATION_MINUTES = 600;
+
 function pickRandomIds(questionIds, count) {
   const shuffled = [...questionIds];
   for (let index = shuffled.length - 1; index > 0; index -= 1) {
@@ -187,6 +190,20 @@ export function CreateQuizForm({
       return;
     }
 
+    // min tren o nhap chi la goi y cua trinh duyet, khong chan duoc so am/so 0 sau khi ep kieu.
+    const durationValue = Number(duration);
+    if (!Number.isFinite(durationValue) || durationValue < MIN_DURATION_MINUTES || durationValue > MAX_DURATION_MINUTES) {
+      setError(`Thời gian làm bài phải từ ${MIN_DURATION_MINUTES} đến ${MAX_DURATION_MINUTES} phút.`);
+      return;
+    }
+    // So thu tu de trong la hop le (xep cuoi); chi kiem tra khi nguoi dung co nhap.
+    const hasDisplayOrder = displayOrder !== "" && displayOrder !== null && displayOrder !== undefined;
+    const displayOrderValue = hasDisplayOrder ? Number(displayOrder) : null;
+    if (hasDisplayOrder && (!Number.isFinite(displayOrderValue) || displayOrderValue <= 0)) {
+      setError("Thứ tự hiển thị phải là số lớn hơn 0, hoặc để trống để xếp cuối.");
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       setError("");
@@ -194,11 +211,11 @@ export function CreateQuizForm({
         subjectId,
         chapterId,
         name: quizName.trim(),
-        duration: Number(duration),
+        duration: durationValue,
         totalQuestion: showQuestions ? selectedQuestionIds.length : initialQuiz?.totalQuestion,
         type: "CHAPTER",
         questionIds: showQuestions ? selectedQuestionIds : undefined,
-        displayOrder: displayOrder ? Number(displayOrder) : null,
+        displayOrder: displayOrderValue,
       };
       if (isEdit) {
         const updated = await updateQuiz(initialQuiz.quizId, payload);

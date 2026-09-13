@@ -93,7 +93,7 @@ export default function AdminQuestionImport() {
         "Tổng quan",
         "Môn học",
         {
-          label: routeSubject?.name || "Chương",
+          label: routeSubject?.name || "Môn học",
           href: `/admin/subjects/${subjectId}/chapters`,
         },
         {

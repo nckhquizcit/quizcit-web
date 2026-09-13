@@ -59,6 +59,9 @@ export default function ProfilePage() {
   const [avatarCropSource, setAvatarCropSource] = useState("");
   const [avatarCropOpen, setAvatarCropOpen] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  // Ảnh chết/404 phải rơi về chữ cái đầu thay vì icon ảnh vỡ; mỗi vị trí render một URL riêng.
+  const [headerAvatarError, setHeaderAvatarError] = useState(false);
+  const [previewAvatarError, setPreviewAvatarError] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
     password: "",
@@ -111,6 +114,10 @@ export default function ProfilePage() {
     };
   }, [loadProfile]);
 
+  // Đổi URL thì phải xoá cờ lỗi, nếu không ảnh mới tải được vẫn kẹt ở chữ cái đầu.
+  useEffect(() => setHeaderAvatarError(false), [profileUser?.avatarUrl]);
+  useEffect(() => setPreviewAvatarError(false), [editForm.avatarUrl]);
+
   const displayName = profileUser?.displayName || profileUser?.username || "Người dùng";
   const isVerified = profileUser?.status === "VERIFIED";
   const roleLabel = profileUser?.role === "ADMINISTRATOR" ? "Quản trị viên" : "Sinh viên";
@@ -146,8 +153,14 @@ export default function ProfilePage() {
     try {
       const challenge = await requestEmailChange();
       if (emailRequestIdRef.current !== requestId) return;
+      // Thiếu mã phiên thì mọi bước sau đều gửi rỗng và BE trả lỗi -> dừng ngay, đừng để kẹt ở "hết hạn".
+      if (!challenge?.challengeId) {
+        setFormError("Không nhận được phiên xác thực. Vui lòng thử lại.");
+        setEmailStatus("failed");
+        return;
+      }
       setEmailChallenge({
-        challengeId: challenge?.challengeId,
+        challengeId: challenge.challengeId,
         email: challenge?.email || profileUser?.email || "",
       });
       setEmailStatus("ready");
@@ -195,6 +208,9 @@ export default function ProfilePage() {
     try {
       const uploaded = await uploadImage(croppedBlob, "avatars", "avatar.webp");
       setEditForm((current) => ({ ...current, avatarUrl: uploaded.url }));
+    } catch (error) {
+      // Service đã bọc lỗi thành Error thường (mất mã trạng thái) nên chỉ hiển thị thông điệp.
+      setFormError(getErrorMessage(error, "Không thể tải ảnh lên. Vui lòng thử lại."));
     } finally {
       setAvatarUploading(false);
     }
@@ -374,8 +390,12 @@ export default function ProfilePage() {
 
       <Card as="section" padding="lg" className="profile-header-card">
         <div className="profile-header-card__avatar">
-          {profileUser?.avatarUrl ? (
-            <img src={resolveImageUrl(profileUser.avatarUrl)} alt={`Ảnh đại diện của ${displayName}`} />
+          {profileUser?.avatarUrl && !headerAvatarError ? (
+            <img
+              src={resolveImageUrl(profileUser.avatarUrl)}
+              alt={`Ảnh đại diện của ${displayName}`}
+              onError={() => setHeaderAvatarError(true)}
+            />
           ) : (
             getInitial(displayName)
           )}
@@ -480,8 +500,12 @@ export default function ProfilePage() {
             {formError && <p className="profile-form-error">{formError}</p>}
             <div className="profile-avatar-editor">
               <div className="profile-avatar-editor__preview">
-                {editForm.avatarUrl ? (
-                  <img src={resolveImageUrl(editForm.avatarUrl)} alt="Xem trước ảnh đại diện" />
+                {editForm.avatarUrl && !previewAvatarError ? (
+                  <img
+                    src={resolveImageUrl(editForm.avatarUrl)}
+                    alt="Xem trước ảnh đại diện"
+                    onError={() => setPreviewAvatarError(true)}
+                  />
                 ) : (
                   getInitial(editForm.displayName)
                 )}

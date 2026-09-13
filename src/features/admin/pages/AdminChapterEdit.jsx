@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FileText, Plus, Settings, Trash2 } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useBlocker, useNavigate, useParams } from "react-router-dom";
 import AdminPageHeader from "../components/AdminPageHeader";
 import AdminPageState from "../components/AdminPageState";
 import ErrorState from "../../../components/ui/ErrorState/ErrorState";
@@ -21,6 +21,7 @@ import { useToast } from "../../../components/ui/Toast/Toast";
 import { formatScaledThetaValue } from "../../../services/mappers";
 import { getSkills } from "../../../services/skillService";
 import ChapterSkillsField from "../components/ChapterSkillsField";
+import ConfirmActionModal from "../components/modals/ConfirmActionModal";
 import ConfirmDeleteModal from "../components/modals/ConfirmDeleteModal";
 import TheoryEditor from "../../content/components/TheoryEditor";
 import {
@@ -52,25 +53,47 @@ export default function AdminChapterEdit() {
   const [savingTheory, setSavingTheory] = useState(false);
   const [deletingTheory, setDeletingTheory] = useState(null);
 
+  // Noi dung ly thuyet da sua nhung chua luu.
+  // theoryBaselineRef giu ban goc luc nap de khong bat co khi trinh soan thao
+  // phat su kien luc khoi tao ma nguoi dung chua go gi.
+  const [theoryDirty, setTheoryDirty] = useState(false);
+  const theoryBaselineRef = useRef("");
+  // Ban sao moi nhat cua bai dang chon, de applyTheories tinh duoc bai muc tieu
+  // ma khong phai dat tac dung phu trong ham cap nhat state.
+  const selectedTheoryIdRef = useRef(null);
+  selectedTheoryIdRef.current = selectedTheoryId;
+  // Y dinh nguoi dung dang cho xac nhan: { type: "theory", theory } hoac { type: "tab", tab }.
+  const [pendingTheoryAction, setPendingTheoryAction] = useState(null);
+
   const returnPath = `/admin/subjects/${subjectId}/chapters`;
 
+  // Nap noi dung vao trinh soan thao va ghi lai ban goc de so sanh sau nay.
+  const applyTheoryContent = useCallback((content, format) => {
+    const nextContent = content || "";
+    theoryBaselineRef.current = nextContent;
+    setTheoryContent(nextContent);
+    setTheoryFormat(format || THEORY_FORMAT_BLOCKNOTE);
+    setTheoryDirty(false);
+  }, []);
+
   const applyTheories = useCallback((data) => {
-    setTheories(data || []);
-    if (data && data.length > 0) {
-      setSelectedTheoryId((prevId) => {
-        const found = data.find((t) => (t.theoryId || t.theory_id) === prevId);
-        const target = found || data[0];
-        const tid = target.theoryId || target.theory_id;
-        setTheoryContent(target.content || "");
-        setTheoryFormat(target.contentFormat || THEORY_FORMAT_BLOCKNOTE);
-        return tid;
-      });
+    const list = data || [];
+    setTheories(list);
+    if (list.length > 0) {
+      // Giu bai dang mo neu con ton tai, khong thi lay bai dau.
+      // Tinh san ngoai ham cap nhat state: dat tac dung phu trong do se bi
+      // chay hai lan duoi StrictMode.
+      const found = list.find(
+        (t) => (t.theoryId || t.theory_id) === selectedTheoryIdRef.current,
+      );
+      const target = found || list[0];
+      setSelectedTheoryId(target.theoryId || target.theory_id);
+      applyTheoryContent(target.content, target.contentFormat);
     } else {
       setSelectedTheoryId("new");
-      setTheoryContent("");
-      setTheoryFormat(THEORY_FORMAT_BLOCKNOTE);
+      applyTheoryContent("", THEORY_FORMAT_BLOCKNOTE);
     }
-  }, []);
+  }, [applyTheoryContent]);
 
   const loadTheories = useCallback(async () => {
     setTheoriesLoading(true);
@@ -133,19 +156,62 @@ export default function AdminChapterEdit() {
     loadChapterData();
   }, [loadChapterData]);
 
-  // Select an existing theory
+  // Select an existing theory (di qua guard de khong mat ban nhap dang do)
   const handleSelectTheory = (theory) => {
+    if (theoryDirty) {
+      setPendingTheoryAction({ type: "theory", theory });
+      return;
+    }
     const tid = theory.theoryId || theory.theory_id;
     setSelectedTheoryId(tid);
-    setTheoryContent(theory.content || "");
-    setTheoryFormat(theory.contentFormat || THEORY_FORMAT_BLOCKNOTE);
+    applyTheoryContent(theory.content, theory.contentFormat);
   };
 
   // Switch editor to new theory mode
   const handleStartNewTheory = () => {
+    if (theoryDirty) {
+      setPendingTheoryAction({ type: "theory", theory: null });
+      return;
+    }
     setSelectedTheoryId("new");
-    setTheoryContent("");
-    setTheoryFormat(THEORY_FORMAT_BLOCKNOTE);
+    applyTheoryContent("", THEORY_FORMAT_BLOCKNOTE);
+  };
+
+  // Xac nhan bo ban nhap ly thuyet dang do de chuyen bai / them bai moi / doi tab.
+  const confirmDiscardTheoryDraft = () => {
+    const action = pendingTheoryAction;
+    setPendingTheoryAction(null);
+    if (!action) return;
+
+    if (action.type === "tab") {
+      setActiveTab(action.tab);
+      return;
+    }
+
+    if (action.theory) {
+      const tid = action.theory.theoryId || action.theory.theory_id;
+      setSelectedTheoryId(tid);
+      applyTheoryContent(action.theory.content, action.theory.contentFormat);
+    } else {
+      setSelectedTheoryId("new");
+      applyTheoryContent("", THEORY_FORMAT_BLOCKNOTE);
+    }
+  };
+
+  const handleTabChange = (tab) => {
+    if (tab === activeTab) return;
+    if (theoryDirty) {
+      setPendingTheoryAction({ type: "tab", tab });
+      return;
+    }
+    setActiveTab(tab);
+  };
+
+  // Edit theory content
+  const handleTheoryContentChange = ({ content: nextContent, contentFormat: nextFormat }) => {
+    setTheoryContent(nextContent);
+    setTheoryFormat(nextFormat);
+    setTheoryDirty(nextContent !== theoryBaselineRef.current);
   };
 
   // Save theory (create or update directly)
@@ -167,6 +233,8 @@ export default function AdminChapterEdit() {
         setTheories(nextTheories);
         const newId = created?.theoryId || created?.theory_id || nextTheories[nextTheories.length - 1]?.theoryId;
         setSelectedTheoryId(newId);
+        theoryBaselineRef.current = theoryContent;
+        setTheoryDirty(false);
       } else {
         await updateTheory(selectedTheoryId, {
           content: theoryContent,
@@ -175,6 +243,8 @@ export default function AdminChapterEdit() {
         toast.success("Cập nhật bài lý thuyết thành công.");
         const nextTheories = (await getTheoriesByChapter(chapterId)) || [];
         setTheories(nextTheories);
+        theoryBaselineRef.current = theoryContent;
+        setTheoryDirty(false);
       }
     } catch (err) {
       toast.error(getErrorMessage(err, "Không thể lưu bài lý thuyết."));
@@ -197,7 +267,34 @@ export default function AdminChapterEdit() {
     }
   };
 
+  // Chan roi trang khi con ban nhap ly thuyet chua luu.
+  const shouldBlock = theoryDirty;
+  const blocker = useBlocker(
+    useCallback(
+      ({ currentLocation, nextLocation }) =>
+        shouldBlock && currentLocation.pathname !== nextLocation.pathname,
+      [shouldBlock],
+    ),
+  );
+
+  useEffect(() => {
+    if (!shouldBlock) return undefined;
+
+    const handleBeforeUnload = (event) => {
+      event.preventDefault();
+      event.returnValue =
+        "Bạn có nội dung lý thuyết chưa lưu, nếu rời trang thì phần vừa soạn sẽ mất.";
+      return event.returnValue;
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [shouldBlock]);
+
   const totalChapters = Math.max(1, chapters.length || 1);
+  // Chi ep khoang khi danh sach chuong anh em that su co du lieu. Neu tai hong
+  // hoac rong thi totalChapters = 1, ep vao se keo chuong dang o vi tri 5 ve 1.
+  const canClampDisplayOrder = chapters.length > 0;
 
   const handleDisplayOrderChange = (e) => {
     const raw = e.target.value;
@@ -205,19 +302,15 @@ export default function AdminChapterEdit() {
       setForm((prev) => ({ ...prev, displayOrder: "" }));
       return;
     }
+    // Chi chan ky tu khong phai so, khong ep khoang khi dang go.
+    // Voi o type="number", trinh duyet da tra ve chuoi rong cho gia tri khong hop le.
     const num = Number(raw);
-    if (isNaN(num) || num < 1) {
-      setForm((prev) => ({ ...prev, displayOrder: 1 }));
-      return;
-    }
-    if (num > totalChapters) {
-      setForm((prev) => ({ ...prev, displayOrder: totalChapters }));
-      return;
-    }
+    if (isNaN(num)) return;
     setForm((prev) => ({ ...prev, displayOrder: Math.floor(num) }));
   };
 
   const handleDisplayOrderBlur = () => {
+    if (!canClampDisplayOrder) return;
     setForm((prev) => {
       const clamped = clampChapterDisplayOrder(prev?.displayOrder, totalChapters);
       return { ...prev, displayOrder: clamped };
@@ -230,7 +323,9 @@ export default function AdminChapterEdit() {
     try {
       setSaving(true);
       setError("");
-      const finalOrder = clampChapterDisplayOrder(form.displayOrder, totalChapters);
+      const finalOrder = canClampDisplayOrder
+        ? clampChapterDisplayOrder(form.displayOrder, totalChapters)
+        : Number(form.displayOrder) || form.displayOrder;
       await updateChapter(chapterId, {
         name: form.name.trim(),
         displayOrder: finalOrder,
@@ -286,19 +381,11 @@ export default function AdminChapterEdit() {
         {form && (
           <>
             {/* 2 TABS */}
-            <div
-              style={{
-                display: "flex",
-                gap: "8px",
-                marginBottom: "20px",
-                borderBottom: "1px solid #e2e8f0",
-                paddingBottom: "12px",
-              }}
-            >
+            <div className="subject-skills-tabs">
               <button
                 type="button"
                 className={`subject-skills-tab-btn ${activeTab === "theories" ? "is-active" : ""}`}
-                onClick={() => setActiveTab("theories")}
+                onClick={() => handleTabChange("theories")}
               >
                 <FileText size={15} />
                 <span>Nội dung lý thuyết</span>
@@ -308,7 +395,7 @@ export default function AdminChapterEdit() {
               <button
                 type="button"
                 className={`subject-skills-tab-btn ${activeTab === "info" ? "is-active" : ""}`}
-                onClick={() => setActiveTab("info")}
+                onClick={() => handleTabChange("info")}
               >
                 <Settings size={15} />
                 <span>Thông tin &amp; Kỹ năng</span>
@@ -327,7 +414,7 @@ export default function AdminChapterEdit() {
                   </div>
 
                   {/* Theory Selector Pills */}
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                  <div className="subject-skills-pill-list">
                     {theories.map((theory, idx) => {
                       const tid = theory.theoryId || theory.theory_id;
                       const isSelected = selectedTheoryId === tid;
@@ -336,9 +423,10 @@ export default function AdminChapterEdit() {
                         <button
                           key={tid}
                           type="button"
-                          className={`subject-skills-tab-btn ${isSelected ? "is-active" : ""}`}
+                          className={`subject-skills-tab-btn subject-skills-tab-btn--pill ${
+                            isSelected ? "is-active" : ""
+                          }`}
                           onClick={() => handleSelectTheory(theory)}
-                          style={{ padding: "6px 12px" }}
                         >
                           <FileText size={13} />
                           <span>Bài {idx + 1}</span>
@@ -348,14 +436,10 @@ export default function AdminChapterEdit() {
 
                     <button
                       type="button"
-                      className={`subject-skills-tab-btn ${selectedTheoryId === "new" ? "is-active" : ""}`}
+                      className={`subject-skills-tab-btn subject-skills-tab-btn--pill subject-skills-tab-btn--dashed ${
+                        selectedTheoryId === "new" ? "is-active" : ""
+                      }`}
                       onClick={handleStartNewTheory}
-                      style={{
-                        padding: "6px 12px",
-                        background: selectedTheoryId === "new" ? "#ecfdf5" : "#ffffff",
-                        border: "1px dashed #059669",
-                        color: "#059669",
-                      }}
                     >
                       <Plus size={13} />
                       <span>Thêm bài mới</span>
@@ -375,10 +459,7 @@ export default function AdminChapterEdit() {
                       value={theoryContent}
                       contentFormat={theoryFormat}
                       disabled={savingTheory}
-                      onChange={({ content: nextContent, contentFormat: nextFormat }) => {
-                        setTheoryContent(nextContent);
-                        setTheoryFormat(nextFormat);
-                      }}
+                      onChange={handleTheoryContentChange}
                     />
 
                     {/* Editor Action Buttons */}
@@ -550,6 +631,46 @@ export default function AdminChapterEdit() {
         message="Bạn có chắc chắn muốn xóa nội dung lý thuyết này không? Hành động này không thể hoàn tác."
         itemName={toPreviewText(deletingTheory?.content, deletingTheory?.contentFormat, 50)}
         onConfirm={handleDeleteTheory}
+      />
+
+      {/* CONFIRM DISCARD THEORY DRAFT */}
+      <ConfirmActionModal
+        isOpen={Boolean(pendingTheoryAction)}
+        onClose={() => setPendingTheoryAction(null)}
+        onConfirm={confirmDiscardTheoryDraft}
+        user={{ displayName: "bản nháp" }}
+        message={
+          pendingTheoryAction?.type === "tab" ? (
+            <>
+              Nội dung lý thuyết bạn vừa soạn <strong>chưa được lưu</strong>. Đổi sang tab khác sẽ mất phần
+              vừa soạn. Bạn có muốn tiếp tục?
+            </>
+          ) : pendingTheoryAction?.theory ? (
+            <>
+              Nội dung lý thuyết bạn vừa soạn <strong>chưa được lưu</strong>. Chuyển sang bài khác sẽ mất
+              phần vừa soạn. Bạn có muốn tiếp tục?
+            </>
+          ) : (
+            <>
+              Nội dung lý thuyết bạn vừa soạn <strong>chưa được lưu</strong>. Thêm bài mới sẽ mất phần vừa
+              soạn. Bạn có muốn tiếp tục?
+            </>
+          )
+        }
+      />
+
+      {/* CONFIRM LEAVE PAGE WITH UNSAVED THEORY */}
+      <ConfirmActionModal
+        isOpen={blocker.state === "blocked"}
+        onClose={() => blocker.reset?.()}
+        onConfirm={() => blocker.proceed?.()}
+        user={{ displayName: "bản nháp" }}
+        message={
+          <>
+            Nội dung lý thuyết bạn vừa soạn <strong>chưa được lưu</strong>. Rời trang sẽ mất phần vừa soạn.
+            Bạn có muốn rời trang?
+          </>
+        }
       />
     </>
   );

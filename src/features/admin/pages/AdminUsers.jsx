@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   KeyRound,
   Lock,
@@ -55,10 +55,17 @@ export default function AdminUsers() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isRoleConfirmModalOpen, setIsRoleConfirmModalOpen] = useState(false);
+  const [pendingRole, setPendingRole] = useState("");
+  // Nguoi dung dang cho doi vai tro. Phai la bien RIENG: selectedUser bi
+  // closeAuthModal() xoa ngay sau khi ban giao sang buoc xac nhan.
+  const [roleTargetUser, setRoleTargetUser] = useState(null);
   const [deletingUser, setDeletingUser] = useState(null);
   const [resetUser, setResetUser] = useState(null);
   const currentUser = useMemo(() => getStoredUser(), []);
   const currentUserId = String(currentUser?.userId || currentUser?.user_id || currentUser?.id || "");
+  // So thu tu luot tai: chi luot moi nhat duoc phep ghi state.
+  const loadIdRef = useRef(0);
 
   // Debounce search query 300ms de tranh spam API khi dang go
   useEffect(() => {
@@ -69,6 +76,9 @@ export default function AdminUsers() {
   }, [searchQuery]);
 
   const loadUsers = useCallback(async (targetPage = 0) => {
+    const loadId = ++loadIdRef.current;
+    const isCurrent = () => loadIdRef.current === loadId;
+
     try {
       setLoading(true);
       setError("");
@@ -82,6 +92,7 @@ export default function AdminUsers() {
         role: filterRole,
         status: filterStatus,
       });
+      if (!isCurrent()) return;
 
       const fetchedItems = result?.items || [];
       const needsClientFallback = isBackendUnfiltered(fetchedItems, debouncedQuery, filterRole, filterStatus);
@@ -89,6 +100,7 @@ export default function AdminUsers() {
       if (needsClientFallback) {
         // Resilient Fallback: Backend cu chua restart, tu dong lay danh sach day du de filter/sort
         const allResult = await getUsers({ page: 0, size: 100, sort: backendSort });
+        if (!isCurrent()) return;
         const allItems = allResult?.items || [];
         const filteredAll = allItems.filter((u) => {
           if (!matchesSearch(u, debouncedQuery)) return false;
@@ -131,9 +143,13 @@ export default function AdminUsers() {
         setPage(result?.page ?? targetPage);
       }
     } catch (loadError) {
+      if (!isCurrent()) return;
       setError(getErrorMessage(loadError, "Không thể tải danh sách người dùng."));
+      // Don du lieu cu: khong de o "Tong tai khoan" giu so cu ngay tren tam bao loi.
+      setItems([]);
+      setPageInfo(EMPTY_PAGE_INFO);
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
   }, [debouncedQuery, filterRole, filterStatus, sortBy, currentUserId]);
 
@@ -194,13 +210,35 @@ export default function AdminUsers() {
       closeAuthModal();
       return;
     }
+    // Doi vai tro la leo thang dac quyen -> bat buoc qua buoc xac nhan.
+    // Ghi nguoi dung dang cho vao bien rieng truoc khi modal cap quyen dong lai,
+    // vi closeAuthModal() se xoa selectedUser.
+    if (newRole !== selectedUser.role) {
+      setRoleTargetUser(selectedUser);
+      setPendingRole(newRole);
+      setIsRoleConfirmModalOpen(true);
+      return;
+    }
+    closeAuthModal();
+  };
+
+  const closeRoleConfirmModal = () => {
+    setIsRoleConfirmModalOpen(false);
+    setPendingRole("");
+    setRoleTargetUser(null);
+  };
+
+  // Chi goi API sau khi nguoi dung xac nhan o modal xac nhan vai tro.
+  const handleConfirmRoleChange = async () => {
+    if (!roleTargetUser?.userId || !pendingRole) return;
     try {
-      await changeUserRole(selectedUser.userId, newRole);
+      await changeUserRole(roleTargetUser.userId, pendingRole);
       toast.success("Đã cập nhật vai trò người dùng.");
       loadUsers(page);
     } catch (actionError) {
       toast.error(getErrorMessage(actionError, "Không thể cập nhật vai trò người dùng."));
     } finally {
+      closeRoleConfirmModal();
       closeAuthModal();
     }
   };
@@ -276,6 +314,7 @@ export default function AdminUsers() {
       align: "right",
       render: (user) => {
         const isSelf = String(user.userId) === currentUserId;
+        const triggerLabel = `Hành động cho ${user.displayName || user.username || "người dùng này"}`;
         const resetPasswordAction = {
           label: "Đặt lại mật khẩu",
           icon: <KeyRound size={16} />,
@@ -284,17 +323,23 @@ export default function AdminUsers() {
 
         // BE chi chan tu khoa/xoa/doi vai tro chinh minh, van cho tu dat lai mat khau.
         if (isSelf) {
-          return <RowActions variant="menu" items={[resetPasswordAction]} />;
+          return (
+            <RowActions variant="menu" triggerLabel={triggerLabel} items={[resetPasswordAction]} />
+          );
         }
 
         return (
           <RowActions
             variant="menu"
+            triggerLabel={triggerLabel}
             items={[
               {
                 label: "Đổi vai trò",
                 icon: <Shield size={16} />,
                 onClick: () => {
+                  // Don sach trang thai xac nhan cu truoc khi mo modal moi,
+                  // tranh hai modal xac nhan chong len nhau.
+                  closeRoleConfirmModal();
                   setSelectedUser(user);
                   setIsAuthModalOpen(true);
                 },
@@ -304,6 +349,7 @@ export default function AdminUsers() {
                 label: user.status === "BANNED" ? "Mở khóa tài khoản" : "Khóa tài khoản",
                 icon: user.status === "BANNED" ? <Unlock size={16} /> : <Lock size={16} />,
                 onClick: () => {
+                  closeRoleConfirmModal();
                   setSelectedUser(user);
                   setIsConfirmModalOpen(true);
                 },
@@ -461,6 +507,19 @@ export default function AdminUsers() {
         onClose={closeAuthModal}
         onSave={handleAuthSave}
         user={selectedUser}
+      />
+
+      <ConfirmActionModal
+        isOpen={isRoleConfirmModalOpen}
+        onClose={closeRoleConfirmModal}
+        onConfirm={handleConfirmRoleChange}
+        user={roleTargetUser}
+        message={
+          <>
+            Đổi vai trò của "<strong>{roleTargetUser?.displayName || roleTargetUser?.username}</strong>" từ{" "}
+            <strong>{formatRole(roleTargetUser?.role)}</strong> sang <strong>{formatRole(pendingRole)}</strong>?
+          </>
+        }
       />
 
       <ConfirmDeleteModal

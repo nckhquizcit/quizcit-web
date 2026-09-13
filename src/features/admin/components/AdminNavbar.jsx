@@ -21,7 +21,10 @@ export default function AdminNavbar({ onOpenMenu, mobileOpen = false }) {
   useEffect(() => {
     getCurrentUser()
       .then((freshUser) => {
-        if (freshUser) {
+        // Chi tron khi co ma dinh danh that. mapUser() luon tra ve object day du
+        // (ke ca khi du lieu vao rong) voi role mac dinh la USER, nen chi kiem tra
+        // "co object" se ghi de mat quyen quan tri khi may chu tra 200 than rong/HTML.
+        if (freshUser?.userId) {
           const stored = getStoredUser() || {};
           setStoredUser({ ...stored, ...freshUser });
         }

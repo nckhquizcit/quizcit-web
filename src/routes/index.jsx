@@ -1,12 +1,12 @@
 /* eslint-disable react-refresh/only-export-components */
 import { Suspense, lazy } from "react";
-import { createBrowserRouter, Navigate, useParams } from "react-router-dom";
+import { createBrowserRouter, Navigate, useNavigate, useParams } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout.jsx";
 import AuthLayout from "../layouts/AuthLayout.jsx";
-import AdminLayout from "../features/admin/AdminLayout.jsx";
 import ProtectedRoute from "../features/admin/components/guard/ProtectedRoute.jsx";
 import { ForgotPasswordProvider } from "../stores/contexts/ForgotPasswordContext.jsx";
-import { Spinner } from "../components/ui";
+import { Button, Spinner } from "../components/ui";
+import { logout } from "../services/authService.js";
 
 const HomePage = lazy(() => import("../features/home/pages/HomePage/HomePage.jsx"));
 const SubjectsPage = lazy(() => import("../features/subjects/pages/SubjectsPage/SubjectsPage.jsx"));
@@ -24,6 +24,10 @@ const SkillDetailPage = lazy(
 const QuizTakingPage = lazy(() => import("../features/quiz/pages/QuizTakingPage/QuizTakingPage.jsx"));
 const QuizResultPage = lazy(() => import("../features/quiz/pages/QuizResultPage/QuizResultPage.jsx"));
 const AdaptiveQuizPage = lazy(() => import("../features/quiz/pages/AdaptiveQuizPage/AdaptiveQuizPage.jsx"));
+
+// AdminLayout keo theo Admin.css (khoi CSS lon chi danh cho admin). Tai tinh de
+// nguoi hoc khong phai tai no, va de cac class cua admin khong con ap vao trang hoc sinh.
+const AdminLayout = lazy(() => import("../features/admin/AdminLayout.jsx"));
 
 const AdminDashboard = lazy(() => import("../features/admin/pages/AdminDashboard.jsx"));
 const AdminSubjects = lazy(() => import("../features/admin/pages/AdminSubjects.jsx"));
@@ -58,10 +62,30 @@ function PageLoader() {
 }
 
 function AccessDeniedPage() {
+  const navigate = useNavigate();
+
+  // Trang tu choi truy cap truoc day la ngo cut: khong co lien ket hay nut nao.
+  // Cho nguoi dung mot loi thoat ro rang: dang xuat de dang nhap lai bang tai khoan khac.
+  const handleSignOut = () => {
+    logout();
+    navigate("/login", { replace: true });
+  };
+
   return (
     <div className="page-loader">
       <h1>Không có quyền truy cập</h1>
       <p>Bạn không có quyền thực hiện thao tác này.</p>
+      <p className="access-denied__hint">
+        Hãy đăng nhập lại bằng tài khoản có quyền phù hợp.
+      </p>
+      <div className="access-denied__actions">
+        <Button variant="primary" onClick={handleSignOut}>
+          Đăng xuất và đăng nhập lại
+        </Button>
+        <Button variant="ghost" to="/app">
+          Về không gian học
+        </Button>
+      </div>
     </div>
   );
 }
@@ -123,7 +147,7 @@ export const router = createBrowserRouter([
     path: "/admin",
     element: (
       <ProtectedRoute roles={["ADMINISTRATOR"]}>
-        <AdminLayout />
+        {withSuspense(<AdminLayout />)}
       </ProtectedRoute>
     ),
     children: [

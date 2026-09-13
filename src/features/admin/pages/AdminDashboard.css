@@ -27,6 +27,11 @@
   transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
 }
 
+/* Khoi loi chiem tron luoi thay vi bi ep vao mot cot cua stats-grid */
+.admin-dashboard .stats-grid__error {
+  grid-column: 1 / -1;
+}
+
 .admin-dashboard .stat-card:hover {
   border-color: var(--admin-border-strong, #cbd5e1);
   box-shadow: var(--admin-shadow-sm, 0 2px 8px rgba(15, 23, 42, 0.06));

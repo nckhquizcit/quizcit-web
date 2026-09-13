@@ -1,15 +1,20 @@
 import { useEffect, useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import AdminNavbar from "./components/AdminNavbar";
 import Sidebar from "../../components/Sidebar/Sidebar";
 import { ToastProvider } from "../../components/ui/Toast/Toast";
+import ErrorBoundary from "../../components/ui/ErrorBoundary/ErrorBoundary";
+import RouteErrorFallback from "../../components/ui/ErrorBoundary/RouteErrorFallback";
 import { getStoredUser, subscribeToAuthChange } from "../../services/apiClient";
 import { clearUserPreview, isUserPreviewActive } from "../../services/userPreviewMode";
 import "./Admin.css";
 
+const renderRouteFallback = ({ reload }) => <RouteErrorFallback reload={reload} />;
+
 export default function AdminLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [user, setUser] = useState(() => getStoredUser());
+  const location = useLocation();
 
   useEffect(() => subscribeToAuthChange(() => setUser(getStoredUser())), []);
 
@@ -59,7 +64,10 @@ export default function AdminLayout() {
           />
 
           <div className="admin-content">
-            <Outlet />
+            {/* key theo pathname: bam sang trang khac la tu thoat man hinh loi */}
+            <ErrorBoundary key={location.pathname} renderFallback={renderRouteFallback}>
+              <Outlet />
+            </ErrorBoundary>
           </div>
         </div>
       </div>

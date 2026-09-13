@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Clock, FileText, GripVertical, ListChecks, ListOrdered, Pencil, Plus, Trash2, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -27,6 +27,17 @@ const QUIZ_TYPE_LABELS = {
   ADAPTIVE: "Đề thích ứng",
 };
 
+// De thich ung chon cau theo nang luc nguoi lam nen khong co danh sach cau co dinh.
+const ADAPTIVE_QUIZ_TYPE = "ADAPTIVE";
+const isAdaptiveQuiz = (quiz) => quiz?.type === ADAPTIVE_QUIZ_TYPE;
+
+// Mau huy hieu theo tung loai de: FINAL ho phach, ADAPTIVE xanh thong tin, con lai xam.
+const QUIZ_TYPE_BADGE_CLASSES = {
+  FINAL: "adm2-badge--amber",
+  ADAPTIVE: "adm2-badge--info",
+};
+const getQuizTypeBadgeClass = (type) => QUIZ_TYPE_BADGE_CLASSES[type] || "adm2-badge--gray";
+
 export default function AdminQuizzes() {
   const navigate = useNavigate();
   const toast = useToast();
@@ -46,6 +57,12 @@ export default function AdminQuizzes() {
   const [orderSnapshot, setOrderSnapshot] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [reloadTick, setReloadTick] = useState(0);
+  // Chuong dang duoc chon, doc ngay trong callback de khong dung gia tri bi capture cu.
+  const selectedChapterIdRef = useRef(selectedChapterId);
+
+  useEffect(() => {
+    selectedChapterIdRef.current = selectedChapterId;
+  }, [selectedChapterId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -131,6 +148,7 @@ export default function AdminQuizzes() {
 
   const handleChapterChange = (nextChapterId) => {
     setSelectedChapterId(nextChapterId);
+    selectedChapterIdRef.current = nextChapterId;
     setIsOrdering(false);
     setOrderSnapshot([]);
     setDraggedQuizId(null);
@@ -142,9 +160,19 @@ export default function AdminQuizzes() {
       setIsLoadingQuizzes(true);
       setError("");
       getQuizzesByChapter(nextChapterId)
-        .then((rows) => setQuizzes(rows || []))
-        .catch((loadErr) => setError(getErrorMessage(loadErr, "Không thể tải danh sách đề thi.")))
-        .finally(() => setIsLoadingQuizzes(false));
+        // Bo qua ket qua ve muon cua chuong khong con duoc chon.
+        .then((rows) => {
+          if (selectedChapterIdRef.current !== nextChapterId) return;
+          setQuizzes(rows || []);
+        })
+        .catch((loadErr) => {
+          if (selectedChapterIdRef.current !== nextChapterId) return;
+          setError(getErrorMessage(loadErr, "Không thể tải danh sách đề thi."));
+        })
+        .finally(() => {
+          if (selectedChapterIdRef.current !== nextChapterId) return;
+          setIsLoadingQuizzes(false);
+        });
     } else {
       setQuizzes([]);
     }
@@ -235,7 +263,7 @@ export default function AdminQuizzes() {
       width: 150,
       sortValue: (quiz) => QUIZ_TYPE_LABELS[quiz.type] || quiz.type || "Không rõ",
       render: (quiz) => (
-        <span className={`adm2-badge ${quiz.type === "FINAL" ? "adm2-badge--amber" : "adm2-badge--gray"}`}>
+        <span className={`adm2-badge ${getQuizTypeBadgeClass(quiz.type)}`}>
           {QUIZ_TYPE_LABELS[quiz.type] || quiz.type || "Không rõ"}
         </span>
       ),
@@ -271,11 +299,16 @@ export default function AdminQuizzes() {
         <RowActions
           labelled
           items={[
-            {
-              label: "Câu hỏi",
-              icon: <ListChecks size={14} />,
-              onClick: () => navigate(`/admin/quizzes/${getQuizId(quiz)}/edit/questions`),
-            },
+            // De thich ung khong co danh sach cau co dinh nen khong co gi de cau hinh.
+            ...(isAdaptiveQuiz(quiz)
+              ? []
+              : [
+                  {
+                    label: "Câu hỏi",
+                    icon: <ListChecks size={14} />,
+                    onClick: () => navigate(`/admin/quizzes/${getQuizId(quiz)}/edit/questions`),
+                  },
+                ]),
             {
               label: "Sửa",
               icon: <Pencil size={14} />,

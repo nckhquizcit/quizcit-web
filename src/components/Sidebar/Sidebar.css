@@ -305,13 +305,20 @@
     left: 0;
     z-index: var(--z-drawer);
     transform: translateX(-100%);
-    transition: transform 0.28s ease;
+    /* visibility:hidden dua ngan keo ra khoi tab order khi dang dong. Truoc day
+       chi dung transform nen 5 muc dieu huong van nhan duoc tieu diem ngoai khung
+       nhin. Delay 0.28s de hieu ung truot ra van muot nhu cu. */
+    visibility: hidden;
+    transition: transform 0.28s ease, visibility 0s linear 0.28s;
     box-shadow: var(--shadow-lg);
     width: var(--sidebar-w);
   }
   .sidebar-wrapper--user.is-mobile-open,
   .sidebar-wrapper--admin.is-mobile-open {
     transform: translateX(0);
+    /* Mo ra: hien lai ngay, khong delay, de hieu ung truot chay binh thuong. */
+    visibility: visible;
+    transition: transform 0.28s ease, visibility 0s linear 0s;
   }
   .sidebar-wrapper--user.minimized,
   .sidebar-wrapper--admin.minimized {

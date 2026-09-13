@@ -242,6 +242,7 @@ export function QuestionForm({
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [formError, setFormError] = useState("");
+  const [skillLoadWarning, setSkillLoadWarning] = useState("");
   const skillSearchRef = useRef(null);
   const formErrorRef = useRef(null);
 
@@ -276,7 +277,7 @@ const resolveInitialChapterId = (question, routeChapter, fallbackChapter) => {
   }, [chapters, subject]);
 
   useEffect(() => {
-    if (!open || !selectedChapterId) { setAvailableSkills([]); return; }
+    if (!open || !selectedChapterId) { setAvailableSkills([]); setSkillLoadWarning(""); return; }
 
     let cancelled = false;
 
@@ -296,10 +297,24 @@ const resolveInitialChapterId = (question, routeChapter, fallbackChapter) => {
 
         const skillData = selectedChapter?.skills || [];
         setAvailableSkills(skillData.map(normalizeSkill));
-        setSelectedSkills((current) => current.filter((item) => skillData.some((available) => normalizeId(getSkillId(available)) === item.skillId)));
+
+        // Chi loc khi chuong that su tra ve ky nang. Danh sach rong co the la
+        // chuong chua gan ky nang hoac backend khong tra truong do; loc theo no
+        // se xoa sach ky nang dang gan cua cau hoi ma nguoi dung khong biet.
+        if (skillData.length) {
+          setSelectedSkills((current) => current.filter((item) => skillData.some((available) => normalizeId(getSkillId(available)) === item.skillId)));
+          setSkillLoadWarning("");
+        } else {
+          setSkillLoadWarning(
+            "Không đọc được danh sách kỹ năng của chương nên đang giữ nguyên kỹ năng cũ của câu hỏi. Kiểm tra lại trước khi lưu.",
+          );
+        }
       } catch {
         if (!cancelled) {
           setAvailableSkills([]);
+          setSkillLoadWarning(
+            "Không đọc được danh sách kỹ năng của chương nên đang giữ nguyên kỹ năng cũ của câu hỏi. Kiểm tra lại trước khi lưu.",
+          );
         }
       } finally {
         if (!cancelled) {
@@ -387,6 +402,7 @@ const resolveInitialChapterId = (question, routeChapter, fallbackChapter) => {
     setSubmitting(false);
     setSubmitError("");
     setFormError("");
+    setSkillLoadWarning("");
   }, [chapter, chapters, initialQuestion, open, subject, subjects]);
 
   useEffect(() => {
@@ -858,6 +874,11 @@ const resolveInitialChapterId = (question, routeChapter, fallbackChapter) => {
           Nếu chọn kỹ năng, cần đúng 1 kỹ năng chính; các kỹ năng còn lại là kỹ năng phụ
         </span>
       </div>
+      {skillLoadWarning && (
+        <div className="modal-inline-error" role="alert">
+          {skillLoadWarning}
+        </div>
+      )}
       <div className="mini-search">
         <Search size={18} />
         <input

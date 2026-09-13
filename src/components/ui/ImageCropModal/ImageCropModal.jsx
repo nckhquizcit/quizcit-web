@@ -1,10 +1,20 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import Cropper from "react-easy-crop";
 import { Check, Minus, Plus, RefreshCw, RotateCw, X } from "lucide-react";
 import getCroppedImg from "../../../utils/cropImage";
 import Button from "../Button/Button";
 import "./ImageCropModal.css";
+
+// Giống Modal dùng chung: chỉ những phần tử thực sự focus được mới vào vòng Tab.
+const FOCUSABLE_SELECTOR = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  '[tabindex]:not([tabindex="-1"])',
+].join(", ");
 
 /**
  * Modal cắt ảnh với tỉ lệ và kích thước cố định
@@ -26,6 +36,7 @@ export default function ImageCropModal({
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState("");
+  const dialogRef = useRef(null);
 
   useEffect(() => {
     if (!open) return;
@@ -40,6 +51,7 @@ export default function ImageCropModal({
   useEffect(() => {
     if (!open) return undefined;
 
+    const previousFocus = document.activeElement;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
@@ -51,6 +63,31 @@ export default function ImageCropModal({
         if (!processing) {
           onClose?.();
         }
+        return;
+      }
+      if (event.key !== "Tab") return;
+
+      // Lấy danh sách ngay lúc nhấn phím: phần tử focus được đổi theo trạng thái xử lý.
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+      const focusables = dialog.querySelectorAll(FOCUSABLE_SELECTOR);
+      if (focusables.length === 0) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+
+      if (event.shiftKey) {
+        if (active === first || !dialog.contains(active)) {
+          event.preventDefault();
+          last.focus();
+        }
+      } else if (active === last || !dialog.contains(active)) {
+        event.preventDefault();
+        first.focus();
       }
     };
 
@@ -58,6 +95,9 @@ export default function ImageCropModal({
     return () => {
       document.removeEventListener("keydown", handleKeyDown, true);
       document.body.style.overflow = previousOverflow;
+      if (previousFocus && typeof previousFocus.focus === "function") {
+        previousFocus.focus();
+      }
     };
   }, [open, processing, onClose]);
 
@@ -104,10 +144,12 @@ export default function ImageCropModal({
   return createPortal(
     <div className="image-crop-modal__overlay modal-overlay" onClick={handleClose} role="presentation">
       <div
+        ref={dialogRef}
         className="image-crop-modal modal-container"
         role="dialog"
         aria-modal="true"
         aria-labelledby="image-crop-modal-title"
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="image-crop-modal__header">

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, Plus, BookOpen, Check, GripVertical, ListOrdered, Pencil, Trash2, X } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronUp, Plus, BookOpen, Check, GripVertical, ListOrdered, Pencil, Trash2, X } from "lucide-react";
 
 import "../Admin.css";
 import AdminPageHeader from "../components/AdminPageHeader";
@@ -131,6 +131,25 @@ export default function AdminSubjects() {
     setDraggedSubjectId(null);
   };
 
+  // Di chuyen bang ban phim va tren dien thoai, noi keo tha cua trinh duyet khong chay.
+  const moveSubjectTo = (fromIndex, toIndex) => {
+    if (isMutating) return;
+    setSubjects((current) => {
+      if (toIndex < 0 || toIndex >= current.length) return current;
+      const reordered = [...current];
+      const [moved] = reordered.splice(fromIndex, 1);
+      reordered.splice(toIndex, 0, moved);
+      return reordered.map((item, index) => ({ ...item, displayOrder: index + 1 }));
+    });
+  };
+
+  const moveSubjectBy = (event, index, offset) => {
+    event.stopPropagation();
+    // Ngan the cha bat dau keo tha khi nguoi dung bam nut di chuyen.
+    event.preventDefault();
+    moveSubjectTo(index, index + offset);
+  };
+
   const startOrdering = () => {
     setOrderSnapshot(subjects);
     setIsOrdering(true);
@@ -213,7 +232,7 @@ export default function AdminSubjects() {
       {/* ===== SUBJECT GRID ===== */}
       {filteredSubjects.length > 0 && (
       <div className="subject-grid">
-        {filteredSubjects.map((subject) => {
+        {filteredSubjects.map((subject, subjectIndex) => {
           const isVisible = subject.visible !== false;
           return (
           <div
@@ -239,7 +258,31 @@ export default function AdminSubjects() {
               navigate(`/admin/subjects/${subject.subjectId}/chapters`);
             }}
           >
-            {isOrdering && <span className="display-order-drag-handle" title="Kéo để đổi thứ tự" aria-label="Kéo để đổi thứ tự"><GripVertical size={17} /></span>}
+            {isOrdering && (
+              <div className="display-order-move-group">
+                <span className="display-order-drag-handle" title="Kéo để đổi thứ tự" aria-label="Kéo để đổi thứ tự"><GripVertical size={17} /></span>
+                <button
+                  type="button"
+                  className="display-order-move-btn"
+                  title="Đưa môn lên trên"
+                  aria-label={`Đưa môn "${subject.name}" lên trên`}
+                  disabled={subjectIndex === 0 || isMutating}
+                  onClick={(e) => moveSubjectBy(e, subjectIndex, -1)}
+                >
+                  <ChevronUp size={16} />
+                </button>
+                <button
+                  type="button"
+                  className="display-order-move-btn"
+                  title="Đưa môn xuống dưới"
+                  aria-label={`Đưa môn "${subject.name}" xuống dưới`}
+                  disabled={subjectIndex === filteredSubjects.length - 1 || isMutating}
+                  onClick={(e) => moveSubjectBy(e, subjectIndex, 1)}
+                >
+                  <ChevronDown size={16} />
+                </button>
+              </div>
+            )}
 
             {subject.imageUrl ? (
               <div className="adm2-subject-card-cover">

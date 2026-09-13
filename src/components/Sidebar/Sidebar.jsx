@@ -20,9 +20,20 @@ export default function Sidebar({ type = "USER", mobileOpen = false, onClose, us
   const sidebarItems = isAdmin ? ADMIN_SIDEBAR : USER_SIDEBAR;
   const [isMinimized, setIsMinimized] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
   const navigate = useNavigate();
   const accountRef = useRef(null);
   const user = userProp ?? getStoredUser();
+
+  const avatarUrl = user?.avatarUrl;
+
+  // Duong dan anh doi thi cho phep thu lai, neu khong se giu mai co loi.
+  // Chinh state ngay khi render theo huong dan cua React, tranh setState trong effect.
+  const [prevAvatarUrl, setPrevAvatarUrl] = useState(avatarUrl);
+  if (avatarUrl !== prevAvatarUrl) {
+    setPrevAvatarUrl(avatarUrl);
+    setAvatarError(false);
+  }
 
   const displayName =
     user?.displayName || user?.username || (isAdmin ? "Quản trị viên" : "Sinh viên");
@@ -130,8 +141,12 @@ export default function Sidebar({ type = "USER", mobileOpen = false, onClose, us
         <div className="sidebar-footer">
           <div className="sidebar-user" ref={accountRef}>
             <span className="sidebar-user__avatar">
-              {user?.avatarUrl ? (
-                <img src={resolveImageUrl(user.avatarUrl)} alt="" />
+              {avatarUrl && !avatarError ? (
+                <img
+                  src={resolveImageUrl(avatarUrl)}
+                  alt=""
+                  onError={() => setAvatarError(true)}
+                />
               ) : (
                 getInitials(displayName)
               )}
