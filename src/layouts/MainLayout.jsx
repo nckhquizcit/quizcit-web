@@ -3,6 +3,8 @@ import { Link, Outlet, ScrollRestoration, useLocation, useNavigate } from "react
 import { ArrowLeft, Menu } from "lucide-react";
 import Sidebar from "../components/Sidebar/Sidebar";
 import { ToastProvider, useToast } from "../components/ui/Toast/Toast";
+import ErrorBoundary from "../components/ui/ErrorBoundary/ErrorBoundary";
+import RouteErrorFallback from "../components/ui/ErrorBoundary/RouteErrorFallback";
 import { getStoredUser, setStoredUser, subscribeToAuthChange } from "../services/apiClient";
 import { getCurrentUser } from "../services/userService";
 import { resolveImageUrl } from "../services/mappers";
@@ -28,6 +30,8 @@ const TITLE_MAP = [
 ];
 
 const EXAM_ROUTES_REGEX = /^\/app\/(quiz\/(?!result\/)[^/]+|adaptive\/[^/]+)$/;
+
+const renderRouteFallback = ({ reload }) => <RouteErrorFallback reload={reload} />;
 
 function resolveTitle(pathname) {
   const found = TITLE_MAP.find((t) => t.match(pathname));
@@ -56,7 +60,10 @@ function MainLayoutContent() {
   useEffect(() => {
     getCurrentUser()
       .then((freshUser) => {
-        if (freshUser) {
+        // Chi tron khi co ma dinh danh that. mapUser() luon tra ve object day du
+        // (ke ca khi du lieu vao rong) voi role mac dinh la USER, nen chi kiem tra
+        // "co object" se ghi de mat quyen quan tri khi may chu tra 200 than rong/HTML.
+        if (freshUser?.userId) {
           const stored = getStoredUser() || {};
           setStoredUser({ ...stored, ...freshUser });
         }
@@ -166,7 +173,11 @@ function MainLayoutContent() {
 
           <main className="main-content">
             <div className="main-content__inner">
-              <Outlet />
+              {/* Boc Outlet de mot trang loi khong keo theo sidebar/topbar.
+                  key theo pathname de bam sang trang khac la tu thoat man hinh loi. */}
+              <ErrorBoundary key={location.pathname} renderFallback={renderRouteFallback}>
+                <Outlet />
+              </ErrorBoundary>
             </div>
           </main>
         </div>

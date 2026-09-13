@@ -22,6 +22,13 @@ export default function RowActions({
   const [menuPos, setMenuPos] = useState(null);
   const rootRef = useRef(null);
   const menuRef = useRef(null);
+  const triggerRef = useRef(null);
+
+  // Dong menu bang Escape thi tra tieu diem ve dung nut da mo menu.
+  const closeAndRestoreFocus = () => {
+    setOpen(false);
+    triggerRef.current?.focus();
+  };
 
   useEffect(() => {
     if (variant !== "menu" || !open) return;
@@ -33,17 +40,32 @@ export default function RowActions({
       setOpen(false);
     };
     const closeMenu = () => setOpen(false);
+    const handleKeyDown = (event) => {
+      if (event.key !== "Escape") return;
+      event.stopPropagation();
+      closeAndRestoreFocus();
+    };
 
     document.addEventListener("mousedown", handleOutsideClick);
+    // Fallback cho truong hop tieu diem chua kip vao menu.
+    document.addEventListener("keydown", handleKeyDown);
     // Menu dùng position: fixed nên phải đóng khi cuộn/resize để không trôi vị trí.
     window.addEventListener("scroll", closeMenu, true);
     window.addEventListener("resize", closeMenu);
     return () => {
       document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("scroll", closeMenu, true);
       window.removeEventListener("resize", closeMenu);
     };
   }, [variant, open]);
+
+  // Menu render qua portal nen tieu diem khong tu dong di vao: dua vao muc dau tien.
+  useEffect(() => {
+    if (variant !== "menu" || !open || !menuPos) return;
+    const firstItem = menuRef.current?.querySelector('[role="menuitem"]:not([disabled])');
+    firstItem?.focus();
+  }, [variant, open, menuPos]);
 
   const toggleMenu = () => {
     setOpen((current) => {
@@ -65,6 +87,7 @@ export default function RowActions({
     return (
       <div className="row-actions row-actions--menu" ref={rootRef}>
         <button
+          ref={triggerRef}
           type="button"
           className="row-actions__trigger"
           onClick={toggleMenu}
@@ -77,7 +100,17 @@ export default function RowActions({
           menuPos &&
           createPortal(
             // Portal + fixed để menu không bị vùng cuộn của bảng (overflow) cắt mất.
-            <div className="row-actions__menu" role="menu" ref={menuRef} style={menuPos}>
+            <div
+              className="row-actions__menu"
+              role="menu"
+              ref={menuRef}
+              style={menuPos}
+              onKeyDown={(event) => {
+                if (event.key !== "Escape") return;
+                event.stopPropagation();
+                closeAndRestoreFocus();
+              }}
+            >
               {items.map((item, i) => (
                 <button
                   key={i}

@@ -72,6 +72,18 @@ button {
   font-size: var(--fs-sm);
 }
 
+/* Trang từ chối truy cập cần lối thoát rõ ràng (đăng xuất / về trang học) */
+.access-denied__hint {
+  color: var(--color-text-subtle);
+}
+.access-denied__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
 /* Ẩn nội dung khỏi mắt thường nhưng vẫn đọc được bởi screen reader */
 .sr-only {
   position: absolute;

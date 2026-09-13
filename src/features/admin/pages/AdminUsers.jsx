@@ -57,6 +57,9 @@ export default function AdminUsers() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isRoleConfirmModalOpen, setIsRoleConfirmModalOpen] = useState(false);
   const [pendingRole, setPendingRole] = useState("");
+  // Nguoi dung dang cho doi vai tro. Phai la bien RIENG: selectedUser bi
+  // closeAuthModal() xoa ngay sau khi ban giao sang buoc xac nhan.
+  const [roleTargetUser, setRoleTargetUser] = useState(null);
   const [deletingUser, setDeletingUser] = useState(null);
   const [resetUser, setResetUser] = useState(null);
   const currentUser = useMemo(() => getStoredUser(), []);
@@ -197,7 +200,10 @@ export default function AdminUsers() {
       return;
     }
     // Doi vai tro la leo thang dac quyen -> bat buoc qua buoc xac nhan.
+    // Ghi nguoi dung dang cho vao bien rieng truoc khi modal cap quyen dong lai,
+    // vi closeAuthModal() se xoa selectedUser.
     if (newRole !== selectedUser.role) {
+      setRoleTargetUser(selectedUser);
       setPendingRole(newRole);
       setIsRoleConfirmModalOpen(true);
       return;
@@ -208,13 +214,14 @@ export default function AdminUsers() {
   const closeRoleConfirmModal = () => {
     setIsRoleConfirmModalOpen(false);
     setPendingRole("");
+    setRoleTargetUser(null);
   };
 
   // Chi goi API sau khi nguoi dung xac nhan o modal xac nhan vai tro.
   const handleConfirmRoleChange = async () => {
-    if (!selectedUser?.userId || !pendingRole) return;
+    if (!roleTargetUser?.userId || !pendingRole) return;
     try {
-      await changeUserRole(selectedUser.userId, pendingRole);
+      await changeUserRole(roleTargetUser.userId, pendingRole);
       toast.success("Đã cập nhật vai trò người dùng.");
       loadUsers(page);
     } catch (actionError) {
@@ -319,6 +326,9 @@ export default function AdminUsers() {
                 label: "Đổi vai trò",
                 icon: <Shield size={16} />,
                 onClick: () => {
+                  // Don sach trang thai xac nhan cu truoc khi mo modal moi,
+                  // tranh hai modal xac nhan chong len nhau.
+                  closeRoleConfirmModal();
                   setSelectedUser(user);
                   setIsAuthModalOpen(true);
                 },
@@ -328,6 +338,7 @@ export default function AdminUsers() {
                 label: user.status === "BANNED" ? "Mở khóa tài khoản" : "Khóa tài khoản",
                 icon: user.status === "BANNED" ? <Unlock size={16} /> : <Lock size={16} />,
                 onClick: () => {
+                  closeRoleConfirmModal();
                   setSelectedUser(user);
                   setIsConfirmModalOpen(true);
                 },
@@ -491,11 +502,11 @@ export default function AdminUsers() {
         isOpen={isRoleConfirmModalOpen}
         onClose={closeRoleConfirmModal}
         onConfirm={handleConfirmRoleChange}
-        user={selectedUser}
+        user={roleTargetUser}
         message={
           <>
-            Đổi vai trò của "<strong>{selectedUser?.displayName || selectedUser?.username}</strong>" từ{" "}
-            <strong>{formatRole(selectedUser?.role)}</strong> sang <strong>{formatRole(pendingRole)}</strong>?
+            Đổi vai trò của "<strong>{roleTargetUser?.displayName || roleTargetUser?.username}</strong>" từ{" "}
+            <strong>{formatRole(roleTargetUser?.role)}</strong> sang <strong>{formatRole(pendingRole)}</strong>?
           </>
         }
       />

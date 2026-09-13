@@ -1719,7 +1719,9 @@
   }
 
   .question-bank-table-wrap {
-    overflow: visible;
+    /* Doi tu visible sang auto: neu noi dung van rong hon khung thi cuon ngang
+       duoc thay vi bi .question-bank-surface cat cung. */
+    overflow-x: auto;
     padding: 0 12px 12px;
     border-top: 1px solid #e2e8f0;
   }
@@ -4679,8 +4681,15 @@
   padding: 0 14px 12px;
 }
 
-.question-bank-table {
-  min-width: 860px;
+/* Chi ap dung tu 721px tro len. Truoc day rule nay nam ngoai moi media query nen
+   no de len khai bao min-width:0 cua khoi (max-width:720px) o tren (cung
+   specificity, dung sau thi thang), khien bang bi ep rong 860px tren man hinh nho
+   va bi .question-bank-surface (overflow:hidden) cat cung, khong cuon duoc.
+   Gioi han trong media query nay de giao dien man hinh lon khong doi. */
+@media (min-width: 721px) {
+  .question-bank-table {
+    min-width: 860px;
+  }
 }
 
 .question-bank-table th {
