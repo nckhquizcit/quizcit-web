@@ -8,12 +8,8 @@ import {
 } from "../../../../services/apiClient";
 import { login } from "../../../../services/authService";
 import { Button, Field, Input } from "../../../../components/ui";
-import useCountdown from "../../hooks/useCountdown";
 import "../../styles/authShared.css";
 import "./LoginForm.css";
-
-// BE gioi han LOGIN 10 lan / 900s.
-const RATE_LIMIT_COOLDOWN_SECONDS = 900;
 
 export default function LoginForm() {
   const navigate = useNavigate();
@@ -25,7 +21,6 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [cooldown, startCooldown] = useCountdown();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -48,7 +43,6 @@ export default function LoginForm() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    if (cooldown > 0) return;
     try {
       setLoading(true);
       setError("");
@@ -64,7 +58,6 @@ export default function LoginForm() {
     } catch (apiError) {
       if (isRateLimited(apiError)) {
         setError("Bạn đã thử quá nhiều lần. Vui lòng thử lại sau khoảng 15 phút.");
-        startCooldown(RATE_LIMIT_COOLDOWN_SECONDS);
       } else {
         const message = getErrorMessage(apiError, "Đăng nhập thất bại.");
         const rawMessage = apiError?.message || apiError?.response?.data?.message || "";
@@ -158,9 +151,8 @@ export default function LoginForm() {
         variant="primary"
         fullWidth
         loading={loading}
-        disabled={cooldown > 0}
       >
-        {cooldown > 0 ? `Thử lại sau ${cooldown}s` : "Đăng nhập"}
+        Đăng nhập
       </Button>
 
       <p className="auth-form__switch">
