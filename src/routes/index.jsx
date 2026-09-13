@@ -3,7 +3,6 @@ import { Suspense, lazy } from "react";
 import { createBrowserRouter, Navigate, useParams } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout.jsx";
 import AuthLayout from "../layouts/AuthLayout.jsx";
-import AdminLayout from "../features/admin/AdminLayout.jsx";
 import ProtectedRoute from "../features/admin/components/guard/ProtectedRoute.jsx";
 import { ForgotPasswordProvider } from "../stores/contexts/ForgotPasswordContext.jsx";
 import { Spinner } from "../components/ui";
@@ -24,6 +23,10 @@ const SkillDetailPage = lazy(
 const QuizTakingPage = lazy(() => import("../features/quiz/pages/QuizTakingPage/QuizTakingPage.jsx"));
 const QuizResultPage = lazy(() => import("../features/quiz/pages/QuizResultPage/QuizResultPage.jsx"));
 const AdaptiveQuizPage = lazy(() => import("../features/quiz/pages/AdaptiveQuizPage/AdaptiveQuizPage.jsx"));
+
+// AdminLayout keo theo Admin.css (khoi CSS lon chi danh cho admin). Tai tinh de
+// nguoi hoc khong phai tai no, va de cac class cua admin khong con ap vao trang hoc sinh.
+const AdminLayout = lazy(() => import("../features/admin/AdminLayout.jsx"));
 
 const AdminDashboard = lazy(() => import("../features/admin/pages/AdminDashboard.jsx"));
 const AdminSubjects = lazy(() => import("../features/admin/pages/AdminSubjects.jsx"));
@@ -123,7 +126,7 @@ export const router = createBrowserRouter([
     path: "/admin",
     element: (
       <ProtectedRoute roles={["ADMINISTRATOR"]}>
-        <AdminLayout />
+        {withSuspense(<AdminLayout />)}
       </ProtectedRoute>
     ),
     children: [

@@ -419,7 +419,9 @@
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 20px;
 }
-.subject-card {
+/* Gioi han vao bo cuc admin: lop .subject-card cua trang hoc sinh nam ngoai
+   .admin-layout, nho vay hai ben khong con dung chung kieu. */
+.admin-layout .subject-card {
   background: white;
   border-radius: 18px;
   padding: 20px;
@@ -435,7 +437,7 @@
   transition: all 0.25s ease;
 }
 
-.subject-card:hover {
+.admin-layout .subject-card:hover {
   box-shadow: 0 14px 35px rgba(0, 0, 0, 0.08);
 }
 
@@ -627,13 +629,13 @@
   }
 }
 
-.subject-card[data-dragging="true"],
+.admin-layout .subject-card[data-dragging="true"],
 .chapter-card[data-dragging="true"] {
   opacity: 0.45;
 }
 
 /* Grip nằm giữa mép trên card để không đè lên icon môn học */
-.subject-card > .display-order-drag-handle {
+.admin-layout .subject-card > .display-order-drag-handle {
   position: absolute;
   top: 4px;
   left: 50%;
@@ -651,14 +653,14 @@
   flex: 0 0 auto;
 }
 
-.subject-card > .display-order-move-group {
+.admin-layout .subject-card > .display-order-move-group {
   position: absolute;
   top: 4px;
   left: 50%;
   transform: translateX(-50%);
 }
 
-.subject-card > .display-order-move-group .display-order-drag-handle {
+.admin-layout .subject-card > .display-order-move-group .display-order-drag-handle {
   transform: rotate(90deg);
   color: var(--admin-subtle, #8a9aac);
 }
@@ -3767,7 +3769,7 @@
   color: #dc2626;
 }
 
-.subject-card-actions {
+.admin-layout .subject-card-actions {
   position: absolute;
   top: 12px;
   right: 12px;
@@ -3777,7 +3779,7 @@
   transition: opacity 0.2s;
 }
 
-.subject-card:hover .subject-card-actions {
+.admin-layout .subject-card:hover .subject-card-actions {
   opacity: 1;
 }
 
@@ -4020,7 +4022,7 @@
 .table-actions,
 .quiz-actions,
 .chapter-actions,
-.subject-card-actions,
+.admin-layout .subject-card-actions,
 .theory-actions {
   display: flex;
   align-items: center;
@@ -4222,7 +4224,7 @@
 .data-table,
 .stat-card,
 .quick-action,
-.subject-card,
+.admin-layout .subject-card,
 .chapter-card,
 .chapter-expanded-content,
 .question-import-card,
@@ -4244,7 +4246,7 @@
 
 .stat-card:hover,
 .quick-action:hover,
-.subject-card:hover,
+.admin-layout .subject-card:hover,
 .chapter-card:hover,
 .skill-card:hover {
   border-color: var(--admin-border-strong);
@@ -4385,14 +4387,14 @@
   gap: 14px;
 }
 
-.subject-card {
+.admin-layout .subject-card {
   position: relative;
   min-height: 178px;
   padding: 16px;
   cursor: pointer;
 }
 
-.subject-card-actions {
+.admin-layout .subject-card-actions {
   position: absolute;
   top: 12px;
   right: 12px;
@@ -4929,7 +4931,7 @@
     grid-template-columns: 1fr;
   }
 
-  .subject-card-actions {
+  .admin-layout .subject-card-actions {
     position: static;
     margin-bottom: 4px;
     justify-content: flex-end;
@@ -5808,9 +5810,10 @@
 .adm2-badge--emerald { background: var(--color-primary-soft, #ecfdf5); color: var(--color-primary-700, #047857); }
 .adm2-badge--amber { background: var(--color-warning-soft, #fffbeb); color: #92400e; }
 .adm2-badge--gray { background: var(--color-surface-3, #f1f5f9); color: var(--color-text-muted, #64748b); }
-.adm2-badge--red { background: var(--color-error-soft, #fef2f2); color: var(--color-error, #ef4444); }
+/* Chu dung sac do dam: --color-error / --color-info qua nhat tren nen -soft, chi dat ~3.4:1. */
+.adm2-badge--red { background: var(--color-error-soft, #fef2f2); color: var(--color-error-strong, #b91c1c); }
 .adm2-badge--dark { background: #0f172a; color: #fff; }
-.adm2-badge--info { background: var(--color-info-soft, #eff6ff); color: var(--color-info, #3b82f6); }
+.adm2-badge--info { background: var(--color-info-soft, #eff6ff); color: var(--color-info-strong, #1d4ed8); }
 
 .adm2-chip {
   display: inline-flex;
@@ -6481,16 +6484,16 @@
   align-items: stretch;
 }
 
-.subject-grid > .subject-card {
+.admin-layout .subject-grid > .subject-card {
   min-height: 178px;
   overflow: hidden;
 }
 
-.subject-grid > .subject-card .adm2-subject-card-cover {
+.admin-layout .subject-grid > .subject-card .adm2-subject-card-cover {
   flex: 0 0 auto;
 }
 
-.subject-grid > .subject-card .subject-desc {
+.admin-layout .subject-grid > .subject-card .subject-desc {
   display: -webkit-box;
   min-height: 108px;
   overflow: hidden;
@@ -6499,12 +6502,12 @@
   line-height: 1.45;
 }
 
-.subject-grid > .subject-card .adm2-card-footer {
+.admin-layout .subject-grid > .subject-card .adm2-card-footer {
   margin-top: auto;
 }
 
 @media (max-width: 760px) {
-  .subject-grid > .subject-card .subject-desc {
+  .admin-layout .subject-grid > .subject-card .subject-desc {
     min-height: 0;
   }
 }
