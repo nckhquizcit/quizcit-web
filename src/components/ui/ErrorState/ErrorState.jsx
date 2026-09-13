@@ -8,7 +8,7 @@ const SERVER_ERROR_DESCRIPTION = "Máy chủ đang gặp sự cố. Vui lòng th
 
 // Thong diep goc cua thu vien goi mang (tieng Anh), khong nen hien cho nguoi dung.
 const NETWORK_MESSAGE_PATTERN =
-  /request failed with status code|network error|timeout of \d+ms exceeded|failed to fetch|axioserror|is not a function|is not iterable|cannot read prop/i;
+  /request failed with status code|network error|timeout of \d+ms exceeded|failed to fetch|axioserror/i;
 
 // Thân phản hồi là HTML thì khong duoc do nguyen khoi vao phan mo ta.
 const HTML_LIKE_PATTERN = /^\s*<(!doctype|html|head|body|\?xml)/i;

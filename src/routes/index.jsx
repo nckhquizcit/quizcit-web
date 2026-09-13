@@ -5,7 +5,7 @@ import MainLayout from "../layouts/MainLayout.jsx";
 import AuthLayout from "../layouts/AuthLayout.jsx";
 import ProtectedRoute from "../features/admin/components/guard/ProtectedRoute.jsx";
 import { ForgotPasswordProvider } from "../stores/contexts/ForgotPasswordContext.jsx";
-import { Button, ErrorBoundary, Spinner } from "../components/ui";
+import { Button, Spinner } from "../components/ui";
 import { logout } from "../services/authService.js";
 
 const HomePage = lazy(() => import("../features/home/pages/HomePage/HomePage.jsx"));

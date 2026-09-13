@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   KeyRound,
   Lock,
@@ -64,6 +64,8 @@ export default function AdminUsers() {
   const [resetUser, setResetUser] = useState(null);
   const currentUser = useMemo(() => getStoredUser(), []);
   const currentUserId = String(currentUser?.userId || currentUser?.user_id || currentUser?.id || "");
+  // So thu tu luot tai: chi luot moi nhat duoc phep ghi state.
+  const loadIdRef = useRef(0);
 
   // Debounce search query 300ms de tranh spam API khi dang go
   useEffect(() => {
@@ -74,6 +76,9 @@ export default function AdminUsers() {
   }, [searchQuery]);
 
   const loadUsers = useCallback(async (targetPage = 0) => {
+    const loadId = ++loadIdRef.current;
+    const isCurrent = () => loadIdRef.current === loadId;
+
     try {
       setLoading(true);
       setError("");
@@ -87,6 +92,7 @@ export default function AdminUsers() {
         role: filterRole,
         status: filterStatus,
       });
+      if (!isCurrent()) return;
 
       const fetchedItems = result?.items || [];
       const needsClientFallback = isBackendUnfiltered(fetchedItems, debouncedQuery, filterRole, filterStatus);
@@ -94,6 +100,7 @@ export default function AdminUsers() {
       if (needsClientFallback) {
         // Resilient Fallback: Backend cu chua restart, tu dong lay danh sach day du de filter/sort
         const allResult = await getUsers({ page: 0, size: 100, sort: backendSort });
+        if (!isCurrent()) return;
         const allItems = allResult?.items || [];
         const filteredAll = allItems.filter((u) => {
           if (!matchesSearch(u, debouncedQuery)) return false;
@@ -136,9 +143,13 @@ export default function AdminUsers() {
         setPage(result?.page ?? targetPage);
       }
     } catch (loadError) {
+      if (!isCurrent()) return;
       setError(getErrorMessage(loadError, "Không thể tải danh sách người dùng."));
+      // Don du lieu cu: khong de o "Tong tai khoan" giu so cu ngay tren tam bao loi.
+      setItems([]);
+      setPageInfo(EMPTY_PAGE_INFO);
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
   }, [debouncedQuery, filterRole, filterStatus, sortBy, currentUserId]);
 
