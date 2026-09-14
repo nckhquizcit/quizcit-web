@@ -31,6 +31,7 @@ import {
 import RichTextView from "../../../../components/richtext/RichTextView";
 import SkillInfoModal from "../../components/SkillInfoModal";
 import ExamExitModal from "../../components/ExamExitModal";
+import { getOptionSeedKey, shuffleOptions } from "../../utils/optionShuffle";
 import {
   clampQuizPage,
   getPageNavigationTarget,
@@ -55,6 +56,7 @@ const getDurationSeconds = (quizData) => {
 const QuizQuestionCard = memo(function QuizQuestionCard({
   question,
   questionIndex,
+  attemptId,
   selectedOptionId,
   flagged,
   isActive,
@@ -67,6 +69,11 @@ const QuizQuestionCard = memo(function QuizQuestionCard({
 }) {
   const hasSkills =
     Array.isArray(question.skills) && question.skills.length > 0;
+  // Thứ tự đáp án ổn định theo attempt: cùng lượt làm luôn ra cùng một thứ tự.
+  const options = useMemo(
+    () => shuffleOptions(question.options, getOptionSeedKey(attemptId, question.questionId)),
+    [attemptId, question.options, question.questionId],
+  );
 
   return (
     <article
@@ -111,7 +118,7 @@ const QuizQuestionCard = memo(function QuizQuestionCard({
       />
 
       <div className="options-list">
-        {(question.options || []).map((option, optIndex) => {
+        {options.map((option, optIndex) => {
           const selected = selectedOptionId === option.optionId;
           const inputId = `opt-${question.questionId}-${option.optionId}`;
 
@@ -600,7 +607,12 @@ export default function QuizTakingPage() {
       const activeQuestion = questions.find(
         (question) => question.questionId === activeQuestionId,
       );
-      const option = activeQuestion?.options?.[optionIndex];
+      // Phím số/chữ phải tra theo đúng thứ tự đáp án đang hiển thị.
+      const activeOptions = shuffleOptions(
+        activeQuestion?.options,
+        getOptionSeedKey(attempt?.attemptId, activeQuestion?.questionId),
+      );
+      const option = activeOptions[optionIndex];
       if (!option) return;
 
       event.preventDefault();
@@ -613,6 +625,7 @@ export default function QuizTakingPage() {
     activeQuestionId,
     activeSkillQuestion,
     answerSheetOpen,
+    attempt?.attemptId,
     currentPage,
     goToPage,
     handleAnswerChange,
@@ -835,6 +848,7 @@ export default function QuizTakingPage() {
                   key={question.questionId}
                   question={question}
                   questionIndex={questionIndex}
+                  attemptId={attempt?.attemptId}
                   selectedOptionId={answers[question.questionId]}
                   flagged={flaggedQuestionIds.has(question.questionId)}
                   isActive={activeQuestionId === question.questionId}

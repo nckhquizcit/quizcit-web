@@ -16,6 +16,7 @@ import RichTextView from "../../../../components/richtext/RichTextView";
 import { isRichTextEmpty, toPreviewText } from "../../../../components/richtext/richTextUtils";
 import { formatSubmittedAt } from "../../../../utils/dateFormat";
 import { formatDelta } from "../../../progress/utils/skillProgress";
+import { getOptionSeedKey, shuffleOptions } from "../../utils/optionShuffle";
 import "./QuizResultPage.css";
 
 const FALLBACK_QUIZ_NAME = "Bài kiểm tra";
@@ -431,7 +432,10 @@ export default function QuizResultPage() {
                   {expanded && (
                     <div className="result-question-row__detail">
                       <div className="result-option-list">
-                        {(question.options || []).map((option, optionIndex) => {
+                        {shuffleOptions(
+                          question.options,
+                          getOptionSeedKey(attemptId, question.questionId),
+                        ).map((option, optionIndex) => {
                           const selected = option.optionId === question.selectedOptionId;
                           const isCorrectOption =
                             option.optionId === question.correctOptionId || option.corrected;

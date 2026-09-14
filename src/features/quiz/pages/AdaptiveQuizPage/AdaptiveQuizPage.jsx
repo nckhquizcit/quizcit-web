@@ -15,6 +15,7 @@ import {
   submitAdaptiveBatch,
 } from "../../../../services/quizService";
 import { getSubjectById } from "../../../../services/subjectService";
+import { getOptionSeedKey, shuffleOptions } from "../../utils/optionShuffle";
 import {
   ADAPTIVE_PAGE_SIZE,
   buildAdaptiveBatchAnswers,
@@ -243,7 +244,10 @@ export default function AdaptiveQuizPage() {
                 </div>
                 <RichTextView className="question-content" content={question.content} contentFormat={question.contentFormat} />
                 <div className="options-list">
-                  {(question.options || []).map((option, optionIndex) => {
+                  {(shuffleOptions(
+                    question.options,
+                    getOptionSeedKey(attemptId, question.questionId),
+                  )).map((option, optionIndex) => {
                     const selected = answers[question.questionId] === option.optionId;
                     const inputId = `adaptive-opt-${question.questionId}-${option.optionId}`;
 
