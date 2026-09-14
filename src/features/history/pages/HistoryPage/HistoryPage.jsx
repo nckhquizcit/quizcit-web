@@ -12,6 +12,12 @@ import HistoryCard from "../../components/HistoryCard/HistoryCard";
 import { formatSubmittedAt } from "../../../../utils/dateFormat";
 import "./HistoryPage.css";
 
+// API không đảm bảo thứ tự (BE không ORDER BY), nên tự xếp bài mới nhất lên đầu.
+const submittedAtTime = (attempt) => {
+  const time = new Date(attempt?.submittedAt ?? 0).getTime();
+  return Number.isFinite(time) ? time : 0;
+};
+
 const FALLBACK_QUIZ_NAME = "Bài kiểm tra chưa đặt tên";
 const FALLBACK_SUBJECT_NAME = "Không rõ môn học";
 const INVALID_SESSION_MESSAGE = "Phiên đăng nhập không hợp lệ, vui lòng đăng nhập lại.";
@@ -45,16 +51,18 @@ export default function HistoryPage() {
       const attempts = (await getUserAttempts(user.userId)) || [];
       if (!isCurrent()) return;
       setHistoryData(
-        attempts.map((attempt) => ({
-          id: attempt.attemptId,
-          title: isFakeQuizName(attempt.quizName, attempt.quizId) ? FALLBACK_QUIZ_NAME : attempt.quizName,
-          subjectName: attempt.subjectName || FALLBACK_SUBJECT_NAME,
-          date: formatSubmittedAt(attempt.submittedAt),
-          score: Math.round(attempt.rawScore || 0),
-          totalQuestions: attempt.totalQuestion,
-          estimatedAbility: attempt.overallTheta,
-          percentage: attempt.percentage,
-        })),
+        [...attempts]
+          .sort((a, b) => submittedAtTime(b) - submittedAtTime(a))
+          .map((attempt) => ({
+            id: attempt.attemptId,
+            title: isFakeQuizName(attempt.quizName, attempt.quizId) ? FALLBACK_QUIZ_NAME : attempt.quizName,
+            subjectName: attempt.subjectName || FALLBACK_SUBJECT_NAME,
+            date: formatSubmittedAt(attempt.submittedAt),
+            score: Math.round(attempt.rawScore || 0),
+            totalQuestions: attempt.totalQuestion,
+            estimatedAbility: attempt.overallTheta,
+            percentage: attempt.percentage,
+          })),
       );
     } catch (loadError) {
       if (isCurrent()) setError(getErrorMessage(loadError, "Không thể tải lịch sử làm bài."));
