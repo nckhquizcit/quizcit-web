@@ -21,6 +21,7 @@ import {
   buildAdaptiveBatchAnswers,
   hasAnsweredAdaptiveBatch,
 } from "./AdaptiveQuizPage.logic.js";
+import { shuffleQuestionsOptions } from "../../../../utils/shuffle";
 import "../QuizTakingPage/QuizTakingPage.css";
 import "./AdaptiveQuizPage.css";
 
@@ -46,6 +47,9 @@ export default function AdaptiveQuizPage() {
           submittedRef.current = true;
           navigate(`/app/quiz/result/${attemptId}`, { replace: true });
         } else {
+          if (data && data.questions) {
+            data.questions = shuffleQuestionsOptions(data.questions);
+          }
           setState(data);
           const currentUser = getStoredUser();
           const draft = loadAdaptiveDraft(attemptId, currentUser?.userId);
@@ -115,6 +119,9 @@ export default function AdaptiveQuizPage() {
         submittedRef.current = true;
         navigate(`/app/quiz/result/${attemptId}`);
         return true;
+      }
+      if (next && next.questions) {
+        next.questions = shuffleQuestionsOptions(next.questions);
       }
       setState(next);
       setAnswers({});

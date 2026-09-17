@@ -20,6 +20,7 @@ import {
   submitAttempt,
 } from "../../../../services/quizService";
 import { getErrorMessage, getStoredUser } from "../../../../services/apiClient";
+import { shuffleQuestionsOptions } from "../../../../utils/shuffle";
 import {
   Button,
   EmptyState,
@@ -231,7 +232,7 @@ export default function QuizTakingPage() {
 
         const durationSeconds = getDurationSeconds(quizData);
         const loadedQuestions = Array.isArray(questionsData)
-          ? questionsData
+          ? shuffleQuestionsOptions(questionsData)
           : [];
 
         let attemptData = null;
