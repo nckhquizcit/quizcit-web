@@ -350,7 +350,7 @@ export default function AdminSubjects() {
                   navigate(`/admin/subjects/${subject.subjectId}/chapters`);
                 }}
               >
-                Mở chương <ChevronRight size={14} />
+                Mở môn học <ChevronRight size={14} />
               </button>
             </div>
           </div>
