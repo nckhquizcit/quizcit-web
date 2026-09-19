@@ -258,7 +258,7 @@ export default function QuizResultPage() {
             </div>
           </div>
           <p className="result-score-card__hint">
-            Năng lực (θ) ước tính theo thang 0–4.
+            Năng lực (Theta) ước tính theo thang 0–4.
           </p>
         </Card>
 

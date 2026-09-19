@@ -282,7 +282,7 @@ export default function ProgressPage() {
                     title="Năng lực"
                     aria-label={`Năng lực ${formatScaledThetaValue(thetaRaw)} trên 4, mức ${level.label}`}
                   >
-                    θ {formatScaledThetaValue(thetaRaw)} / 4 · {level.label}
+                    Theta {formatScaledThetaValue(thetaRaw)} / 4 · {level.label}
                   </span>
                   <Badge
                     variant={TREND_BADGE_VARIANT[delta.trend]}

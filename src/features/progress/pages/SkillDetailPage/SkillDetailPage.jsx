@@ -311,7 +311,7 @@ export default function SkillDetailPage() {
                     title="Năng lực"
                     aria-label={`Năng lực ${formatScaledThetaValue(item.theta)} trên 4`}
                   >
-                    θ {formatScaledThetaValue(item.theta)} / 4
+                    Theta {formatScaledThetaValue(item.theta)} / 4
                   </span>
                   <Badge
                     variant={TREND_BADGE_VARIANT[delta.trend]}

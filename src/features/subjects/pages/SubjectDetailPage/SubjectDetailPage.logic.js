@@ -1,6 +1,6 @@
 import { formatScaledThetaValue } from "../../../../services/mappers.js";
 
-// BE so sánh θ raw; 0 = ngưỡng mặc định (scale hiển thị 2.00). Chỉ ẩn khi không phải số.
+// BE so sánh Theta raw; 0 = ngưỡng mặc định (scale hiển thị 2.00). Chỉ ẩn khi không phải số.
 export const formatRequiredTheta = (value) => {
   if (value === null || value === undefined || value === "") return null;
   const n = Number(value);

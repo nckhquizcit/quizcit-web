@@ -25,7 +25,7 @@ import { normalizeCatalogSummary } from "../../utils/catalogSummary";
 import SubjectCard from "../../components/SubjectCard";
 import "./SubjectsPage.css";
 
-// GET /api/chapters chỉ trả chương user đã mở (unlock/θ), không phải toàn bộ catalog.
+// GET /api/chapters chỉ trả chương user đã mở (unlock/Theta), không phải toàn bộ catalog.
 function buildSubjectCollection(subjects, openChapters) {
   return subjects.map((subject) => {
     const chapters = openChapters.filter(

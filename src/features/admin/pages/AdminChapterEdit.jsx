@@ -613,7 +613,7 @@ export default function AdminChapterEdit() {
                       {selectedSkills.length} kỹ năng đang được áp dụng cho chương này.
                     </p>
                     <p className="adm2-note--muted">
-                      Sinh viên cần đạt θ raw của tất cả kỹ năng trên để mở khóa chương tiếp theo.
+                      Sinh viên cần đạt Theta raw của tất cả kỹ năng trên để mở khóa chương tiếp theo.
                     </p>
                   </div>
                 </aside>

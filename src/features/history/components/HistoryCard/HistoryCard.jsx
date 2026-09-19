@@ -56,7 +56,7 @@ export default function HistoryCard({
 
       <span className="history-row__side" aria-hidden="true">
         <span className="history-row__theta" title="Năng lực">
-          θ {formatScaledThetaValue(estimatedAbility)} / 4
+          Theta {formatScaledThetaValue(estimatedAbility)} / 4
         </span>
         <span className="history-row__date">{date}</span>
         <ChevronRight size={18} className="history-row__chevron" />

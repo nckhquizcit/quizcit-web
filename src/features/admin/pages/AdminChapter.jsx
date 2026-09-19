@@ -412,7 +412,7 @@ export default function AdminChapters() {
                       <div className="adm2-chapter-panel-head-text">
                         <h4>Kỹ năng của chương ({chapter.skills?.length || 0})</h4>
                         <span className="adm2-chapter-panel-skills">
-                          Kỹ năng cần đạt (θ raw) để mở khóa chương tiếp theo
+                          Kỹ năng cần đạt (Theta raw) để mở khóa chương tiếp theo
                         </span>
                       </div>
                     </div>
