@@ -434,7 +434,7 @@ export default function SubjectDetailPage() {
         )}
         <div className="subject-detail-header__content">
           <div className="subject-detail-header__main">
-            <Badge variant="primary">{subjectCourseCode}</Badge>
+            <span className="subject-detail-header__code">{subjectCourseCode}</span>
             <h1>{subjectName}</h1>
             {subjectDescription && <p>{subjectDescription}</p>}
           </div>
@@ -629,9 +629,7 @@ export default function SubjectDetailPage() {
                       <AlertTriangle size={18} className="chapter-locked-banner__icon" />
                       <div className="chapter-locked-banner__content">
                         <strong>Chương này chưa mở khóa.</strong>{" "}
-                        {activeChapterSkills.length > 0
-                          ? "Bạn cần đạt các kỹ năng yêu cầu liệt kê ngay bên dưới để mở khóa chương này."
-                          : "Hãy hoàn thành bài kiểm tra của chương trước để mở khóa chương này."}{" "}
+                        Hãy hoàn thành bài kiểm tra của chương trước để mở khóa chương này.{" "}
                         Bạn vẫn có thể học và làm bài kiểm tra, nhưng nên hoàn thiện các chương trước đó.
                       </div>
                     </div>
@@ -639,7 +637,7 @@ export default function SubjectDetailPage() {
                   {activeChapterSkills.length > 0 && (
                     <div className="chapter-overview-card__skills">
                       <span className="chapter-overview-card__skills-label">
-                        Kỹ năng cần đạt để mở khóa
+                        Kỹ năng bao gồm trong chương này
                       </span>
                       {activeChapterSkills.map((skill) => {
                         const currentThetaRaw = resolveSkillCurrentTheta(skill, userAbilityMap);

@@ -90,10 +90,16 @@ export const sortUsersList = (list, sortOption, currentUserId) => {
       const nameB = b.displayName || b.username || "";
       return nameB.localeCompare(nameA, "vi");
     }
+    const parseDate = (d) => {
+      const ts = typeof d === "string" ? d.replace(/\[.*?\]/g, "") : d;
+      const date = new Date(ts || 0);
+      return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+    };
+
     if (sortOption === "OLDEST") {
-      return (new Date(a.createdAt || 0)) - (new Date(b.createdAt || 0));
+      return parseDate(a.createdAt) - parseDate(b.createdAt);
     }
-    return (new Date(b.createdAt || 0)) - (new Date(a.createdAt || 0));
+    return parseDate(b.createdAt) - parseDate(a.createdAt);
   });
 
   if (currentUserId) {

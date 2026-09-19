@@ -10,9 +10,6 @@ import {
 import { getErrorMessage, isAccessDenied } from "../../../../services/apiClient";
 import { Button, Card, EmptyState, ErrorState, Spinner } from "../../../../components/ui";
 import ChatBox from "../../../../components/ChatBox/ChatBox";
-import { useChatSession } from "../../../../components/ChatBox/useChatSession";
-import ChatMessages from "../../../../components/ChatBox/ChatMessages";
-import ChatComposer from "../../../../components/ChatBox/ChatComposer";
 import TheoryContent from "../../components/TheoryContent";
 import {
   isRichTextEmpty,
@@ -27,7 +24,6 @@ const NOT_FOUND_MESSAGE = "Không tìm thấy bài học này.";
 export default function TheoryPage() {
   const { subjectId, theoryId } = useParams();
   const navigate = useNavigate();
-  const chatInputRef = useRef(null);
 
   const [chapter, setChapter] = useState(null);
   const [chapterIndex, setChapterIndex] = useState(-1);
@@ -116,11 +112,6 @@ export default function TheoryPage() {
   const handleGoBack = () => {
     navigate(`/app/subjects/${subjectId}`, { state: { chapterId } });
   };
-  // Một phiên chat duy nhất cho cả dock desktop lẫn FAB mobile — đổi kích
-  // thước cửa sổ qua mốc 1023px không làm mất hội thoại.
-  const chatSession = useChatSession({ subjectId, chapterId });
-  const { messages, draft, setDraft, loading: chatLoading, error: chatError, listRef, handleSend } =
-    chatSession;
 
   if (loading) {
     return (
@@ -363,40 +354,7 @@ export default function TheoryPage() {
         </Card>
       </div>
 
-      <aside className="theory-page__chat-dock">
-        <div className="theory-chat">
-          <header className="theory-chat__header">
-            <span className="theory-chat__avatar">AI</span>
-            <div className="theory-chat__title">
-              <strong>Trợ giảng QuizCIT</strong>
-              <small>Giải đáp theo bài học hiện tại</small>
-            </div>
-          </header>
-
-          <ChatMessages
-            messages={messages}
-            loading={chatLoading}
-            error={chatError}
-            listRef={listRef}
-            emptyTitle="Có câu hỏi về bài học?"
-            emptyDescription="Nhập câu hỏi để được giải thích dựa trên nội dung bài đang học."
-          />
-
-          <ChatComposer
-            draft={draft}
-            setDraft={setDraft}
-            loading={chatLoading}
-            onSend={handleSend}
-            inputRef={chatInputRef}
-            placeholder="Nhập câu hỏi về bài học..."
-            hint="Enter để gửi · Shift + Enter để xuống dòng"
-          />
-        </div>
-      </aside>
-
-      <div className="theory-page__chat-mobile-fab">
-        <ChatBox subjectId={subjectId} chapterId={chapterId} session={chatSession} />
-      </div>
+      <ChatBox key={subjectId} subjectId={subjectId} chapterId={chapterId} />
     </div>
   );
 }

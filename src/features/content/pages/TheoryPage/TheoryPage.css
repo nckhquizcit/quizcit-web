@@ -1,9 +1,9 @@
 .theory-page {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr) 344px;
+  grid-template-columns: 260px minmax(0, 1fr);
   gap: var(--space-5);
   align-items: start;
-  padding: var(--space-8);
+  padding: var(--space-4);
 }
 .theory-page--center {
   display: flex;
@@ -329,72 +329,7 @@
   padding-top: var(--space-2);
 }
 
-/* Right docked AI panel */
-.theory-page__chat-dock {
-  position: sticky;
-  top: var(--sticky-top);
-  display: flex;
-  flex-direction: column;
-  height: clamp(480px, calc(100dvh - var(--topbar-h) - var(--space-8) * 2), 680px);
-  min-height: 0;
-}
-.theory-chat {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
-}
-.theory-chat__header {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-height: 72px;
-  padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--color-border);
-}
-.theory-chat__avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-md);
-  /* Chữ trắng trên nền xanh: tông 700 cho đủ tương phản */
-  background: var(--color-primary-700);
-  color: #fff;
-  font-size: var(--fs-xs);
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  flex-shrink: 0;
-}
-.theory-chat__title {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-.theory-chat__title strong {
-  font-size: var(--fs-sm);
-  color: var(--color-text);
-}
-.theory-chat__title small {
-  font-size: var(--fs-xs);
-  color: var(--color-text-muted);
-}
-.theory-chat .chatbox-messages {
-  padding: var(--space-5);
-}
-.theory-chat .chatbox-input-row {
-  padding: var(--space-4) var(--space-5);
-}
 
-.theory-page__chat-mobile-fab {
-  display: none;
-}
 
 @media (max-width: 1279px) {
   .theory-page {
@@ -414,12 +349,6 @@
   /* Nhãn co giãn theo bề ngang còn lại thay vì cắt cứng ở px cố định */
   .theory-nav-card__item {
     max-width: 100%;
-  }
-  .theory-page__chat-dock {
-    display: none;
-  }
-  .theory-page__chat-mobile-fab {
-    display: block;
   }
 }
 

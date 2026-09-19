@@ -13,7 +13,8 @@ import "./AdminQuizzes.css";
 
 const formatDateTime = (value) => {
   if (!value) return "";
-  const date = new Date(value);
+  const timeString = typeof value === "string" ? value.replace(/\[.*?\]/g, "") : value;
+  const date = new Date(timeString);
   if (Number.isNaN(date.getTime())) return "";
   return date.toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" });
 };

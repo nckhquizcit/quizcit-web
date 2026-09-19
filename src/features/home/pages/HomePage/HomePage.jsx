@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, BookOpen, GraduationCap, Layers3 } from "lucide-react";
+import { ArrowRight, BookOpen, GraduationCap, Layers3, HelpCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   Badge,
@@ -180,6 +180,12 @@ export default function HomePage() {
               <div className="home-ability-card__value">
                 {formatScaledThetaValue(averageTheta)}
                 <span> / 4</span>
+                <div className="home-ability-tooltip-wrapper" tabIndex={0}>
+                  <HelpCircle size={24} className="home-ability-help-icon" />
+                  <div className="home-ability-tooltip">
+                    Năng lực của bạn được tính toán dựa trên các lần làm bài kiểm tra trên hệ thống. Điểm số được tính riêng biệt trên từng kỹ năng của bài kiểm tra đã làm tương ứng. Điểm số bạn hiện thấy là tổng hợp dựa trên các điểm riêng biệt đó.
+                  </div>
+                </div>
               </div>
               <p className="home-ability-card__label">Năng lực ước tính</p>
             </>

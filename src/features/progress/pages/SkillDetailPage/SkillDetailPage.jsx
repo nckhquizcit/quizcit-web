@@ -48,7 +48,8 @@ const shortTimeFormatter = new Intl.DateTimeFormat("vi-VN", {
 
 function formatShortTime(value) {
   if (!value) return "";
-  const date = new Date(value);
+  const timeString = typeof value === "string" ? value.replace(/\[.*?\]/g, "") : value;
+  const date = new Date(timeString);
   return Number.isNaN(date.getTime()) ? "" : shortTimeFormatter.format(date);
 }
 
@@ -311,7 +312,7 @@ export default function SkillDetailPage() {
                     title="Năng lực"
                     aria-label={`Năng lực ${formatScaledThetaValue(item.theta)} trên 4`}
                   >
-                    θ {formatScaledThetaValue(item.theta)} / 4
+                    Theta {formatScaledThetaValue(item.theta)} / 4
                   </span>
                   <Badge
                     variant={TREND_BADGE_VARIANT[delta.trend]}

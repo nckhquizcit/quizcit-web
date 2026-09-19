@@ -44,7 +44,7 @@ export default function ChapterSkillsField({ skills = [], value = [], onChange }
         <div>
           <strong>Kỹ năng của chương & Điều kiện hoàn thành</strong>
           <p>
-            Chọn kỹ năng và θ raw tối thiểu (−4…4) cần đạt để hoàn thành chương này và mở khóa chương tiếp theo. Sinh viên thấy thang 0–4 (raw 0 = 2.00).
+            Chọn kỹ năng và Theta raw tối thiểu (−4…4) cần đạt để hoàn thành chương này và mở khóa chương tiếp theo. Sinh viên thấy thang 0–4 (raw 0 = 2.00).
           </p>
         </div>
         <span className="chapter-skills-field__count">{value.length} đã chọn</span>
@@ -80,7 +80,7 @@ export default function ChapterSkillsField({ skills = [], value = [], onChange }
               </label>
               {selected && (
                 <label className="chapter-skill-option__theta">
-                  <span>θ raw</span>
+                  <span>Theta raw</span>
                   <input
                     aria-label={`Theta raw yêu cầu ${skill.name}`}
                     type="number"

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, HelpCircle } from "lucide-react";
 import {
   getAverageAbility,
   getAbilityHistories,
@@ -165,7 +165,15 @@ export default function ProgressPage() {
 
       <div className="progress-top-grid">
         <Card as="section" padding="lg" className="progress-overview-card">
-          <h2>Năng lực tổng quan</h2>
+          <div className="progress-overview-header">
+            <h2>Năng lực tổng quan</h2>
+            <div className="progress-ability-tooltip-wrapper" tabIndex={0}>
+              <HelpCircle size={20} className="progress-ability-help-icon" />
+              <div className="progress-ability-tooltip">
+                Năng lực của bạn được tính toán dựa trên các lần làm bài kiểm tra trên hệ thống. Điểm số được tính riêng biệt trên từng kỹ năng của bài kiểm tra đã làm tương ứng. Điểm số bạn hiện thấy là tổng hợp dựa trên các điểm riêng biệt đó.
+              </div>
+            </div>
+          </div>
           <p
             className={`progress-overview-card__meta${averageTone ? ` progress-overview-card__meta--${averageTone}` : ""}`}
           >
@@ -274,7 +282,7 @@ export default function ProgressPage() {
                     title="Năng lực"
                     aria-label={`Năng lực ${formatScaledThetaValue(thetaRaw)} trên 4, mức ${level.label}`}
                   >
-                    θ {formatScaledThetaValue(thetaRaw)} / 4 · {level.label}
+                    Theta {formatScaledThetaValue(thetaRaw)} / 4 · {level.label}
                   </span>
                   <Badge
                     variant={TREND_BADGE_VARIANT[delta.trend]}
