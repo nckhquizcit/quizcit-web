@@ -15,6 +15,7 @@ export default function RegisterForm() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     username: "",
+    displayName: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -23,6 +24,7 @@ export default function RegisterForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [usernameError, setUsernameError] = useState("");
+  const [displayNameError, setDisplayNameError] = useState("");
   const [confirmError, setConfirmError] = useState("");
   const [loading, setLoading] = useState(false);
   const [cooldown, startCooldown] = useCountdown();
@@ -37,6 +39,7 @@ export default function RegisterForm() {
     if (cooldown > 0) return;
     setError("");
     setUsernameError("");
+    setDisplayNameError("");
     setConfirmError("");
 
     const trimmedUsername = formData.username.trim();
@@ -48,6 +51,17 @@ export default function RegisterForm() {
       setUsernameError("Tên đăng nhập không được chứa khoảng trắng, dấu tiếng Việt hoặc ký tự đặc biệt.");
       return;
     }
+
+    const trimmedDisplayName = formData.displayName.trim();
+    if (trimmedDisplayName.length === 0) {
+      setDisplayNameError("Tên hiển thị không được để trống.");
+      return;
+    }
+    if (trimmedDisplayName.length > 100) {
+      setDisplayNameError("Tên hiển thị không được vượt quá 100 ký tự.");
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setConfirmError("Mật khẩu nhập lại không khớp.");
       return;
@@ -59,7 +73,7 @@ export default function RegisterForm() {
         username: trimmedUsername,
         password: formData.password,
         email: formData.email,
-        displayName: trimmedUsername,
+        displayName: trimmedDisplayName,
       });
       if (!res?.verificationToken) {
         throw new Error("Không nhận được mã xác minh. Vui lòng thử lại.");
@@ -101,6 +115,22 @@ export default function RegisterForm() {
           minLength={3}
           maxLength={50}
           invalid={Boolean(usernameError)}
+          required
+        />
+      </Field>
+
+      <Field label="Tên hiển thị" htmlFor="displayName" error={displayNameError}>
+        <Input
+          id="displayName"
+          name="displayName"
+          type="text"
+          placeholder="Nhập tên hiển thị"
+          value={formData.displayName}
+          onChange={handleChange}
+          iconLeft={<User size={18} />}
+          autoComplete="name"
+          maxLength={100}
+          invalid={Boolean(displayNameError)}
           required
         />
       </Field>
