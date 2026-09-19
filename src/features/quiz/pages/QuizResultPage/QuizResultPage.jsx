@@ -257,9 +257,7 @@ export default function QuizResultPage() {
               <strong>{formatScaledThetaValue(result.overallTheta)} / 4</strong>
             </div>
           </div>
-          <p className="result-score-card__hint">
-            Năng lực (Theta) ước tính theo thang 0–4.
-          </p>
+
         </Card>
 
         <Card padding="lg" className="result-overview-card">
