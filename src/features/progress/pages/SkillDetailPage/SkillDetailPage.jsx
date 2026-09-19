@@ -48,7 +48,8 @@ const shortTimeFormatter = new Intl.DateTimeFormat("vi-VN", {
 
 function formatShortTime(value) {
   if (!value) return "";
-  const date = new Date(value);
+  const timeString = typeof value === "string" ? value.replace(/\[.*?\]/g, "") : value;
+  const date = new Date(timeString);
   return Number.isNaN(date.getTime()) ? "" : shortTimeFormatter.format(date);
 }
 

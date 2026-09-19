@@ -14,7 +14,11 @@ import "./HistoryPage.css";
 
 // API không đảm bảo thứ tự (BE không ORDER BY), nên tự xếp bài mới nhất lên đầu.
 const submittedAtTime = (attempt) => {
-  const time = new Date(attempt?.submittedAt ?? 0).getTime();
+  if (!attempt?.submittedAt) return 0;
+  const timeString = typeof attempt.submittedAt === "string" 
+    ? attempt.submittedAt.replace(/\[.*?\]/g, "") 
+    : attempt.submittedAt;
+  const time = new Date(timeString).getTime();
   return Number.isFinite(time) ? time : 0;
 };
 

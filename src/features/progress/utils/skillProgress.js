@@ -38,7 +38,8 @@ export function formatDelta(delta) {
 
 /** LocalDateTime từ backend có thể không parse được, coi như mốc 0 để sort không vỡ. */
 export function toTimestamp(value) {
-  const time = new Date(value ?? 0).getTime();
+  const timeString = typeof value === "string" ? value.replace(/\[.*?\]/g, "") : value;
+  const time = new Date(timeString ?? 0).getTime();
   return Number.isFinite(time) ? time : 0;
 }
 

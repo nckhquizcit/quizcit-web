@@ -11,10 +11,16 @@ export const shortDateFormatter = new Intl.DateTimeFormat("vi-VN", {
 });
 
 /** Backend trả `LocalDateTime` (không kèm múi giờ) nên giá trị có thể không parse được. */
+const parseDateString = (value) => {
+  if (!value) return new Date(NaN);
+  const timeString = typeof value === "string" ? value.replace(/\[.*?\]/g, "") : value;
+  return new Date(timeString);
+};
+
 export const formatSubmittedAt = (value) => {
   if (!value) return FALLBACK_DATE;
 
-  const submittedDate = new Date(value);
+  const submittedDate = parseDateString(value);
   return Number.isNaN(submittedDate.getTime())
     ? FALLBACK_DATE
     : submittedAtFormatter.format(submittedDate);
@@ -23,6 +29,6 @@ export const formatSubmittedAt = (value) => {
 export const formatShortDate = (value) => {
   if (!value) return FALLBACK_DATE;
 
-  const date = new Date(value);
+  const date = parseDateString(value);
   return Number.isNaN(date.getTime()) ? FALLBACK_DATE : shortDateFormatter.format(date);
 };
