@@ -411,9 +411,6 @@ export default function AdminChapters() {
                     <div className="theory-header adm2-chapter-panel-head">
                       <div className="adm2-chapter-panel-head-text">
                         <h4>Kỹ năng của chương ({chapter.skills?.length || 0})</h4>
-                        <span className="adm2-chapter-panel-skills">
-                          Kỹ năng cần đạt (Theta raw) để mở khóa chương tiếp theo
-                        </span>
                       </div>
                     </div>
 
@@ -431,16 +428,6 @@ export default function AdminChapters() {
                               >
                                 ≥ {raw} raw (≈ {formatScaledThetaValue(raw)})
                               </span>
-                              <button
-                                type="button"
-                                className="chapter-skill-tag__remove"
-                                title={`Gỡ kỹ năng "${skill.name}" khỏi chương`}
-                                aria-label={`Gỡ kỹ năng "${skill.name}" khỏi chương`}
-                                disabled={isMutating}
-                                onClick={() => setRemovingSkill({ chapter, skill })}
-                              >
-                                <X size={12} />
-                              </button>
                             </span>
                           );
                         })}
@@ -456,9 +443,6 @@ export default function AdminChapters() {
                     <div className="theory-header adm2-chapter-panel-head">
                       <div className="adm2-chapter-panel-head-text">
                         <span className="adm2-chip adm2-chip--emerald">Chương {index + 1}</span>
-                        {chapterSkillNames && (
-                          <span className="adm2-chapter-panel-skills">Kỹ năng: {chapterSkillNames}</span>
-                        )}
                       </div>
 
                     </div>

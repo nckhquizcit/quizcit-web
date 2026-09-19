@@ -7265,3 +7265,78 @@
   font-size: 12px;
   font-weight: 600;
 }
+
+/* ===== CHAPTER SKILLS BADGE LIST ===== */
+.chapter-skills-management {
+  margin-bottom: 20px;
+}
+
+.chapter-skills-badge-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 12px;
+}
+
+.chapter-skill-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--admin-bg, #f8fafc);
+  border: 1px solid var(--admin-border, #e2e8f0);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+  color: var(--admin-text, #0f172a);
+}
+
+.chapter-skill-tag__icon {
+  color: var(--admin-primary, #10b981);
+  flex-shrink: 0;
+}
+
+.chapter-skill-tag__name {
+  font-weight: 600;
+}
+
+.chapter-skill-tag__theta {
+  font-size: 11px;
+  color: var(--admin-muted, #64748b);
+  background-color: var(--admin-surface, #ffffff);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--admin-border, #e2e8f0);
+  font-weight: 600;
+}
+
+.chapter-skill-tag__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--admin-muted, #64748b);
+  border-radius: 50%;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 2px;
+  transition: all 0.15s ease;
+}
+
+.chapter-skill-tag__remove:hover {
+  background-color: var(--admin-danger-soft, #fef2f2);
+  color: var(--admin-danger, #ef4444);
+}
+
+.chapter-skills-empty {
+  padding: 16px;
+  text-align: center;
+  color: var(--admin-muted, #64748b);
+  font-size: 13px;
+  background-color: var(--admin-bg, #f8fafc);
+  border-radius: 8px;
+  border: 1px dashed var(--admin-border, #cbd5e1);
+  margin-bottom: 20px;
+}
