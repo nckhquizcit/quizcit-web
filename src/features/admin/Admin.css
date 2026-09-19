@@ -2021,7 +2021,7 @@
 }
 
 .admin-form-page {
-  max-width: 1240px;
+  max-width: 100%;
   margin: 0 auto;
   padding: 0;
   border: 0;
@@ -3910,7 +3910,7 @@
 
 .admin-content {
   width: 100%;
-  max-width: var(--content-wide, 1280px);
+  max-width: 100%;
   margin-inline: auto;
   padding: 20px 24px;
   gap: 18px;
