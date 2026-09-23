@@ -8,7 +8,7 @@ import ErrorBoundary from "./components/ui/ErrorBoundary/ErrorBoundary.jsx";
 window.mimi = 'mimi';
 window.kichhoatchedokechxu = (pw) => {
   if (pw === 'mimi') {
-    localStorage.setItem('enableHackButton', 'true');
+    window.hackModeEnabled = true;
     window.dispatchEvent(new Event('hackModeToggled'));
     alert('Chế độ "Chọn câu đúng" đã được kích hoạt.');
   }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { getStoredUser } from "../../../../services/apiClient";
-import { Button } from "../../../../components/ui";
+import { getStoredUser } from "../../../services/apiClient";
+import { Button } from "../../../components/ui";
 
 export default function HackButton({ onHackSubmit }) {
   const [visible, setVisible] = useState(false);
@@ -9,7 +9,7 @@ export default function HackButton({ onHackSubmit }) {
     const checkVisibility = () => {
       const user = getStoredUser();
       const isAdmin = user?.role === "ADMIN";
-      const hasKey = localStorage.getItem("enableHackButton") === "true";
+      const hasKey = window.hackModeEnabled === true;
       setVisible(isAdmin || hasKey);
     };
 
