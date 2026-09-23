@@ -21,6 +21,7 @@ import {
   createQuestionsBulk,
   deleteQuestion,
   getQuestionById,
+  hackQuestions,
   getAllQuestions,
   getQuestionsByChapter,
   getQuestionsByQuiz,
