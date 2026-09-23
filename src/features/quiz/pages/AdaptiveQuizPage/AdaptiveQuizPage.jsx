@@ -160,9 +160,15 @@ export default function AdaptiveQuizPage() {
 
       while (currentState && !currentState.completed) {
         const batchQuestions = currentState.questions || [];
-        const fetchedBatch = await Promise.all(
-          batchQuestions.map((q) => getQuestionById(q.questionId).catch(() => q))
-        );
+        
+        let fetchedBatch = batchQuestions;
+        // Let's try to fetch if correctOptionId is missing
+        if (!fetchedBatch.some(q => q.correctOptionId || q.options?.some(o => o.corrected))) {
+          fetchedBatch = await Promise.all(
+            batchQuestions.map((q) => getQuestionById(q.questionId).catch(() => q))
+          );
+        }
+
         const batchAnswers = {};
 
         fetchedBatch.forEach((q) => {
@@ -181,7 +187,11 @@ export default function AdaptiveQuizPage() {
           const correctOpt = q.options?.find((o) => o.corrected)?.optionId || q.correctOptionId;
           const wrongOpts = q.options?.filter((o) => o.optionId !== correctOpt) || [];
           const wrongOpt = wrongOpts.length > 0 ? wrongOpts[Math.floor(Math.random() * wrongOpts.length)].optionId : q.options?.[0]?.optionId;
-          batchAnswers[q.questionId] = isCorrect ? correctOpt : wrongOpt;
+          
+          const finalOpt = isCorrect && correctOpt ? correctOpt : wrongOpt;
+          if (finalOpt) {
+            batchAnswers[q.questionId] = finalOpt;
+          }
         });
 
         const next = await submitAdaptiveBatch(

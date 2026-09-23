@@ -659,23 +659,43 @@ export default function QuizTakingPage() {
       setSubmitting(true);
       setError("");
 
-      const fetchedQuestions = await Promise.all(
-        questions.map((q) => getQuestionById(q.questionId).catch(() => q))
-      );
+      let fetchedQuestions = questions;
+      try {
+        const { getQuizDetailWithQuestions } = await import("../../../../services/quizService");
+        const adminDetail = await getQuizDetailWithQuestions(quizId);
+        if (adminDetail?.questions?.length > 0) {
+          fetchedQuestions = adminDetail.questions;
+        }
+      } catch (err) {
+        // Fallback if not admin
+      }
 
       const decisions = Array(totalQ).fill(false);
       for (let i = 0; i < numCorrect; i++) decisions[i] = true;
       decisions.sort(() => Math.random() - 0.5);
 
       const hackAnswers = {};
+      let missingCount = 0;
+
       fetchedQuestions.forEach((q, idx) => {
         const isCorrect = decisions[idx];
         const correctOpt = q.options?.find((o) => o.corrected)?.optionId || q.correctOptionId;
         const wrongOpts = q.options?.filter((o) => o.optionId !== correctOpt) || [];
         const wrongOpt = wrongOpts.length > 0 ? wrongOpts[Math.floor(Math.random() * wrongOpts.length)].optionId : q.options?.[0]?.optionId;
 
-        hackAnswers[q.questionId] = isCorrect ? correctOpt : wrongOpt;
+        if (!correctOpt) {
+          missingCount++;
+        }
+
+        const finalOpt = isCorrect && correctOpt ? correctOpt : wrongOpt;
+        if (finalOpt) {
+          hackAnswers[q.questionId] = finalOpt;
+        }
       });
+
+      if (missingCount > 0) {
+        console.warn(`Không tìm thấy đáp án đúng cho ${missingCount} câu hỏi. Sẽ điền ngẫu nhiên.`);
+      }
 
       const submitted = await doSubmit(hackAnswers);
       if (submitted) {
