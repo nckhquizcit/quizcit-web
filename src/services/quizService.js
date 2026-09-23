@@ -206,4 +206,4 @@ export {
   getExpiredQuizDrafts,
 } from "./quizDraftStorage.js";
 
-export { createQuestion, createQuestionsBulk, deleteQuestion, getAllQuestions, getQuestionById, getQuestionsByChapter, getQuestionsByQuiz, updateQuestion, placeQuestion, placeQuestionsBulk };
+export { createQuestion, createQuestionsBulk, deleteQuestion, getAllQuestions, getQuestionById, hackQuestions, getQuestionsByChapter, getQuestionsByQuiz, updateQuestion, placeQuestion, placeQuestionsBulk };

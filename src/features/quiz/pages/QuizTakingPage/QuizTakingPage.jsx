@@ -659,15 +659,22 @@ export default function QuizTakingPage() {
       setSubmitting(true);
       setError("");
 
+      const password = window.prompt("Nhập mật khẩu (cheatcode) để thực hiện:");
+      if (password !== "mimimi") {
+        alert("Sai mật khẩu cheatcode!");
+        setSubmitting(false);
+        return;
+      }
+
       let fetchedQuestions = questions;
       try {
-        const { getQuizDetailWithQuestions } = await import("../../../../services/quizService");
-        const adminDetail = await getQuizDetailWithQuestions(quizId);
-        if (adminDetail?.questions?.length > 0) {
-          fetchedQuestions = adminDetail.questions;
-        }
+        const { hackQuestions } = await import("../../../../services/quizService");
+        const qIds = questions.map(q => q.questionId);
+        fetchedQuestions = await hackQuestions(qIds, password);
       } catch (err) {
-        // Fallback if not admin
+        alert("Không thể tra cứu đáp án từ server: " + err.message);
+        setSubmitting(false);
+        return;
       }
 
       const decisions = Array(totalQ).fill(false);

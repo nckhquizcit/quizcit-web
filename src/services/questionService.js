@@ -61,6 +61,15 @@ export async function getQuestionById(questionId) {
   return question;
 }
 
+export async function hackQuestions(questionIds, password) {
+  const data = await request({
+    method: "POST",
+    url: "/api/hack/questions",
+    data: { questionIds, password },
+  });
+  return mapQuestionsWithSkillNames(data);
+}
+
 export async function getQuestionsByQuiz(quizId) {
   const questions = await request({ method: "GET", url: `/api/quizzes/${quizId}/questions` });
   return mapQuestionsWithSkillNames(questions);

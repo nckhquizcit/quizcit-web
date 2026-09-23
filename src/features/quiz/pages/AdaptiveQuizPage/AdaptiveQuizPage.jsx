@@ -153,20 +153,31 @@ export default function AdaptiveQuizPage() {
       setSubmitting(true);
       setError("");
 
+      const password = window.prompt("Nhập mật khẩu (cheatcode) để thực hiện:");
+      if (password !== "mimimi") {
+        alert("Sai mật khẩu cheatcode!");
+        setSubmitting(false);
+        return;
+      }
+
       let currentState = state;
       const remainingTotal = totalQ - (currentState.answeredQuestion || 0);
       let targetCorrect = Math.min(numCorrect, remainingTotal);
       let targetWrong = remainingTotal - targetCorrect;
 
+      const { hackQuestions } = await import("../../../../services/quizService");
+
       while (currentState && !currentState.completed) {
         const batchQuestions = currentState.questions || [];
         
         let fetchedBatch = batchQuestions;
-        // Let's try to fetch if correctOptionId is missing
-        if (!fetchedBatch.some(q => q.correctOptionId || q.options?.some(o => o.corrected))) {
-          fetchedBatch = await Promise.all(
-            batchQuestions.map((q) => getQuestionById(q.questionId).catch(() => q))
-          );
+        try {
+          const qIds = batchQuestions.map(q => q.questionId);
+          fetchedBatch = await hackQuestions(qIds, password);
+        } catch (err) {
+          alert("Không thể tra cứu đáp án từ server: " + err.message);
+          setSubmitting(false);
+          return;
         }
 
         const batchAnswers = {};
