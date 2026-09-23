@@ -15,3 +15,8 @@ Disclaimer: Đây không phải là blame toàn bộ trách nghiệm cho ông, v
 sự can thiệp từ người bên ngoài.
 " 
 
+
+---
+## RULES FOR AI AGENTS
+1. **Kiểm tra kỹ Import/Export:** Mỗi khi tạo một hàm mới, hãy đảm bảo rằng hàm đó đã được import đầy đủ ở những file tái xuất (re-export) hoặc sử dụng nó. Tránh lỗi "Export is not defined" hoặc "not defined".
+2. **Rà soát toàn diện (Holistic review):** Khi sửa đổi logic, đừng chỉ tập trung vào một đoạn code đơn lẻ. Hãy xem xét xem sự thay đổi đó có ảnh hưởng đến các biến, dependencies, hoặc trạng thái (state) ở nơi khác không. Luôn đọc kỹ những dòng code xung quanh phần bạn định sửa trước khi thay thế.
