@@ -93,30 +93,56 @@ export default function QuizResultPage() {
   const [loadError, setLoadError] = useState(null);
   const [reviewFilter, setReviewFilter] = useState("all");
   const [expandedIds, setExpandedIds] = useState(() => new Set());
+  const [isPollingAdvice, setIsPollingAdvice] = useState(false);
 
   const cameFromHistory = location.state?.from === "history";
 
   // Tách riêng để nút "Thử lại" gọi lại đúng luồng tải này.
-  const loadResult = useCallback(async () => {
+  const loadResult = useCallback(async (isPolling = false) => {
     try {
-      setLoading(true);
+      if (!isPolling) setLoading(true);
       setError("");
       setLoadError(null);
       const resultData = await getAttemptResult(attemptId);
       const enriched = await resolveResultMetadata(resultData);
       setResult(enriched);
-      return true;
+      return enriched;
     } catch (err) {
-      setError(getErrorMessage(err, "Không thể tải kết quả."));
-      setLoadError(err);
-      return false;
+      if (!isPolling) {
+        setError(getErrorMessage(err, "Không thể tải kết quả."));
+        setLoadError(err);
+      }
+      return null;
     } finally {
-      setLoading(false);
+      if (!isPolling) setLoading(false);
     }
   }, [attemptId]);
 
   useEffect(() => {
-    loadResult();
+    let timeoutId;
+    let isMounted = true;
+    let pollCount = 0;
+    const MAX_POLLS = 10;
+
+    const fetchWithPolling = async (isPolling = false) => {
+      const data = await loadResult(isPolling);
+      if (!isMounted) return;
+
+      if (data && !data.overallAdvice && pollCount < MAX_POLLS) {
+        setIsPollingAdvice(true);
+        pollCount++;
+        timeoutId = setTimeout(() => fetchWithPolling(true), 2000);
+      } else {
+        setIsPollingAdvice(false);
+      }
+    };
+
+    fetchWithPolling();
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+    };
   }, [loadResult]);
 
 
@@ -325,6 +351,14 @@ export default function QuizResultPage() {
         <Card padding="lg" className="result-advice-card">
           <h2>Lời khuyên cải thiện</h2>
           <p className="result-advice-text">{result.overallAdvice}</p>
+        </Card>
+      ) : isPollingAdvice ? (
+        <Card padding="lg" className="result-advice-card">
+          <h2>Lời khuyên cải thiện</h2>
+          <div className="result-advice-loading" style={{ display: 'flex', alignItems: 'center', marginTop: '12px' }}>
+            <Spinner size={16} />
+            <span style={{ marginLeft: "8px", fontStyle: "italic", color: "var(--text-secondary)" }}>Đang tải lời khuyên AI nhé...</span>
+          </div>
         </Card>
       ) : null}
 
