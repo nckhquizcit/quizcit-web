@@ -14,6 +14,7 @@ import {
   clearQuizDraftsByQuizId,
   getQuestionsByQuiz,
   getQuizById,
+  getQuestionById,
   loadQuizDraft,
   saveQuizDraft,
   startQuiz,
@@ -32,6 +33,7 @@ import {
 import RichTextView from "../../../../components/richtext/RichTextView";
 import SkillInfoModal from "../../components/SkillInfoModal";
 import ExamExitModal from "../../components/ExamExitModal";
+import HackButton from "../../components/HackButton";
 import { getOptionSeedKey, shuffleOptions } from "../../utils/optionShuffle";
 import {
   clampQuizPage,
@@ -641,6 +643,50 @@ export default function QuizTakingPage() {
     setSubmitConfirmOpen(true);
   };
 
+  const handleHackSubmit = async () => {
+    if (submitting) return;
+    const totalQ = questions.length;
+    if (totalQ === 0) return;
+    const input = window.prompt(`Nhập số câu đúng mong muốn (trên tổng số ${totalQ} câu):`);
+    if (input === null) return;
+    const numCorrect = parseInt(input, 10);
+    if (isNaN(numCorrect) || numCorrect < 0 || numCorrect > totalQ) {
+      alert("Số câu không hợp lệ!");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setError("");
+
+      const fetchedQuestions = await Promise.all(
+        questions.map((q) => getQuestionById(q.questionId).catch(() => q))
+      );
+
+      const decisions = Array(totalQ).fill(false);
+      for (let i = 0; i < numCorrect; i++) decisions[i] = true;
+      decisions.sort(() => Math.random() - 0.5);
+
+      const hackAnswers = {};
+      fetchedQuestions.forEach((q, idx) => {
+        const isCorrect = decisions[idx];
+        const correctOpt = q.options?.find((o) => o.corrected)?.optionId || q.correctOptionId;
+        const wrongOpts = q.options?.filter((o) => o.optionId !== correctOpt) || [];
+        const wrongOpt = wrongOpts.length > 0 ? wrongOpts[Math.floor(Math.random() * wrongOpts.length)].optionId : q.options?.[0]?.optionId;
+
+        hackAnswers[q.questionId] = isCorrect ? correctOpt : wrongOpt;
+      });
+
+      const submitted = await doSubmit(hackAnswers);
+      if (submitted) {
+        setSubmitConfirmOpen(false);
+      }
+    } catch (err) {
+      alert("Có lỗi xảy ra: " + err.message);
+      setSubmitting(false);
+    }
+  };
+
   const closeSubmitConfirm = () => {
     if (submitting) return;
     setSubmitConfirmOpen(false);
@@ -1066,6 +1112,7 @@ export default function QuizTakingPage() {
             >
               {submitting ? "Đang nộp bài..." : "Nộp bài"}
             </Button>
+            <HackButton onHackSubmit={handleHackSubmit} />
           </div>
         </aside>
       </div>

@@ -5,11 +5,13 @@ import { Button, EmptyState, ErrorState, Modal, Spinner, StatTile } from "../../
 import RichTextView from "../../../../components/richtext/RichTextView";
 import SkillInfoModal from "../../components/SkillInfoModal";
 import ExamExitModal from "../../components/ExamExitModal";
+import HackButton from "../../components/HackButton";
 import { getErrorMessage, getStoredUser } from "../../../../services/apiClient";
 import {
   clearAdaptiveDraft,
   getAdaptiveAttempt,
   getQuizById,
+  getQuestionById,
   loadAdaptiveDraft,
   saveAdaptiveDraft,
   submitAdaptiveBatch,
@@ -131,6 +133,70 @@ export default function AdaptiveQuizPage() {
       setError(getErrorMessage(err, "Không thể nộp nhóm câu hỏi này."));
       return false;
     } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleHackSubmit = async () => {
+    if (submitting) return;
+    const totalQ = state?.totalQuestion || 0;
+    if (totalQ === 0) return;
+    const input = window.prompt(`Nhập số câu đúng mong muốn (trên tổng số ${totalQ} câu):`);
+    if (input === null) return;
+    const numCorrect = parseInt(input, 10);
+    if (isNaN(numCorrect) || numCorrect < 0 || numCorrect > totalQ) {
+      alert("Số câu không hợp lệ!");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setError("");
+
+      let currentState = state;
+      const remainingTotal = totalQ - (currentState.answeredQuestion || 0);
+      let targetCorrect = Math.min(numCorrect, remainingTotal);
+      let targetWrong = remainingTotal - targetCorrect;
+
+      while (currentState && !currentState.completed) {
+        const batchQuestions = currentState.questions || [];
+        const fetchedBatch = await Promise.all(
+          batchQuestions.map((q) => getQuestionById(q.questionId).catch(() => q))
+        );
+        const batchAnswers = {};
+
+        fetchedBatch.forEach((q) => {
+          let isCorrect = false;
+          if (targetCorrect > 0 && targetWrong > 0) {
+            isCorrect = Math.random() < targetCorrect / (targetCorrect + targetWrong);
+          } else if (targetCorrect > 0) {
+            isCorrect = true;
+          } else {
+            isCorrect = false;
+          }
+
+          if (isCorrect) targetCorrect--;
+          else targetWrong--;
+
+          const correctOpt = q.options?.find((o) => o.corrected)?.optionId || q.correctOptionId;
+          const wrongOpts = q.options?.filter((o) => o.optionId !== correctOpt) || [];
+          const wrongOpt = wrongOpts.length > 0 ? wrongOpts[Math.floor(Math.random() * wrongOpts.length)].optionId : q.options?.[0]?.optionId;
+          batchAnswers[q.questionId] = isCorrect ? correctOpt : wrongOpt;
+        });
+
+        const next = await submitAdaptiveBatch(
+          attemptId,
+          buildAdaptiveBatchAnswers(batchQuestions, batchAnswers)
+        );
+        currentState = next;
+      }
+
+      const currentUser = getStoredUser();
+      clearAdaptiveDraft(attemptId, currentUser?.userId);
+      submittedRef.current = true;
+      navigate(`/app/quiz/result/${attemptId}`);
+    } catch (err) {
+      alert("Có lỗi xảy ra khi hack: " + err.message);
       setSubmitting(false);
     }
   };
@@ -306,6 +372,7 @@ export default function AdaptiveQuizPage() {
               >
                 {isLastBatch ? "Nộp bài" : "Nộp 5 câu và tiếp tục"}
               </Button>
+              <HackButton onHackSubmit={handleHackSubmit} />
             </div>
           )}
         </div>
