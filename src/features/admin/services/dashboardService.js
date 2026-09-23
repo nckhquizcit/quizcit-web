@@ -20,4 +20,13 @@ export const adminDashboardService = {
 
     return normalizeAdminStats(stats, fallbackSkillsCount);
   },
+  async getThetaTrends() {
+    return request({ method: "GET", url: "/api/admin/theta-trends" });
+  },
+  async getVisibleSubjectsForTrends() {
+    return request({ method: "GET", url: "/api/admin/theta-trends/subjects" });
+  },
+  async getSubjectThetaTrendOverTime(subjectId, months = 3) {
+    return request({ method: "GET", url: `/api/admin/theta-trends/subjects/${subjectId}?months=${months}` });
+  },
 };
