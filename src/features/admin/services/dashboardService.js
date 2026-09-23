@@ -29,4 +29,13 @@ export const adminDashboardService = {
   async getSubjectThetaTrendOverTime(subjectId, months = 3) {
     return request({ method: "GET", url: `/api/admin/theta-trends/subjects/${subjectId}?months=${months}` });
   },
+  async getQuestionPerformanceStats() {
+    return request({ method: "GET", url: "/api/admin/questions/performance-stats" });
+  },
+  async getDifficultyTuningPreview(x, y) {
+    return request({ method: "GET", url: `/api/admin/questions/difficulty-tuning-preview?x=${x}&y=${y}` });
+  },
+  async applyDifficultyTuning(x, y) {
+    return request({ method: "POST", url: "/api/admin/questions/apply-difficulty-tuning", data: { x, y } });
+  }
 };

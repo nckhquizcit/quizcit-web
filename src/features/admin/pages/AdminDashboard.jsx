@@ -28,6 +28,8 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
+import QuestionPerformanceList from "./QuestionPerformanceList";
+
 const emptyStats = {
   totalSubjects: 0,
   totalQuestions: 0,
@@ -334,6 +336,11 @@ export default function AdminDashboard() {
             Chưa có môn học nào được mở khóa để hiển thị.
           </div>
         )}
+      </section>
+
+      <section className="adm2-card adm2-card-pad dashboard-section" style={{ marginTop: 24 }}>
+        <h2 className="dashboard-section__title">Tinh chỉnh độ khó câu hỏi (Tự động)</h2>
+        <QuestionPerformanceList />
       </section>
 
       <section className="adm2-card adm2-card-pad dashboard-section" style={{ marginTop: 24 }}>
