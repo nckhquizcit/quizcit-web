@@ -10,9 +10,6 @@ export default function QuestionPerformanceList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   
-  const [x, setX] = useState(70);
-  const [y, setY] = useState(10);
-  
   const [showPreview, setShowPreview] = useState(false);
   const [previewList, setPreviewList] = useState([]);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -49,8 +46,8 @@ export default function QuestionPerformanceList() {
   };
 
   const filteredStats = useMemo(() => {
-    return stats.filter(s => s.correctRate > x || s.incorrectRate > x);
-  }, [stats, x]);
+    return stats;
+  }, [stats]);
 
   const sortedStats = useMemo(() => {
     return [...filteredStats].sort((a, b) => {
@@ -69,7 +66,7 @@ export default function QuestionPerformanceList() {
   // Reset to page 1 if data changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [x, sortedStats.length]);
+  }, [sortedStats.length]);
 
   const paginatedStats = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -81,7 +78,7 @@ export default function QuestionPerformanceList() {
       setPreviewLoading(true);
       setPreviewError("");
       setShowPreview(true);
-      const data = await adminDashboardService.getDifficultyTuningPreview(x, y);
+      const data = await adminDashboardService.getDifficultyTuningPreview();
       setPreviewList(Array.isArray(data) ? data : []);
     } catch (err) {
       setPreviewError(getErrorMessage(err, "Không thể tải preview."));
@@ -99,7 +96,7 @@ export default function QuestionPerformanceList() {
 
     try {
       setPreviewLoading(true);
-      await adminDashboardService.applyDifficultyTuning(x, y);
+      await adminDashboardService.applyDifficultyTuning();
       alert("Cập nhật độ khó thành công!");
       setShowPreview(false);
       loadStats();
@@ -113,19 +110,9 @@ export default function QuestionPerformanceList() {
   return (
     <div className="perf-list-container">
       <div className="perf-form">
-        <div className="perf-form-group">
-          <label>Tỷ lệ X (%)</label>
-          <input type="number" min="1" max="100" value={x} onChange={e => setX(Number(e.target.value))} />
-          <span className="perf-hint">Ngưỡng % làm đúng/sai để kích hoạt cập nhật</span>
-        </div>
-        <div className="perf-form-group">
-          <label>Mức điều chỉnh Y (%)</label>
-          <input type="number" min="1" max="100" value={y} onChange={e => setY(Number(e.target.value))} />
-          <span className="perf-hint">Tỷ lệ giảm/tăng độ khó nếu đạt ngưỡng X</span>
-        </div>
         <div className="perf-form-actions">
           <button className="perf-btn perf-btn-primary" onClick={handlePreview}>
-            Xem trước thay đổi
+            Phân tích tự động & Xem trước thay đổi
           </button>
         </div>
       </div>
@@ -152,7 +139,7 @@ export default function QuestionPerformanceList() {
               </thead>
               <tbody>
                 {paginatedStats.length === 0 && (
-                  <tr><td colSpan="8" style={{textAlign:"center", padding:"20px"}}>Không có dữ liệu hợp lệ vượt ngưỡng X</td></tr>
+                  <tr><td colSpan="8" style={{textAlign:"center", padding:"20px"}}>Không có dữ liệu hợp lệ</td></tr>
                 )}
                 {paginatedStats.map(s => (
                   <tr key={s.questionId}>
@@ -166,8 +153,8 @@ export default function QuestionPerformanceList() {
                     <td>{s.totalEligible}</td>
                     <td>{s.correctCount}</td>
                     <td>{s.incorrectCount}</td>
-                    <td style={{color: s.correctRate > x ? "#10b981" : "inherit"}}>{s.correctRate.toFixed(1)}%</td>
-                    <td style={{color: s.incorrectRate > x ? "#ef4444" : "inherit"}}>{s.incorrectRate.toFixed(1)}%</td>
+                    <td>{s.correctRate.toFixed(1)}%</td>
+                    <td>{s.incorrectRate.toFixed(1)}%</td>
                   </tr>
                 ))}
               </tbody>
@@ -208,7 +195,7 @@ export default function QuestionPerformanceList() {
               ) : previewError ? (
                 <ErrorState description={previewError} />
               ) : previewList.length === 0 ? (
-                <div style={{textAlign: "center", padding: "20px"}}>Không có câu hỏi nào đạt ngưỡng để cập nhật.</div>
+                <div style={{textAlign: "center", padding: "20px"}}>Không có câu hỏi nào cần cập nhật.</div>
               ) : (
                 <table className="perf-table">
                   <thead>
@@ -216,7 +203,6 @@ export default function QuestionPerformanceList() {
                       <th>Câu hỏi</th>
                       <th>Độ khó hiện tại (b)</th>
                       <th>Độ khó mới (Sau cập nhật)</th>
-                      <th>Lý do</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -229,9 +215,6 @@ export default function QuestionPerformanceList() {
                         </td>
                         <td>{s.difficultyB.toFixed(2)}</td>
                         <td style={{fontWeight:"bold", color:"#3b82f6"}}>{s.newDifficulty?.toFixed(2)}</td>
-                        <td>
-                          {s.correctRate > x ? `Đúng ${s.correctRate.toFixed(1)}% > ${x}%` : `Sai ${s.incorrectRate.toFixed(1)}% > ${x}%`}
-                        </td>
                       </tr>
                     ))}
                   </tbody>
