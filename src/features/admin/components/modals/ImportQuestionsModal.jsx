@@ -44,10 +44,10 @@ import {
 import { parseSkillArray } from "../../utils/skillMappingParser";
 
 const FORMAT_OPTIONS = [
-  { key: "csv", label: "CSV (.csv)", ext: ".csv", icon: FileSpreadsheet },
-  { key: "moodle", label: "Moodle XML (.xml)", ext: ".xml", icon: FileCode2 },
-  { key: "gift", label: "Moodle GIFT (.gift)", ext: ".gift", icon: FileText },
-  { key: "aiken", label: "Moodle Aiken (.aiken)", ext: ".aiken", icon: FileText },
+  { key: "csv", label: "CSV (.csv)", ext: ".csv", extensions: [".csv", ".txt"], icon: FileSpreadsheet },
+  { key: "moodle", label: "Moodle XML (.xml)", ext: ".xml", extensions: [".xml", ".txt"], icon: FileCode2 },
+  { key: "gift", label: "Moodle GIFT (.gift)", ext: ".gift", extensions: [".gift", ".txt"], icon: FileText },
+  { key: "aiken", label: "Moodle Aiken (.aiken)", ext: ".aiken", extensions: [".aiken", ".txt"], icon: FileText },
 ];
 
 const SUPPORTED_FILE_EXTENSIONS = [".txt", ".csv", ".xml", ".gift", ".aiken"];
@@ -188,6 +188,7 @@ export default function ImportQuestionsModal({
   const [skillText, setSkillText] = useState("");
   const [skillFileName, setSkillFileName] = useState("");
   const [skillFileLoading, setSkillFileLoading] = useState(false);
+  const [draggingZone, setDraggingZone] = useState("");
 
   const [targetSubjectId, setTargetSubjectId] = useState("");
   const [targetChapterId, setTargetChapterId] = useState("");
@@ -472,6 +473,7 @@ ANSWER: B`;
     setSkillText("");
     setSkillFileName("");
     setSkillFileLoading(false);
+    setDraggingZone("");
     setRows([]);
     setParseMessage("");
     setFormError("");
@@ -590,8 +592,7 @@ ANSWER: B`;
     setFormError("");
   };
 
-  const handleQuestionFileChange = (event) => {
-    const file = event.target.files?.[0];
+  const handleQuestionFileChange = (file) => {
     if (!file) return;
 
     const extension = getSupportedExtension(file.name);
@@ -605,7 +606,17 @@ ANSWER: B`;
       setRows([]);
       setParseMessage("");
       setFormError("File câu hỏi hiện chỉ hỗ trợ .txt, .csv, Moodle XML, GIFT và Aiken.");
-      event.target.value = "";
+      return;
+    }
+
+    const fileFormat = FORMAT_OPTIONS.find((format) => format.ext === extension);
+    if (fileFormat && fileFormat.key !== selectedFormat) {
+      const selectedFormatLabel = FORMAT_OPTIONS.find((format) => format.key === selectedFormat)?.label;
+      setSourceText("");
+      setSourceName("");
+      setRows([]);
+      setParseMessage("");
+      setFormError(`File ${file.name} thuộc ${fileFormat.label}, không khớp định dạng đang chọn (${selectedFormatLabel}).`);
       return;
     }
 
@@ -615,7 +626,6 @@ ANSWER: B`;
       setRows([]);
       setParseMessage("");
       setFormError(tooLargeFileMessage(file));
-      event.target.value = "";
       return;
     }
 
@@ -623,49 +633,34 @@ ANSWER: B`;
     setFileLoading(true);
     setSourceName(file.name);
 
-    if (extension === ".xml") setSelectedFormat("moodle");
-    else if (extension === ".gift") setSelectedFormat("gift");
-    else if (extension === ".aiken") setSelectedFormat("aiken");
-    else if (extension === ".csv") setSelectedFormat("csv");
-
     reader.onload = () => {
       const content = String(reader.result || "");
-      if (extension === ".txt") {
-        if (detectMoodleXml(content)) setSelectedFormat("moodle");
-        else if (detectAiken(content)) setSelectedFormat("aiken");
-        else if (detectGift(content)) setSelectedFormat("gift");
-      }
       setSourceText(content);
       setParseMessage(`Đã đọc file câu hỏi: ${file.name}.`);
       setFileLoading(false);
-      event.target.value = "";
     };
 
     reader.onerror = () => {
       setSourceText("");
       setFormError("Không thể đọc file câu hỏi. Vui lòng thử lại.");
       setFileLoading(false);
-      event.target.value = "";
     };
 
     reader.readAsText(file, "utf-8");
   };
 
-  const handleDifficultyFileChange = (event) => {
-    const file = event.target.files?.[0];
+  const handleDifficultyFileChange = (file) => {
     if (!file) return;
 
     setFormError("");
     if (!file.name.toLowerCase().endsWith(".txt")) {
       setFormError("File mảng độ khó phải có định dạng .txt.");
-      event.target.value = "";
       return;
     }
     if (isFileTooLarge(file)) {
       setDifficultyText("");
       setDifficultyFileName(file.name);
       setFormError(tooLargeFileMessage(file));
-      event.target.value = "";
       return;
     }
     const reader = new FileReader();
@@ -680,34 +675,29 @@ ANSWER: B`;
         setParseMessage(`Đã đọc file mảng độ khó (${parsed.values.length} giá trị).`);
       }
       setDifficultyFileLoading(false);
-      event.target.value = "";
     };
 
     reader.onerror = () => {
       setDifficultyText("");
       setFormError("Không thể đọc file mảng độ khó. Vui lòng thử lại.");
       setDifficultyFileLoading(false);
-      event.target.value = "";
     };
 
     reader.readAsText(file, "utf-8");
   };
 
-  const handleSkillFileChange = (event) => {
-    const file = event.target.files?.[0];
+  const handleSkillFileChange = (file) => {
     if (!file) return;
 
     setFormError("");
     if (!file.name.toLowerCase().endsWith(".txt")) {
       setFormError("File mảng kỹ năng phải có định dạng .txt.");
-      event.target.value = "";
       return;
     }
     if (isFileTooLarge(file)) {
       setSkillText("");
       setSkillFileName(file.name);
       setFormError(tooLargeFileMessage(file));
-      event.target.value = "";
       return;
     }
     const reader = new FileReader();
@@ -722,18 +712,31 @@ ANSWER: B`;
         setParseMessage(`Đã đọc file mảng kỹ năng (${parsed.mappings.length} câu).`);
       }
       setSkillFileLoading(false);
-      event.target.value = "";
     };
 
     reader.onerror = () => {
       setSkillText("");
       setFormError("Không thể đọc file kỹ năng. Vui lòng thử lại.");
       setSkillFileLoading(false);
-      event.target.value = "";
     };
 
     reader.readAsText(file, "utf-8");
   };
+
+  const getFileDropProps = (zone, onFile) => ({
+    onDragOver: (event) => {
+      event.preventDefault();
+      setDraggingZone(zone);
+    },
+    onDragLeave: (event) => {
+      if (!event.currentTarget.contains(event.relatedTarget)) setDraggingZone("");
+    },
+    onDrop: (event) => {
+      event.preventDefault();
+      setDraggingZone("");
+      onFile(event.dataTransfer.files?.[0]);
+    },
+  });
 
   const handleDownloadZip = async () => {
     try {
@@ -758,6 +761,8 @@ ANSWER: B`;
   const handleParse = () => {
     const text = sourceText.trim();
 
+    setRows([]);
+    setParseMessage("");
     setFormError("");
     setSaveResult(null);
     setSaveProgress(null);
@@ -1275,9 +1280,15 @@ ANSWER: B`;
           )}
 
           {activeTab === "file" && (
-            <div className="question-import-triple-grid">
+            <div className="question-import-triple-grid question-import-file-grid">
+              <p className="question-import-file-drop-hint">
+                Kéo file vào khung tương ứng hoặc bấm nút bên dưới để chọn.
+              </p>
               {/* File câu hỏi */}
-              <div className="quiz-import-zone question-import-file-zone">
+              <div
+                className={`quiz-import-zone question-import-file-zone ${draggingZone === "question" ? "is-dragging" : ""}`}
+                {...getFileDropProps("question", handleQuestionFileChange)}
+              >
                 <Upload size={30} />
                 <strong>
                   {selectedFormat === "csv"
@@ -1286,16 +1297,19 @@ ANSWER: B`;
                 </strong>
                 <span>
                   {selectedFormat === "csv"
-                    ? "File .csv gồm câu hỏi, 4 đáp án, đáp án đúng, giải thích & độ khó"
-                    : `Chuẩn ${selectedFormat.toUpperCase()} (${SUPPORTED_FILE_EXTENSIONS.join(", ")})`}
+                    ? "File .csv hoặc .txt theo chuẩn CSV: câu hỏi, 4 đáp án, đáp án đúng, giải thích & độ khó"
+                    : `Chuẩn ${selectedFormat.toUpperCase()} (${FORMAT_OPTIONS.find((format) => format.key === selectedFormat)?.extensions.join(", ")})`}
                 </span>
                 <label>
                   <FileUp size={16} />
                   Chọn file câu hỏi
                   <input
                     type="file"
-                    accept={selectedFormat === "csv" ? ".csv" : ".txt,.csv,.xml,.gift,.aiken"}
-                    onChange={handleQuestionFileChange}
+                    accept={FORMAT_OPTIONS.find((format) => format.key === selectedFormat)?.extensions.join(",")}
+                    onChange={(event) => {
+                      handleQuestionFileChange(event.target.files?.[0]);
+                      event.target.value = "";
+                    }}
                   />
                 </label>
                 {sourceName && <em>Đã chọn: {sourceName}</em>}
@@ -1304,14 +1318,24 @@ ANSWER: B`;
 
               {/* File mảng độ khó - CHỈ HIỂN THỊ KHI KHÔNG PHẢI CSV */}
               {selectedFormat !== "csv" && (
-                <div className="quiz-import-zone question-import-file-zone">
+                <div
+                  className={`quiz-import-zone question-import-file-zone ${draggingZone === "difficulty" ? "is-dragging" : ""}`}
+                  {...getFileDropProps("difficulty", handleDifficultyFileChange)}
+                >
                   <SlidersHorizontal size={30} />
                   <strong>2. File mảng độ khó (.txt) *</strong>
                   <span>File .txt chứa danh sách số độ khó cho câu hỏi Moodle</span>
                   <label>
                     <FileUp size={16} />
                     Chọn file độ khó (.txt)
-                    <input type="file" accept=".txt" onChange={handleDifficultyFileChange} />
+                    <input
+                      type="file"
+                      accept=".txt"
+                      onChange={(event) => {
+                        handleDifficultyFileChange(event.target.files?.[0]);
+                        event.target.value = "";
+                      }}
+                    />
                   </label>
                   {difficultyFileName && <em>Đã chọn: {difficultyFileName}</em>}
                   {difficultyFileLoading && <em role="status">Đang đọc file độ khó...</em>}
@@ -1324,7 +1348,10 @@ ANSWER: B`;
               )}
 
               {/* File mảng kỹ năng */}
-              <div className="quiz-import-zone question-import-file-zone">
+              <div
+                className={`quiz-import-zone question-import-file-zone ${draggingZone === "skills" ? "is-dragging" : ""}`}
+                {...getFileDropProps("skills", handleSkillFileChange)}
+              >
                 <Sparkles size={30} />
                 <strong>
                   {selectedFormat === "csv"
@@ -1335,7 +1362,14 @@ ANSWER: B`;
                 <label>
                   <FileUp size={16} />
                   Chọn file kỹ năng (.txt)
-                  <input type="file" accept=".txt" onChange={handleSkillFileChange} />
+                  <input
+                    type="file"
+                    accept=".txt"
+                    onChange={(event) => {
+                      handleSkillFileChange(event.target.files?.[0]);
+                      event.target.value = "";
+                    }}
+                  />
                 </label>
                 {skillFileName && <em>Đã chọn: {skillFileName}</em>}
                 {skillFileLoading && <em role="status">Đang đọc file kỹ năng...</em>}
