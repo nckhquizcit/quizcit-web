@@ -24,6 +24,7 @@ export function filterQuestionBankQuestions(
   {
     search = "",
     subjectId = "ALL",
+    chapterId = "ALL",
     difficulty = "ALL",
     skillId = "ALL",
     knownSubjectIds,
@@ -42,6 +43,9 @@ export function filterQuestionBankQuestions(
       (subjectId === "QUESTION_BANK"
         ? unclassified
         : !unclassified && String(question.subjectId) === String(subjectId));
+    const matchesChapter =
+      chapterId === "ALL" ||
+      (!unclassified && String(question.chapterId) === String(chapterId));
     const matchesDifficulty =
       difficulty === "ALL" ||
       matchDifficultyPresetKey(question.difficultyB ?? 0) === difficulty;
@@ -53,7 +57,7 @@ export function filterQuestionBankQuestions(
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(query));
 
-    return matchesSubject && matchesDifficulty && matchesSkill && matchesSearch;
+    return matchesSubject && matchesChapter && matchesDifficulty && matchesSkill && matchesSearch;
   });
 }
 

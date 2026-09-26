@@ -21,6 +21,7 @@ import {
 
 import AddQuestionModal from "../components/modals/AddQuestionModal";
 import ConfirmDeleteModal from "../components/modals/ConfirmDeleteModal";
+import BulkEditSkillsModal from "../components/modals/BulkEditSkillsModal";
 import AdminPageHeader from "../components/AdminPageHeader";
 import Modal from "../components/ui/Modal";
 import RowActions from "../components/ui/RowActions";
@@ -280,10 +281,12 @@ export default function AdminQuestions() {
   const [chapters, setChapters] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("ALL");
+  const [chapterFilter, setChapterFilter] = useState("ALL");
   const [difficultyFilter, setDifficultyFilter] = useState("ALL");
   const [skillFilter, setSkillFilter] = useState("ALL");
   const [sort, setSort] = useState({ key: "content", dir: "asc" });
   const [page, setPage] = useState(1);
+  const [showAllMode, setShowAllMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editingQuestion, setEditingQuestion] = useState(null);
@@ -294,6 +297,7 @@ export default function AdminQuestions() {
   const [allChapters, setAllChapters] = useState([]);
   const [placementContext, setPlacementContext] = useState(null);
   const [placementNonce, setPlacementNonce] = useState(0);
+  const [bulkSkillOpen, setBulkSkillOpen] = useState(false);
 
   const loadQuestionBank = useCallback(async () => {
     try {
@@ -369,12 +373,13 @@ export default function AdminQuestions() {
       filterQuestionBankQuestions(questionRows, {
         search: deferredSearchQuery,
         subjectId: subjectFilter,
+        chapterId: chapterFilter,
         difficulty: difficultyFilter,
         skillId: skillFilter,
         knownSubjectIds,
         knownChapterIds,
       }),
-    [questionRows, deferredSearchQuery, subjectFilter, difficultyFilter, skillFilter, knownSubjectIds, knownChapterIds],
+    [questionRows, deferredSearchQuery, subjectFilter, chapterFilter, difficultyFilter, skillFilter, knownSubjectIds, knownChapterIds],
   );
 
   const sortedQuestions = useMemo(() => {
@@ -396,12 +401,13 @@ export default function AdminQuestions() {
   const totalPages = Math.max(1, Math.ceil(sortedQuestions.length / QUESTION_PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const pagedQuestions = useMemo(
-    () =>
-      sortedQuestions.slice(
+    () => showAllMode 
+      ? sortedQuestions
+      : sortedQuestions.slice(
         (safePage - 1) * QUESTION_PAGE_SIZE,
         safePage * QUESTION_PAGE_SIZE,
       ),
-    [safePage, sortedQuestions],
+    [safePage, sortedQuestions, showAllMode],
   );
 
   const questionStats = useMemo(
@@ -415,7 +421,7 @@ export default function AdminQuestions() {
 
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, subjectFilter, difficultyFilter, skillFilter]);
+  }, [searchQuery, subjectFilter, chapterFilter, difficultyFilter, skillFilter]);
 
   const toggleSort = (key) => {
     setPage(1);
@@ -433,12 +439,14 @@ export default function AdminQuestions() {
   const hasActiveFilters =
     searchQuery.trim() ||
     subjectFilter !== "ALL" ||
+    chapterFilter !== "ALL" ||
     difficultyFilter !== "ALL" ||
     skillFilter !== "ALL";
 
   const resetQuestionFilters = () => {
     setSearchQuery("");
     setSubjectFilter("ALL");
+    setChapterFilter("ALL");
     setDifficultyFilter("ALL");
     setSkillFilter("ALL");
   };
@@ -556,6 +564,87 @@ export default function AdminQuestions() {
   const openPlacement = (context) => {
     setPlacementNonce((nonce) => nonce + 1);
     setPlacementContext(context);
+  };
+
+  
+  const handleBulkSkillConfirm = async ({ addingSkillId, replacements }) => {
+    if (!addingSkillId && Object.keys(replacements).length === 0) return;
+    try {
+      const selected = questionRows.filter(q => selectedQuestionIds.includes(q.questionId));
+      
+      await Promise.all(selected.map(async (row) => {
+        // Lấy chi tiết để có options
+        const detail = await getQuestionById(row.questionId);
+        let currentSkills = detail?.skills || row.skills || [];
+        
+        // Thay thế hoặc xóa
+        let updatedSkills = [];
+        for (const s of currentSkills) {
+          const action = replacements[s.skillId];
+          if (action === "REMOVE") {
+            continue; // Bỏ qua
+          } else if (action && action !== "") {
+            // Thay bằng kỹ năng mới, nếu kỹ năng mới này đã có rồi thì sao?
+            // Tạm thời push cái mới, sau đó unique lại sau
+            updatedSkills.push({
+              skillId: action,
+              weight: s.weight || 1.0,
+              primary: s.primary || false
+            });
+          } else {
+            updatedSkills.push(s);
+          }
+        }
+        
+        // Thêm kỹ năng
+        if (addingSkillId) {
+          updatedSkills.push({
+            skillId: addingSkillId,
+            weight: 1.0,
+            primary: updatedSkills.length === 0 // Nếu chưa có skill nào thì là primary
+          });
+        }
+        
+        // Loại bỏ trùng lặp theo skillId
+        const uniqueSkillsMap = new Map();
+        updatedSkills.forEach(s => {
+          if (!uniqueSkillsMap.has(s.skillId)) {
+            uniqueSkillsMap.set(s.skillId, s);
+          }
+        });
+        updatedSkills = Array.from(uniqueSkillsMap.values());
+        
+        // Đảm bảo chỉ có 1 primary
+        const primaryCount = updatedSkills.filter(s => s.primary).length;
+        if (primaryCount === 0 && updatedSkills.length > 0) {
+          updatedSkills[0].primary = true;
+        } else if (primaryCount > 1) {
+          let foundPrimary = false;
+          updatedSkills.forEach(s => {
+            if (s.primary) {
+              if (foundPrimary) s.primary = false;
+              else foundPrimary = true;
+            }
+          });
+        }
+
+        // Cập nhật lên backend
+        await updateQuestion(row.questionId, {
+          ...row,
+          ...detail, // detail overrides row
+          subjectId: detail?.subjectId ?? row.subjectId,
+          chapterId: detail?.chapterId ?? row.chapterId,
+          options: detail?.options?.length ? detail.options : row.options || [],
+          skills: updatedSkills,
+        });
+      }));
+      
+      toast.success("Đã cập nhật kỹ năng cho các câu hỏi.");
+      setSelectedQuestionIds([]);
+      loadQuestionBank();
+    } catch (err) {
+      toast.error(err.message || "Không thể cập nhật kỹ năng hàng loạt");
+    }
   };
 
   const handlePlacementConfirm = async (targetSubjectId, targetChapterId) => {
@@ -694,7 +783,10 @@ export default function AdminQuestions() {
                 <select
                   className="question-bank-select"
                   value={subjectFilter}
-                  onChange={(event) => setSubjectFilter(event.target.value)}
+                  onChange={(event) => {
+                    setSubjectFilter(event.target.value);
+                    setChapterFilter("ALL");
+                  }}
                   aria-label="Lọc theo môn học"
                 >
                   <option value="ALL" style={{ fontWeight: "bold" }}>
@@ -715,6 +807,23 @@ export default function AdminQuestions() {
                       </option>
                     ))}
                 </select>
+                {subjectFilter !== "ALL" && subjectFilter !== "QUESTION_BANK" && (
+                  <select
+                    className="question-bank-select"
+                    value={chapterFilter}
+                    onChange={(event) => setChapterFilter(event.target.value)}
+                    aria-label="Lọc theo chương"
+                  >
+                    <option value="ALL">Tất cả chương</option>
+                    {allChapters
+                      .filter((chapter) => String(chapter.subjectId) === String(subjectFilter))
+                      .map((chapter) => (
+                        <option key={chapter.chapterId} value={chapter.chapterId}>
+                          {chapter.name}
+                        </option>
+                      ))}
+                  </select>
+                )}
                 <select
                   className="question-bank-select"
                   value={difficultyFilter}
@@ -892,7 +1001,7 @@ export default function AdminQuestions() {
               )}
             </div>
 
-            {!loading && sortedQuestions.length > QUESTION_PAGE_SIZE && (
+            {!loading && sortedQuestions.length > QUESTION_PAGE_SIZE && !showAllMode && (
               <div className="question-bank-pagination">
                 <span>
                   {(safePage - 1) * QUESTION_PAGE_SIZE + 1}–
@@ -934,6 +1043,25 @@ export default function AdminQuestions() {
                     <ChevronRight size={16} />
                   </button>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAllMode(true)}
+                  style={{ marginLeft: "1rem", fontSize: "13px", padding: "4px 8px", borderRadius: "4px", background: "var(--bg-secondary)", border: "1px solid var(--border-color)", cursor: "pointer" }}
+                >
+                  Hiển thị tất cả
+                </button>
+              </div>
+            )}
+            {!loading && sortedQuestions.length > QUESTION_PAGE_SIZE && showAllMode && (
+              <div className="question-bank-pagination">
+                <span>Đang hiển thị tất cả {sortedQuestions.length} câu hỏi</span>
+                <button
+                  type="button"
+                  onClick={() => setShowAllMode(false)}
+                  style={{ marginLeft: "1rem", fontSize: "13px", padding: "4px 8px", borderRadius: "4px", background: "var(--bg-secondary)", border: "1px solid var(--border-color)", cursor: "pointer" }}
+                >
+                  Bật phân trang
+                </button>
               </div>
             )}
           </div>
@@ -955,6 +1083,14 @@ export default function AdminQuestions() {
           >
             <MoveRight size={16} />
             Gắn vào chương
+          </button>
+          <button
+            type="button"
+            className="add-btn"
+            onClick={() => setBulkSkillOpen(true)}
+          >
+            <ListChecks size={16} />
+            Sửa kỹ năng
           </button>
         </div>
       )}
@@ -1007,6 +1143,13 @@ export default function AdminQuestions() {
         chapters={allChapters}
         onCancel={() => setPlacementContext(null)}
         onConfirm={handlePlacementConfirm}
+      />
+      <BulkEditSkillsModal
+        open={bulkSkillOpen}
+        onClose={() => setBulkSkillOpen(false)}
+        selectedQuestions={questionRows.filter(q => selectedQuestionIds.includes(q.questionId))}
+        allChapters={allChapters}
+        onConfirm={handleBulkSkillConfirm}
       />
     </>
   );

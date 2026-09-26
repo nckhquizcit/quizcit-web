@@ -5,7 +5,7 @@ const safeUrl = (value = "") => /^https?:\/\//i.test(String(value).trim());
 const blockFactory = () => {
   let sequence = 0;
   return (type, content = [], props = {}) => ({
-    id: `moodle-${Date.now()}-${sequence += 1}`,
+    id: `moodle-import-block-${sequence += 1}`,
     type,
     props,
     content,
