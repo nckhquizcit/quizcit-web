@@ -773,6 +773,20 @@ export default function SubjectDetailPage() {
                               size="sm"
                               onClick={() => {
                                 if (activeChapterUnlocked) {
+                                  const unfinishedAttempt = activeAttempts.find((attempt) => {
+                                    const deadline = Date.parse(attempt.deadlineAt || "");
+                                    return !Number.isFinite(deadline) || deadline > Date.now();
+                                  });
+                                  if (
+                                    unfinishedAttempt &&
+                                    String(unfinishedAttempt.quizId) !== String(quizId)
+                                  ) {
+                                    toast.error(
+                                      `Bạn còn bài \"${unfinishedAttempt.quizName || "bài kiểm tra"}\" đang làm dở. Hãy hoàn thành bài đó trước khi bắt đầu bài khác.`,
+                                    );
+                                    return;
+                                  }
+
                                   const resumeQuery = activeAttempt
                                     ? `?attemptId=${encodeURIComponent(activeAttempt.attemptId)}`
                                     : "";

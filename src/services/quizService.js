@@ -138,7 +138,8 @@ export async function getAttemptState(attemptId) {
 }
 
 export async function getActiveAttempts(userId) {
-  return request({ method: "GET", url: `/api/users/${userId}/active-attempts` });
+  const attempts = await request({ method: "GET", url: `/api/users/${userId}/active-attempts` });
+  return Array.isArray(attempts) ? attempts.slice(0, 1) : [];
 }
 
 export async function saveAttemptDraft(attemptId, answers) {
