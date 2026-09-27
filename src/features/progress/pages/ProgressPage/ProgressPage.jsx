@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronRight, HelpCircle } from "lucide-react";
+import { ArrowRight, ChevronRight, Clock3, HelpCircle } from "lucide-react";
 import {
   getAverageAbility,
   getAbilityHistories,
@@ -8,6 +8,7 @@ import {
   getUserProgressOverview,
 } from "../../../../services/progressService";
 import { getSkills } from "../../../../services/skillService";
+import { getActiveAttempts } from "../../../../services/quizService";
 import { getStoredUser, getErrorMessage } from "../../../../services/apiClient";
 import {
   formatScaledThetaValue,
@@ -48,15 +49,65 @@ const SKILL_LIMIT = 4;
 const INVALID_SESSION_MESSAGE = "Phiên đăng nhập không hợp lệ, vui lòng đăng nhập lại.";
 const LOAD_ERROR_MESSAGE = "Không thể tải tiến độ học tập.";
 
+function formatAttemptDuration(seconds) {
+  if (!Number.isFinite(seconds)) return "—";
+  const safeSeconds = Math.max(0, Math.floor(seconds));
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const remainder = safeSeconds % 60;
+  const clock = [hours, minutes, remainder].map((part) => String(part).padStart(2, "0"));
+  return hours > 0 ? clock.join(":") : clock.slice(1).join(":");
+}
+
 export default function ProgressPage() {
   const [abilities, setAbilities] = useState([]);
   const [histories, setHistories] = useState([]);
   const [skills, setSkills] = useState([]);
   const [averageAbility, setAverageAbility] = useState(null);
+  const [activeAttempts, setActiveAttempts] = useState([]);
+  const [now, setNow] = useState(() => Date.now());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const user = useMemo(() => getStoredUser(), []);
+  const userId = user?.userId || user?.id;
   const loadIdRef = useRef(0);
+
+  useEffect(() => {
+    if (!userId) {
+      setActiveAttempts([]);
+      return undefined;
+    }
+
+    let isCurrent = true;
+    getActiveAttempts(userId)
+      .then((attempts) => {
+        if (isCurrent) setActiveAttempts(Array.isArray(attempts) ? attempts : []);
+      })
+      .catch(() => {
+        if (isCurrent) setActiveAttempts([]);
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [userId]);
+
+  useEffect(() => {
+    if (activeAttempts.length === 0) return undefined;
+    let intervalId;
+    const updateNow = () => {
+      const currentTime = Date.now();
+      setNow(currentTime);
+      const hasActiveAttempt = activeAttempts.some((attempt) => {
+        const deadline = Date.parse(attempt.deadlineAt || "");
+        return !Number.isFinite(deadline) || deadline > currentTime;
+      });
+      if (!hasActiveAttempt) window.clearInterval(intervalId);
+    };
+    intervalId = window.setInterval(updateNow, 1000);
+    updateNow();
+    return () => window.clearInterval(intervalId);
+  }, [activeAttempts]);
 
   // Tách phần tải dữ liệu thành hàm gọi lại được: effect ban đầu và nút "Thử lại" dùng chung.
   const loadProgress = useCallback(async () => {
@@ -153,6 +204,10 @@ export default function ProgressPage() {
   const visibleHistories = histories.slice(0, HISTORY_LIMIT);
   const visibleAbilities = abilities.slice(0, SKILL_LIMIT);
   const hiddenSkillCount = abilities.length - SKILL_LIMIT;
+  const visibleActiveAttempts = activeAttempts.filter((attempt) => {
+    const deadline = Date.parse(attempt.deadlineAt || "");
+    return !Number.isFinite(deadline) || deadline > now;
+  });
 
   return (
     <div className="progress-page">
@@ -162,6 +217,84 @@ export default function ProgressPage() {
           Theo dõi năng lực theo từng kỹ năng.
         </p>
       </header>
+
+      {visibleActiveAttempts.length > 0 && (
+        <section className="progress-section progress-active-attempts" aria-labelledby="progress-active-attempts-title">
+          <div className="progress-active-attempts__header">
+            <div>
+              <h2 id="progress-active-attempts-title" className="progress-section__title">
+                Bài kiểm tra đang làm
+              </h2>
+              <p className="progress-section__sub">
+                Bài còn dở được lưu lại; đồng hồ vẫn chạy khi bạn rời trang.
+              </p>
+            </div>
+            <span className="progress-active-attempts__count">
+              {visibleActiveAttempts.length} bài
+            </span>
+          </div>
+
+          <Card padding="none" className="progress-active-attempts__list">
+            {visibleActiveAttempts.map((attempt) => {
+              const totalQuestion = Math.max(0, Number(attempt.totalQuestion) || 0);
+              const answeredQuestion = Math.min(
+                totalQuestion,
+                Math.max(0, Number(attempt.answeredQuestion) || 0),
+              );
+              const questionProgress = totalQuestion > 0
+                ? (answeredQuestion / totalQuestion) * 100
+                : 0;
+              const startedAt = Date.parse(attempt.startedAt || "");
+              const deadlineAt = Date.parse(attempt.deadlineAt || "");
+              const elapsedSeconds = Number.isFinite(startedAt)
+                ? Math.floor((now - startedAt) / 1000)
+                : NaN;
+              const remainingSeconds = Number.isFinite(deadlineAt)
+                ? Math.ceil((deadlineAt - now) / 1000)
+                : NaN;
+
+              return (
+                <article className="progress-active-attempt" key={attempt.attemptId}>
+                  <div className="progress-active-attempt__top">
+                    <div className="progress-active-attempt__details">
+                      <h3>{attempt.quizName || "Bài kiểm tra"}</h3>
+                      <p>{attempt.subjectName || "Môn học"}</p>
+                    </div>
+                    <Link
+                      className="progress-active-attempt__continue"
+                      to={`/app/quiz/${encodeURIComponent(attempt.quizId)}?attemptId=${encodeURIComponent(attempt.attemptId)}`}
+                    >
+                      Tiếp tục làm <ArrowRight size={16} />
+                    </Link>
+                  </div>
+
+                  <div className="progress-active-attempt__progress">
+                    <div className="progress-active-attempt__progress-labels">
+                      <span>{answeredQuestion}/{totalQuestion} câu đã trả lời</span>
+                      <span>{Math.round(questionProgress)}%</span>
+                    </div>
+                    <progress
+                      className="progress-active-attempt__bar"
+                      value={answeredQuestion}
+                      max={Math.max(totalQuestion, 1)}
+                      aria-label={`${answeredQuestion} trên ${totalQuestion} câu đã trả lời`}
+                    />
+                  </div>
+
+                  <div className="progress-active-attempt__times">
+                    <span><Clock3 size={15} /> Đã làm <strong>{formatAttemptDuration(elapsedSeconds)}</strong></span>
+                    <span><Clock3 size={15} /> Còn lại <strong>
+                      {Number.isFinite(remainingSeconds)
+                        ? formatAttemptDuration(remainingSeconds)
+                        : "Không giới hạn"}
+                    </strong></span>
+                  </div>
+                </article>
+              );
+            })}
+          </Card>
+        </section>
+      )}
 
       <div className="progress-top-grid">
         <Card as="section" padding="lg" className="progress-overview-card">
