@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, Outlet, ScrollRestoration, useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, Menu } from "lucide-react";
 import Sidebar from "../components/Sidebar/Sidebar";
-import { ToastProvider, useToast } from "../components/ui/Toast/Toast";
+import { ToastProvider } from "../components/ui/Toast/Toast";
 import ErrorBoundary from "../components/ui/ErrorBoundary/ErrorBoundary";
 import RouteErrorFallback from "../components/ui/ErrorBoundary/RouteErrorFallback";
 import { getStoredUser, setStoredUser, subscribeToAuthChange } from "../services/apiClient";
@@ -13,7 +13,6 @@ import {
   isUserPreviewActive,
   subscribeToUserPreview,
 } from "../services/userPreviewMode";
-import { useQuizAutoSubmitSync } from "../features/quiz/hooks/useQuizAutoSubmitSync";
 import "./MainLayout.css";
 
 const TITLE_MAP = [
@@ -45,12 +44,8 @@ function MainLayoutContent() {
   const [user, setUser] = useState(() => getStoredUser());
   const [avatarError, setAvatarError] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState(() => isUserPreviewActive(user));
-  const toast = useToast();
 
   const isExamMode = EXAM_ROUTES_REGEX.test(location.pathname);
-
-  // Tự động kiểm tra và nộp các bài thi đã hết thời gian làm bài của user trong nền
-  useQuizAutoSubmitSync(user, toast.show);
 
   useEffect(() => subscribeToAuthChange(() => {
     setUser(getStoredUser());

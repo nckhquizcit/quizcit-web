@@ -133,6 +133,22 @@ export async function startQuiz(quizId, userId) {
   return request({ method: "POST", url: `/api/quizzes/${quizId}/start`, params: { userId } });
 }
 
+export async function getAttemptState(attemptId) {
+  return request({ method: "GET", url: `/api/attempts/${attemptId}` });
+}
+
+export async function getActiveAttempts(userId) {
+  return request({ method: "GET", url: `/api/users/${userId}/active-attempts` });
+}
+
+export async function saveAttemptDraft(attemptId, answers) {
+  return request({
+    method: "PUT",
+    url: `/api/attempts/${attemptId}/draft`,
+    data: { answers },
+  });
+}
+
 export async function getAdaptiveEligibility(subjectId) {
   return request({
     method: "GET",

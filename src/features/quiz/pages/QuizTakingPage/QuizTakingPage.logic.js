@@ -36,6 +36,15 @@ export const isQuizDraftExpired = (draft, now = Date.now()) => {
   return Number.isFinite(deadlineAt) && deadlineAt > 0 && deadlineAt <= now;
 };
 
+export const getAttemptDeadlineAt = (attemptState, durationSeconds) => {
+  if (!(Number(durationSeconds) > 0)) return null;
+  const deadlineAt = Date.parse(attemptState?.deadlineAt || "");
+  return Number.isFinite(deadlineAt) && deadlineAt > 0 ? deadlineAt : null;
+};
+
+export const isAttemptInProgress = (attemptState) =>
+  attemptState?.status === "IN_PROGRESS";
+
 export const getResumableQuizDraft = (
   draft,
   quizId,

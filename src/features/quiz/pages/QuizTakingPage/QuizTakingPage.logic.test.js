@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   getPageNavigationTarget,
+  getAttemptDeadlineAt,
+  isAttemptInProgress,
   getQuestionNavigationTarget,
   getQuizPaginationPages,
   getResumableQuizDraft,
@@ -107,5 +109,25 @@ describe("QuizTakingPage draft recovery", () => {
     assert.equal(isQuizDraftExpired({ ...draft, deadlineAt: now + 5000 }, now), false);
     assert.equal(isQuizDraftExpired({ ...draft, deadlineAt: 0 }, now), false);
     assert.equal(isQuizDraftExpired(null, now), false);
+  });
+});
+
+describe("QuizTakingPage server attempt state", () => {
+  it("uses the backend deadline for timed attempts and rejects a missing deadline", () => {
+    const deadlineAt = "2026-09-27T10:00:00Z";
+    assert.equal(getAttemptDeadlineAt({ deadlineAt }, 600), Date.parse(deadlineAt));
+    assert.equal(getAttemptDeadlineAt({ deadlineAt: null }, 600), null);
+    assert.equal(getAttemptDeadlineAt({ deadlineAt: "invalid" }, 600), null);
+  });
+
+  it("allows no deadline for an untimed quiz", () => {
+    assert.equal(getAttemptDeadlineAt({ deadlineAt: null }, 0), null);
+  });
+
+  it("resumes only attempts that the backend still marks in progress", () => {
+    assert.equal(isAttemptInProgress({ status: "IN_PROGRESS" }), true);
+    assert.equal(isAttemptInProgress({ status: "SUBMITTED" }), false);
+    assert.equal(isAttemptInProgress({ status: "TIMED_OUT" }), false);
+    assert.equal(isAttemptInProgress(null), false);
   });
 });

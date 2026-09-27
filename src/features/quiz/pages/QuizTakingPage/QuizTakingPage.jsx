@@ -12,9 +12,11 @@ import {
 import {
   clearQuizDraft,
   clearQuizDraftsByQuizId,
+  getAttemptState,
   getQuestionsByQuiz,
   getQuizById,
   loadQuizDraft,
+  saveAttemptDraft,
   saveQuizDraft,
   startQuiz,
   submitAttempt,
@@ -35,12 +37,13 @@ import ExamExitModal from "../../components/ExamExitModal";
 import { getOptionSeedKey, shuffleOptions } from "../../utils/optionShuffle";
 import {
   clampQuizPage,
+  getAttemptDeadlineAt,
   getPageNavigationTarget,
   getQuestionNavigationTarget,
   getQuizPaginationPages,
   getResumableQuizDraft,
   getTotalQuizPages,
-  isQuizDraftExpired,
+  isAttemptInProgress,
   QUIZ_PAGE_SIZE,
 } from "./QuizTakingPage.logic.js";
 import "./QuizTakingPage.css";
@@ -203,6 +206,7 @@ export default function QuizTakingPage() {
   // Bản sao đáp án luôn cập nhật ngay, để lúc tự nộp không đọc phải giá trị cũ
   // trong closure của effect (đáp án cuối có thể rơi cùng nhịp với đồng hồ về 0).
   const answersRef = useRef({});
+  const draftSaveQueueRef = useRef(Promise.resolve());
 
   useEffect(() => {
     if (startedRef.current) return;
@@ -237,40 +241,22 @@ export default function QuizTakingPage() {
 
         let attemptData = null;
         let resumableDraft = null;
+        let attemptState = null;
 
         if (urlAttemptId) {
-          const draft = loadQuizDraft(urlAttemptId, currentUser.userId);
-          if (draft && isQuizDraftExpired(draft)) {
-            // Bài thi đã hết hạn khi mở lại: nộp ngay bài cũ với đáp án đã lưu thay vì tạo attempt mới
-            try {
-              const answerList = Object.entries(draft.answers || {}).map(([questionId, optionId]) => ({
-                questionId,
-                optionId,
-              }));
-              await submitAttempt({
-                quizId,
-                attemptId: draft.attemptId,
-                answers: answerList,
-              });
-            } catch {
-              // best-effort
-            }
+          let draft = loadQuizDraft(urlAttemptId, currentUser.userId);
+          attemptState = await getAttemptState(urlAttemptId);
+          if (!isAttemptInProgress(attemptState)) {
             clearQuizDraft(urlAttemptId, currentUser.userId);
             clearQuizDraftsByQuizId(quizId, currentUser.userId);
-            navigate(`/app/quiz/result/${draft.attemptId}`, { replace: true });
+            navigate(`/app/quiz/result/${urlAttemptId}`, { replace: true });
             return;
           }
-
-          resumableDraft = getResumableQuizDraft(
-            draft,
-            quizId,
-            durationSeconds,
-            Date.now(),
-            urlAttemptId,
-          );
-          if (resumableDraft) {
-            attemptData = { attemptId: urlAttemptId };
+          attemptData = { attemptId: urlAttemptId };
+          if (draft && attemptState.deadlineAt) {
+            draft = { ...draft, deadlineAt: new Date(attemptState.deadlineAt).getTime() };
           }
+          resumableDraft = getResumableQuizDraft(draft, quizId, durationSeconds, Date.now(), urlAttemptId);
         }
 
         if (!attemptData) {
@@ -280,10 +266,22 @@ export default function QuizTakingPage() {
           setSearchParams({ attemptId: attemptData.attemptId }, { replace: true });
         }
 
+        if (!attemptState) attemptState = await getAttemptState(attemptData.attemptId);
+        if (!isAttemptInProgress(attemptState)) {
+          clearQuizDraft(attemptData.attemptId, currentUser.userId);
+          clearQuizDraftsByQuizId(quizId, currentUser.userId);
+          navigate(`/app/quiz/result/${attemptData.attemptId}`, { replace: true });
+          return;
+        }
+
         const draftDeadlineAt = Number(resumableDraft?.deadlineAt);
-        const deadlineAt = resumableDraft && Number.isFinite(draftDeadlineAt)
+        const serverDeadlineAt = getAttemptDeadlineAt(attemptState, durationSeconds);
+        if (durationSeconds > 0 && serverDeadlineAt === null) {
+          throw new Error("Không nhận được hạn nộp bài từ máy chủ. Vui lòng tải lại sau.");
+        }
+        const deadlineAt = serverDeadlineAt ?? (resumableDraft && Number.isFinite(draftDeadlineAt)
           ? draftDeadlineAt
-          : Date.now() + durationSeconds * 1000;
+          : Date.now() + durationSeconds * 1000);
 
         const draftPage = Number(resumableDraft?.currentPage ?? 0);
         const safeDraftPage = clampQuizPage(
@@ -302,6 +300,12 @@ export default function QuizTakingPage() {
         setCurrentPage(safeDraftPage);
         setActiveQuestionId(initialQuestionId);
         setHasTimeLimit(durationSeconds > 0);
+        const restoredAnswers = {
+          ...(attemptState.answers || {}),
+          ...(resumableDraft?.answers || {}),
+        };
+        setAnswers(restoredAnswers);
+        answersRef.current = restoredAnswers;
         deadlineRef.current = deadlineAt;
         setTimeLeft(
           durationSeconds > 0
@@ -312,10 +316,6 @@ export default function QuizTakingPage() {
         autoSubmittedRef.current = false;
 
         if (resumableDraft) {
-          if (resumableDraft.answers) {
-            setAnswers(resumableDraft.answers);
-            answersRef.current = resumableDraft.answers;
-          }
           setFlaggedQuestionIds(new Set(resumableDraft.flaggedQuestionIds || []));
         }
       } catch (loadError) {
@@ -394,8 +394,9 @@ export default function QuizTakingPage() {
 
   useEffect(() => {
     if (!attempt?.attemptId || submittedRef.current || !currentUser?.userId) return;
+    const answerSnapshot = { ...answers };
     saveQuizDraft(attempt.attemptId, currentUser.userId, {
-      answers,
+      answers: answerSnapshot,
       attemptId: attempt.attemptId,
       quizId,
       quizName: quiz?.name || "",
@@ -404,6 +405,14 @@ export default function QuizTakingPage() {
       flaggedQuestionIds: Array.from(flaggedQuestionIds),
       updatedAt: new Date().toISOString(),
     });
+    const timer = window.setTimeout(() => {
+      if (submittedRef.current) return;
+      draftSaveQueueRef.current = draftSaveQueueRef.current
+        .catch(() => {})
+        .then(() => saveAttemptDraft(attempt.attemptId, answerSnapshot))
+        .catch(() => {});
+    }, 350);
+    return () => window.clearTimeout(timer);
   }, [answers, attempt?.attemptId, currentPage, currentUser?.userId, flaggedQuestionIds, quiz?.name, quizId]);
 
   const shouldBlock = Boolean(attempt && !submittedRef.current && !submitting);
@@ -444,6 +453,9 @@ export default function QuizTakingPage() {
           optionId,
         }));
 
+        await draftSaveQueueRef.current.catch(() => {});
+        await saveAttemptDraft(attempt.attemptId, currentAnswers).catch(() => {});
+
         await submitAttempt({
           quizId,
           attemptId: attempt.attemptId,
@@ -452,7 +464,7 @@ export default function QuizTakingPage() {
         clearQuizDraft(attempt.attemptId, currentUser?.userId);
         clearQuizDraftsByQuizId(quizId, currentUser?.userId);
         setAutoSubmitFailed(false);
-        navigate(`/app/quiz/result/${attempt.attemptId}`);
+        navigate(`/app/quiz/result/${attempt.attemptId}`, { replace: true });
         return true;
       } catch (submitError) {
         submittedRef.current = false;
@@ -649,8 +661,19 @@ export default function QuizTakingPage() {
   const confirmSubmit = async () => {
     if (submitting) return;
     // Chỉ đóng hộp thoại khi nộp thành công để lỗi hiện ngay cạnh nút bấm.
-    const submitted = await doSubmit(answers);
+    const submitted = await doSubmit(answersRef.current);
     if (submitted) setSubmitConfirmOpen(false);
+  };
+
+  const leaveAttempt = async () => {
+    if (attempt?.attemptId) {
+      const save = draftSaveQueueRef.current
+        .catch(() => {})
+        .then(() => saveAttemptDraft(attempt.attemptId, answersRef.current))
+        .catch(() => {});
+      await Promise.race([save, new Promise((resolve) => window.setTimeout(resolve, 1000))]);
+    }
+    blocker.proceed?.();
   };
 
   const formatTime = (seconds) => {
@@ -1171,7 +1194,7 @@ export default function QuizTakingPage() {
       <ExamExitModal
         open={blocker.state === "blocked"}
         onStay={() => blocker.reset?.()}
-        onLeave={() => blocker.proceed?.()}
+        onLeave={leaveAttempt}
       />
     </div>
   );

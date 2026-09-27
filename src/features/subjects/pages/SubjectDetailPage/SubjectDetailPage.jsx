@@ -19,6 +19,7 @@ import {
 } from "../../../../services/contentService";
 import {
   getAdaptiveEligibility,
+  getActiveAttempts,
   getQuizzesBySubject,
   startAdaptiveQuiz,
 } from "../../../../services/quizService";
@@ -83,11 +84,38 @@ export default function SubjectDetailPage() {
   const [checkingEligibility, setCheckingEligibility] = useState(false);
   const [warningQuiz, setWarningQuiz] = useState(null);
   const [userAbilities, setUserAbilities] = useState([]);
+  const [activeAttempts, setActiveAttempts] = useState([]);
   const adaptiveCancelledRef = useRef(false);
   const adaptiveInputRef = useRef(null);
   const loadIdRef = useRef(0);
 
   const userAbilityMap = useMemo(() => buildAbilityMap(userAbilities), [userAbilities]);
+  const activeAttemptByQuizId = useMemo(
+    () => new Map(activeAttempts.map((attempt) => [String(attempt.quizId), attempt])),
+    [activeAttempts],
+  );
+
+  useEffect(() => {
+    const storedUser = getStoredUser();
+    const userId = storedUser?.userId || storedUser?.id;
+    if (!userId) {
+      setActiveAttempts([]);
+      return undefined;
+    }
+
+    let isCurrent = true;
+    getActiveAttempts(userId)
+      .then((attempts) => {
+        if (isCurrent) setActiveAttempts(attempts || []);
+      })
+      .catch(() => {
+        if (isCurrent) setActiveAttempts([]);
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [subjectId]);
 
   // Escape/backdrop/focus trap do Modal dùng chung đảm nhiệm.
   const closeAdaptiveDialog = useCallback(() => {
@@ -714,6 +742,7 @@ export default function SubjectDetailPage() {
                       {quizzes.map((quiz) => {
                         const quizId = quiz.quizId || quiz.quiz_id;
                         const minutes = quiz.durationMinutes || quiz.duration || 0;
+                        const activeAttempt = activeAttemptByQuizId.get(String(quizId));
                         return (
                           <div
                             key={quizId}
@@ -744,13 +773,16 @@ export default function SubjectDetailPage() {
                               size="sm"
                               onClick={() => {
                                 if (activeChapterUnlocked) {
-                                  navigate(`/app/quiz/${quizId}`);
+                                  const resumeQuery = activeAttempt
+                                    ? `?attemptId=${encodeURIComponent(activeAttempt.attemptId)}`
+                                    : "";
+                                  navigate(`/app/quiz/${quizId}${resumeQuery}`);
                                 } else {
                                   setWarningQuiz(quiz);
                                 }
                               }}
                             >
-                              Bắt đầu làm
+                              {activeAttempt ? "Tiếp tục làm" : "Bắt đầu làm"}
                             </Button>
                           </div>
                         );

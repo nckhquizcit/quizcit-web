@@ -26,10 +26,10 @@ export default function ExamExitModal({ open, onStay, onLeave }) {
         </div>
         <div className="exam-exit-body">
           <p className="exam-exit-message">
-            Bạn đang làm bài trắc nghiệm, nếu thoát ra thì bài của bạn sẽ tự động được nộp khi hết giờ làm bài.
+            Đồng hồ vẫn chạy khi bạn rời bài. Hệ thống tự nộp khi hết giờ.
           </p>
           <p className="exam-exit-subtext">
-            Các đáp án bạn đã chọn đã được lưu lại tự động trong trình duyệt. Bạn vẫn có thể truy cập lại để tiếp tục làm bài nếu thời gian làm bài vẫn còn.
+            Đáp án được lưu vào tài khoản. Bạn có thể mở lại bài từ trang môn học để tiếp tục nếu vẫn còn thời gian.
           </p>
         </div>
       </div>
