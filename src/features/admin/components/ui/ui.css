@@ -16,6 +16,8 @@
 
 .modal-container {
   background: white;
+  font-family: inherit;
+  font-size: var(--admin-fs-body, 14px);
   border-radius: 16px;
   padding: 24px;
   width: min(600px, 100%);

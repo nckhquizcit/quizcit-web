@@ -53,6 +53,12 @@ button {
     box-shadow 0.2s ease, transform 0.12s ease;
 }
 
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
 /* Focus baseline toàn app: chỉ hiện khi điều hướng bằng bàn phím (:focus-visible).
    Dùng :where() để specificity = 0 — component có thể override mà không cần !important. */
 :where(a, button, [role="button"], [role="tab"], input, textarea, select, summary):focus-visible {

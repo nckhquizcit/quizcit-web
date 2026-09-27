@@ -2123,6 +2123,10 @@
   color: var(--admin-danger);
 }
 
+.form-field b {
+  font-weight: 600;
+}
+
 .form-field textarea,
 .form-field input,
 .form-field select {
@@ -3298,7 +3302,7 @@
   flex-direction: column;
   gap: 9px;
   color: #111827;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .quiz-field input,
@@ -3313,6 +3317,11 @@
   font: inherit;
   font-weight: 600;
   outline: 0;
+}
+
+.quiz-field textarea {
+  font: inherit;
+  font-weight: 400;
 }
 
 .quiz-question-head {
@@ -6064,6 +6073,7 @@
   grid-template-columns: minmax(0, 1fr) 320px;
   gap: 18px;
   align-items: start;
+  font-family: "Inter", sans-serif;
 }
 .adm2-field-row {
   display: grid;
