@@ -782,7 +782,7 @@ export default function SubjectDetailPage() {
                                     String(unfinishedAttempt.quizId) !== String(quizId)
                                   ) {
                                     toast.error(
-                                      `Bạn còn bài \"${unfinishedAttempt.quizName || "bài kiểm tra"}\" đang làm dở. Hãy hoàn thành bài đó trước khi bắt đầu bài khác.`,
+                                      `Bạn còn bài \"${unfinishedAttempt.quizName || "bài kiểm tra"}\" đang làm. Hãy hoàn thành bài đó trước khi bắt đầu bài khác.`,
                                     );
                                     return;
                                   }

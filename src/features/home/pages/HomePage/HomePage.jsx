@@ -201,7 +201,7 @@ export default function HomePage() {
             <div>
               <h2 id="home-active-attempts-title">Bài kiểm tra chưa hoàn thành</h2>
               <p>
-                Bạn có {activeAttempts.length} bài đang làm dở. Chọn bài để tiếp tục; đồng hồ vẫn chạy.
+                Bạn có {activeAttempts.length} bài đang làm. Chọn bài để tiếp tục; đồng hồ vẫn chạy.
               </p>
             </div>
             <span className="home-active-attempts__count">{activeAttempts.length} bài</span>
