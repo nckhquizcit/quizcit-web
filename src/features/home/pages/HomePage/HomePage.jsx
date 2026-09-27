@@ -14,6 +14,7 @@ import ProgressBar from "../../components/ProgressBar";
 import SubjectCardSkeleton from "../../components/SubjectCardSkeleton";
 import { buildEnrolledSubjects } from "../../utils/homeSubjects";
 import { getHomeSummary } from "../../../../services/homeService";
+import { getActiveAttempts } from "../../../../services/quizService";
 import { normalizeHomeSummary } from "../../utils/homeSummary";
 import { getAllChapters } from "../../../../services/chapterService";
 import { getMyEnrollments } from "../../../../services/enrollmentService";
@@ -49,6 +50,7 @@ const SUBJECT_SKELETON_KEYS = ["s1", "s2", "s3", "s4", "s5", "s6"];
 
 export default function HomePage() {
   const [enrolledSubjects, setEnrolledSubjects] = useState([]);
+  const [activeAttempts, setActiveAttempts] = useState([]);
   const [totalUnlockedChapters, setTotalUnlockedChapters] = useState(0);
   const [skillCount, setSkillCount] = useState(0);
   const [averageTheta, setAverageTheta] = useState(null);
@@ -135,6 +137,27 @@ export default function HomePage() {
     };
   }, [loadData]);
 
+  useEffect(() => {
+    const userId = user?.userId || user?.id;
+    if (!userId) {
+      setActiveAttempts([]);
+      return undefined;
+    }
+
+    let isCurrent = true;
+    getActiveAttempts(userId)
+      .then((attempts) => {
+        if (isCurrent) setActiveAttempts(Array.isArray(attempts) ? attempts : []);
+      })
+      .catch(() => {
+        if (isCurrent) setActiveAttempts([]);
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [user?.id, user?.userId]);
+
   const firstName = getFirstName(user?.displayName || user?.username);
   const greetingPeriod = getGreetingPeriod(new Date().getHours());
   const hasAbilityData = averageTheta !== null;
@@ -171,6 +194,53 @@ export default function HomePage() {
         <h1>Chào buổi {greetingPeriod}, {firstName}</h1>
         <p>Hãy tiếp tục cố gắng nhé</p>
       </section>
+
+      {activeAttempts.length > 0 && (
+        <section className="home-active-attempts" aria-labelledby="home-active-attempts-title">
+          <div className="home-active-attempts__header">
+            <div>
+              <h2 id="home-active-attempts-title">Bài kiểm tra chưa hoàn thành</h2>
+              <p>
+                Bạn có {activeAttempts.length} bài đang làm dở. Chọn bài để tiếp tục; đồng hồ vẫn chạy.
+              </p>
+            </div>
+            <span className="home-active-attempts__count">{activeAttempts.length} bài</span>
+          </div>
+
+          <div className="home-active-attempts__list">
+            {activeAttempts.map((attempt) => {
+              const deadline = attempt.deadlineAt ? new Date(attempt.deadlineAt) : null;
+              const deadlineLabel = deadline && Number.isFinite(deadline.getTime())
+                ? `Hạn nộp ${deadline.toLocaleString("vi-VN", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}`
+                : "Không giới hạn thời gian";
+
+              return (
+                <div className="home-active-attempt" key={attempt.attemptId}>
+                  <div className="home-active-attempt__details">
+                    <h3>{attempt.quizName || "Bài kiểm tra"}</h3>
+                    <p>{attempt.subjectName || "Môn học"} · {deadlineLabel}</p>
+                  </div>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    iconRight={<ArrowRight size={15} />}
+                    onClick={() => navigate(
+                      `/app/quiz/${encodeURIComponent(attempt.quizId)}?attemptId=${encodeURIComponent(attempt.attemptId)}`
+                    )}
+                  >
+                    Tiếp tục làm
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <section className="home-overview-row">
         <Card padding="lg" className="home-ability-card">
