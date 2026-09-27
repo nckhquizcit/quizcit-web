@@ -9,6 +9,7 @@ import {
   getResumableQuizDraft,
   getTotalQuizPages,
   isQuizDraftExpired,
+  shouldAutoSubmitAttempt,
 } from "./QuizTakingPage.logic.js";
 
 const questions = Array.from({ length: 12 }, (_, index) => ({
@@ -129,5 +130,19 @@ describe("QuizTakingPage server attempt state", () => {
     assert.equal(isAttemptInProgress({ status: "SUBMITTED" }), false);
     assert.equal(isAttemptInProgress({ status: "TIMED_OUT" }), false);
     assert.equal(isAttemptInProgress(null), false);
+  });
+
+  it("does not start a browser auto-submit while leaving the attempt", () => {
+    const expiredAttempt = {
+      hasTimeLimit: true,
+      timerStarted: true,
+      timeLeft: 0,
+      hasAttempt: true,
+      submitted: false,
+      autoSubmitted: false,
+    };
+
+    assert.equal(shouldAutoSubmitAttempt(expiredAttempt), true);
+    assert.equal(shouldAutoSubmitAttempt({ ...expiredAttempt, leaving: true }), false);
   });
 });

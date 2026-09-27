@@ -44,6 +44,7 @@ import {
   getResumableQuizDraft,
   getTotalQuizPages,
   isAttemptInProgress,
+  shouldAutoSubmitAttempt,
   QUIZ_PAGE_SIZE,
 } from "./QuizTakingPage.logic.js";
 import "./QuizTakingPage.css";
@@ -201,12 +202,21 @@ export default function QuizTakingPage() {
   const submittedRef = useRef(false);
   const timerStartedRef = useRef(false);
   const autoSubmittedRef = useRef(false);
+  const leavingRef = useRef(false);
+  const routeActiveRef = useRef(true);
   const deadlineRef = useRef(0);
   const questionRefs = useRef(new Map());
   // Bản sao đáp án luôn cập nhật ngay, để lúc tự nộp không đọc phải giá trị cũ
   // trong closure của effect (đáp án cuối có thể rơi cùng nhịp với đồng hồ về 0).
   const answersRef = useRef({});
   const draftSaveQueueRef = useRef(Promise.resolve());
+
+  useEffect(() => {
+    routeActiveRef.current = true;
+    return () => {
+      routeActiveRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (startedRef.current) return;
@@ -441,7 +451,7 @@ export default function QuizTakingPage() {
 
   const doSubmit = useCallback(
     async (currentAnswers) => {
-      if (!attempt?.attemptId || submittedRef.current) return false;
+      if (!attempt?.attemptId || submittedRef.current || leavingRef.current) return false;
       submittedRef.current = true;
       setSubmitting(true);
       setError("");
@@ -463,13 +473,17 @@ export default function QuizTakingPage() {
         });
         clearQuizDraft(attempt.attemptId, currentUser?.userId);
         clearQuizDraftsByQuizId(quizId, currentUser?.userId);
-        setAutoSubmitFailed(false);
-        navigate(`/app/quiz/result/${attempt.attemptId}`, { replace: true });
+        if (routeActiveRef.current && !leavingRef.current) {
+          setAutoSubmitFailed(false);
+          navigate(`/app/quiz/result/${attempt.attemptId}`, { replace: true });
+        }
         return true;
       } catch (submitError) {
-        submittedRef.current = false;
-        setSubmitting(false);
-        setError(getErrorMessage(submitError, "Có lỗi xảy ra khi nộp bài. Đáp án của bạn vẫn được giữ lại."));
+        if (routeActiveRef.current && !leavingRef.current) {
+          submittedRef.current = false;
+          setSubmitting(false);
+          setError(getErrorMessage(submitError, "Có lỗi xảy ra khi nộp bài. Đáp án của bạn vẫn được giữ lại."));
+        }
         return false;
       }
     },
@@ -487,14 +501,15 @@ export default function QuizTakingPage() {
   }, [attempt, hasTimeLimit, submitting]);
 
   useEffect(() => {
-    if (
-      hasTimeLimit &&
-      timerStartedRef.current &&
-      timeLeft === 0 &&
-      attempt &&
-      !submittedRef.current &&
-      !autoSubmittedRef.current
-    ) {
+    if (shouldAutoSubmitAttempt({
+      hasTimeLimit,
+      timerStarted: timerStartedRef.current,
+      timeLeft,
+      hasAttempt: Boolean(attempt),
+      submitted: submittedRef.current,
+      autoSubmitted: autoSubmittedRef.current,
+      leaving: leavingRef.current,
+    })) {
       autoSubmittedRef.current = true;
       // Đọc đáp án từ ref: closure của effect có thể đang giữ bản cũ nếu người
       // dùng vừa chọn đáp án cuối cùng nhịp với lúc đồng hồ về 0.
@@ -666,6 +681,8 @@ export default function QuizTakingPage() {
   };
 
   const leaveAttempt = async () => {
+    if (leavingRef.current) return;
+    leavingRef.current = true;
     if (attempt?.attemptId) {
       const save = draftSaveQueueRef.current
         .catch(() => {})
@@ -674,6 +691,10 @@ export default function QuizTakingPage() {
       await Promise.race([save, new Promise((resolve) => window.setTimeout(resolve, 1000))]);
     }
     blocker.proceed?.();
+  };
+
+  const stayInAttempt = () => {
+    if (!leavingRef.current) blocker.reset?.();
   };
 
   const formatTime = (seconds) => {
@@ -1193,7 +1214,7 @@ export default function QuizTakingPage() {
 
       <ExamExitModal
         open={blocker.state === "blocked"}
-        onStay={() => blocker.reset?.()}
+        onStay={stayInAttempt}
         onLeave={leaveAttempt}
       />
     </div>

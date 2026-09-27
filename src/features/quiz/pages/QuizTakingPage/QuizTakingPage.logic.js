@@ -45,6 +45,19 @@ export const getAttemptDeadlineAt = (attemptState, durationSeconds) => {
 export const isAttemptInProgress = (attemptState) =>
   attemptState?.status === "IN_PROGRESS";
 
+export const shouldAutoSubmitAttempt = ({
+  hasTimeLimit,
+  timerStarted,
+  timeLeft,
+  hasAttempt,
+  submitted,
+  autoSubmitted,
+  leaving,
+}) => Boolean(
+  hasTimeLimit && timerStarted && timeLeft === 0 && hasAttempt
+  && !submitted && !autoSubmitted && !leaving,
+);
+
 export const getResumableQuizDraft = (
   draft,
   quizId,
