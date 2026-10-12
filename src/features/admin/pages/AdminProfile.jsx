@@ -8,9 +8,7 @@ import {
   Eye,
   HelpCircle,
   KeyRound,
-  LogOut,
   Mail,
-  Shield,
   Users,
 } from "lucide-react";
 import AdminPageHeader from "../components/AdminPageHeader";
@@ -19,7 +17,6 @@ import { useToast } from "../../../components/ui";
 import { adminProfileService } from "../services/profileService.js";
 import { getStoredUser } from "../../../services/apiClient";
 import { enterUserPreview } from "../../../services/userPreviewMode";
-import { logout } from "../../../services/authService";
 import { resolveImageUrl } from "../../../services/mappers";
 import { getInitials } from "../utils/adminUsersLogic";
 import AdminEditProfileModal from "../components/modals/AdminEditProfileModal";
@@ -33,12 +30,6 @@ const emptyStats = {
   totalQuestions: 0,
   totalAttempts: 0,
 };
-
-const PERMISSION_ITEMS = ["Quản lý nội dung", "Quản lý đánh giá", "Quản lý người dùng"];
-
-function IconShield({ className }) {
-  return <Shield className={className} aria-hidden="true" strokeWidth={1.8} />;
-}
 
 function IconUsers({ className }) {
   return <Users className={className} aria-hidden="true" strokeWidth={1.8} />;
@@ -145,11 +136,6 @@ export default function AdminProfile() {
     navigate("/app");
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
-
   const handleEditProfileSuccess = (updatedUser) => {
     setAdmin((prev) => ({ ...prev, ...updatedUser }));
     toast.success("Cập nhật thông tin quản trị viên thành công.");
@@ -160,7 +146,7 @@ export default function AdminProfile() {
       <AdminPageHeader
         breadcrumb={["Tổng quan", "Hồ sơ"]}
         title="Hồ sơ quản trị"
-        subtitle="Thông tin tài khoản, quyền hạn và thống kê quản trị"
+        subtitle="Thông tin tài khoản và thống kê quản trị"
       />
       {error && <p className="admin-profile-error">{error}</p>}
 
@@ -353,32 +339,6 @@ export default function AdminProfile() {
           </div>
         </section>
 
-        <section className="admin-card admin-card--permission">
-          <span className="adm2-chip adm2-chip--emerald">Quyền mặc định của vai trò Quản trị</span>
-
-          <div className="admin-permissionBody">
-            <div className="admin-permissionBadge" aria-hidden="true">
-              <IconShield className="admin-icon admin-icon--shieldWhite" />
-            </div>
-            <div className="admin-permissionTitle">Quyền mặc định của vai trò Quản trị</div>
-            <div className="admin-permissionSub">
-              Đây là quyền đi kèm vai trò, không phải trình chỉnh sửa RBAC.
-            </div>
-
-            <div className="adm2-divider" />
-
-            <ul className="adm2-check-list">
-              {PERMISSION_ITEMS.map((item) => (
-                <li key={item}>✓ {item}</li>
-              ))}
-            </ul>
-
-            <button type="button" className="adm2-text-btn adm2-profile-logout" onClick={handleLogout}>
-              <LogOut size={15} />
-              Đăng xuất
-            </button>
-          </div>
-        </section>
       </div>
 
       <AdminEditProfileModal

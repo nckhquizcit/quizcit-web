@@ -29,6 +29,7 @@ export default function VerifyForm({
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const inputRefs = useRef([]);
+  const composingOtpRef = useRef(false);
   const autoSentRef = useRef(false);
 
   const trimmedEmail = email.trim();
@@ -49,12 +50,14 @@ export default function VerifyForm({
     }
   }, [verificationToken, token]);
 
-  const handleChange = (element, index) => {
-    if (element.value && !/^\d$/.test(element.value)) return;
+  const handleChange = (event, index, isCompositionEnd = false) => {
+    if (!isCompositionEnd && (composingOtpRef.current || event.nativeEvent.isComposing)) return;
+    const { value } = event.target;
+    if (value && !/^\d$/.test(value)) return;
     const newOtp = [...otp];
-    newOtp[index] = element.value;
+    newOtp[index] = value;
     setOtp(newOtp);
-    if (element.value !== "" && index < 5) {
+    if (value !== "" && index < 5) {
       inputRefs.current[index + 1].focus();
     }
   };
@@ -210,7 +213,12 @@ export default function VerifyForm({
             aria-label={`Số thứ ${index + 1}`}
             ref={(el) => (inputRefs.current[index] = el)}
             value={data}
-            onChange={(e) => handleChange(e.target, index)}
+            onCompositionStart={() => { composingOtpRef.current = true; }}
+            onCompositionEnd={(e) => {
+              composingOtpRef.current = false;
+              handleChange(e, index, true);
+            }}
+            onChange={(e) => handleChange(e, index)}
             onKeyDown={(e) => handleKeyDown(e, index)}
           />
         ))}

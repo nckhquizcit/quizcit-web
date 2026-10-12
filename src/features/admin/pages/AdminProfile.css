@@ -12,8 +12,6 @@
   --ap-blue-100: #eef5ff;
   --ap-orange: #f59e0b;
   --ap-orange-100: #fff4e5;
-  --ap-accent: #10b981;
-  --ap-accent-100: #e9fbf3;
 }
 
 .admin-profile-page {
@@ -38,7 +36,7 @@
 
 .admin-profile-top {
   display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
   align-items: start;
 }
@@ -53,11 +51,6 @@
 
 .admin-card--primary {
   border-color: rgba(16, 185, 129, 0.55);
-}
-
-.admin-card--permission {
-  background: var(--ap-accent-100);
-  border-color: rgba(16, 185, 129, 0.18);
 }
 
 .admin-card__header {
@@ -110,35 +103,6 @@
   height: 1px;
   background: rgba(15, 23, 42, 0.06);
   margin: 6px 6px 12px;
-}
-
-.admin-permissionBody {
-  padding: 10px 10px 14px;
-  display: grid;
-  justify-items: center;
-  text-align: center;
-  gap: 10px;
-}
-
-.admin-permissionBadge {
-  width: 92px;
-  height: 92px;
-  border-radius: 999px;
-  background: rgba(124, 58, 237, 0.98);
-  display: grid;
-  place-items: center;
-  box-shadow: 0 12px 24px rgba(124, 58, 237, 0.24);
-}
-
-.admin-permissionTitle {
-  font-weight: 800;
-  color: rgba(124, 58, 237, 0.95);
-}
-
-.admin-permissionSub {
-  color: rgba(100, 116, 139, 0.95);
-  font-size: 13px;
-  max-width: 260px;
 }
 
 .admin-stats {
@@ -223,12 +187,6 @@
   height: 18px;
 }
 
-.admin-icon--shieldWhite {
-  width: 40px;
-  height: 40px;
-  color: rgba(255, 255, 255, 0.95);
-}
-
 @media (max-width: 1024px) {
   .admin-profile-top {
     grid-template-columns: 1fr;
@@ -285,8 +243,7 @@
   padding: 16px;
 }
 
-.admin-card--primary,
-.admin-card--permission {
+.admin-card--primary {
   border-color: var(--admin-border, #dce4ec);
   background: var(--admin-surface, #ffffff);
 }
@@ -317,27 +274,13 @@
 }
 
 .admin-field__label,
-.admin-stat__label,
-.admin-permissionSub {
+.admin-stat__label {
   color: var(--admin-muted, #5f6f82);
 }
 
 .admin-field__value,
-.admin-permissionTitle,
 .admin-stat__value {
   color: var(--admin-text, #0f172a);
-}
-
-.admin-permissionBody {
-  padding: 10px 0 0;
-}
-
-.admin-permissionBadge {
-  width: 72px;
-  height: 72px;
-  border-radius: var(--admin-radius-surface, 8px);
-  background: var(--admin-primary, #10b981);
-  box-shadow: none;
 }
 
 .admin-stats {
@@ -437,26 +380,6 @@
   font-size: 13.5px;
   font-weight: 600;
   color: var(--admin-text, #0f172a);
-}
-
-/* ---- Figma A15: permission checklist + logout link ---- */
-.adm2-check-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: 100%;
-}
-.adm2-check-list li {
-  font-size: 13.5px;
-  font-weight: 650;
-  color: var(--admin-text, #0f172a);
-}
-
-.adm2-profile-logout {
-  margin-top: 4px;
 }
 
 @media (max-width: 640px) {

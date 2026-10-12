@@ -1,6 +1,13 @@
 import JSZip from "jszip";
 import { compactImportKey } from "./questionImportParser.js";
 
+export const QUESTION_IMPORT_SAMPLE_QUESTION_COUNTS = Object.freeze({
+  csv: 2,
+  moodle: 1,
+  gift: 1,
+  aiken: 1,
+});
+
 export const QUESTION_IMPORT_TXT_TEMPLATE = `Câu 1: HTML là viết tắt của gì?
 A. Hyper Text Markup Language
 B. High Text Machine Language
@@ -42,12 +49,12 @@ export const QUESTION_IMPORT_MOODLE_XML_TEMPLATE = `<?xml version="1.0" encoding
 export const QUESTION_IMPORT_GIFT_TEMPLATE = `// QuizCIT hỗ trợ câu hỏi một đáp án đúng
 $CATEGORY: QuizCIT mẫu
 
-::Câu hỏi HTML mẫu::[html]<p>HTML là viết tắt của gì?</p><pre><code class="language-c">printf("Hello");</code></pre> {
-=<p>Hyper Text Markup Language</p>
-~<p>High Text Machine Language</p>
-~<p>Hyper Tool Multi Language</p>
-~<p>Home Tool Markup Language</p>
-####<p>HTML là ngôn ngữ đánh dấu siêu văn bản.</p>
+::Câu hỏi mẫu::HTML là viết tắt của gì? {
+=Hyper Text Markup Language
+~High Text Machine Language
+~Hyper Tool Multi Language
+~Home Tool Markup Language
+####HTML là ngôn ngữ đánh dấu siêu văn bản.
 }`;
 
 export const QUESTION_IMPORT_AIKEN_TEMPLATE = `HTML là viết tắt của gì?
@@ -103,18 +110,23 @@ export function createSkillsListCsv(subject, skills = [], chapter = null) {
   ].join("\n");
 }
 
-export function createSampleDifficultiesTxt() {
-  return "1, 1.05, 2, 3, -2, 0.6, -1.8, -0.6";
+export function createSampleDifficultiesTxt(questionCount = 1) {
+  const values = [0.6, 0.2];
+  return Array.from({ length: questionCount }, (_, index) => values[index % values.length]).join(", ");
 }
 
-export function createSampleSkillsTxt(chapterSkills = []) {
-  const s1 = chapterSkills[0]?.name || "Kỹ năng chính 1";
-  const s2 = chapterSkills[1]?.name || "Kỹ năng phụ 2";
+export function createSampleSkillsTxt(chapterSkills = [], questionCount = 2) {
+  const skillNames = [...new Set(chapterSkills
+    .map((skill) => String(skill?.name || skill?.skillName || "").trim())
+    .filter(Boolean))];
+  const primary = skillNames[0] || "Kỹ năng chính 1";
+  const secondary = skillNames.find((name) => compactImportKey(name) !== compactImportKey(primary));
 
-  return [
-    `${s1}: 1.0`,
-    `${s1}: 0.6: primary, ${s2}: 0.4`,
-  ].join("\n");
+  return Array.from({ length: questionCount }, (_, index) =>
+    index === 1 && secondary
+      ? `${primary}: 0.6: primary, ${secondary}: 0.4`
+      : `${primary}: 1.0`,
+  ).join("\n");
 }
 
 export function createSampleDifficultiesJson() {
@@ -176,6 +188,7 @@ CÁCH SỬ DỤNG KHI IMPORT:
 - Bước 2: Chọn Môn học và Chương.
 - Bước 3: Tải bộ file mẫu (.zip) nếu cần xem cấu trúc chuẩn.
 - Bước 4: Tải lên File câu hỏi CSV và File mảng kỹ năng .txt (hoặc dán nội dung vào 2 ô tương ứng) rồi bấm "Phân tích nội dung".
+- File mảng kỹ năng có đúng một dòng cho mỗi câu hỏi, theo cùng thứ tự.
 - Bước 5: Xem trước kết quả, chỉnh sửa nếu cần và bấm "Import".
 `;
   }
@@ -232,6 +245,7 @@ CÁCH SỬ DỤNG KHI IMPORT:
 - Bước 2: Chọn Môn học và Chương.
 - Bước 3: Tải bộ file mẫu (.zip) nếu cần xem cấu trúc chuẩn.
 - Bước 4: Tải lên đồng thời 3 file (File câu hỏi Moodle, File mảng độ khó .txt, File mảng kỹ năng .txt) hoặc dán nội dung rồi bấm "Phân tích nội dung".
+- Mỗi giá trị độ khó và mỗi dòng kỹ năng tương ứng với một câu hỏi, theo cùng thứ tự.
 - Bước 5: Xem trước kết quả, chỉnh sửa nếu cần và bấm "Import".
 `;
 }
@@ -240,7 +254,6 @@ export async function downloadImportZipPackage({
   format = "csv",
   subject,
   chapter,
-  allSubjectSkills = [],
   chapterSkills = [],
 }) {
   const zip = new JSZip();
@@ -251,8 +264,8 @@ export async function downloadImportZipPackage({
   };
 
   const questionContent = createQuestionImportTemplate(format);
-  // Khi đã chọn chương, chỉ tải danh sách kỹ năng của chương đó. Nếu chương chưa có kỹ năng thì dùng của môn.
-  const targetSkills = chapterSkills && chapterSkills.length > 0 ? chapterSkills : allSubjectSkills;
+  const questionCount = QUESTION_IMPORT_SAMPLE_QUESTION_COUNTS[format] || 1;
+  const targetSkills = chapterSkills;
   const skillsCsv = createSkillsListCsv(subject, targetSkills, chapter);
   const targetSlug = compactImportKey(chapter?.name || subject?.name || "chuong");
 
@@ -261,7 +274,7 @@ export async function downloadImportZipPackage({
     zip.file("1_cau_hoi_mau.csv", "\ufeff" + questionContent);
 
     // 2. File mảng skills mẫu (.txt)
-    zip.file("2_mang_skills_mau.txt", createSampleSkillsTxt(targetSkills));
+    zip.file("2_mang_skills_mau.txt", createSampleSkillsTxt(targetSkills, questionCount));
 
     // 3. File danh sách skills của chương để tra cứu
     zip.file(`3_danh_sach_skills_${targetSlug}.csv`, "\ufeff" + skillsCsv);
@@ -280,10 +293,10 @@ export async function downloadImportZipPackage({
     zip.file(`1_cau_hoi_mau.${ext}`, "\ufeff" + questionContent);
 
     // 2. File mảng độ khó mẫu (.txt)
-    zip.file("2_do_kho_mau.txt", createSampleDifficultiesTxt());
+    zip.file("2_do_kho_mau.txt", createSampleDifficultiesTxt(questionCount));
 
     // 3. File mảng skills mẫu (.txt)
-    zip.file("3_mang_skills_mau.txt", createSampleSkillsTxt(targetSkills));
+    zip.file("3_mang_skills_mau.txt", createSampleSkillsTxt(targetSkills, questionCount));
 
     // 4. File danh sách skills của chương để tra cứu
     zip.file(`4_danh_sach_skills_${targetSlug}.csv`, "\ufeff" + skillsCsv);

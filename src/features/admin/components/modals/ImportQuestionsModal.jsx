@@ -32,7 +32,11 @@ import { isImportReferenceDataReady } from "../../utils/questionImportMapping";
 import { getImportSkillsForChapter } from "../../utils/questionImportPreviewLogic";
 import {
   createQuestionImportTemplate,
+  createSampleDifficultiesTxt,
+  createSampleSkillsTxt,
   downloadImportZipPackage,
+  downloadQuestionImportTemplate,
+  QUESTION_IMPORT_SAMPLE_QUESTION_COUNTS,
 } from "../../utils/questionImportTemplate";
 import { getSkills } from "../../../../services/skillService";
 import {
@@ -265,31 +269,7 @@ export default function ImportQuestionsModal({
     });
   }, [allPreviewChapters, selectedChapter?.name, skillCatalogMap, targetChapterId, targetSubjectId]);
 
-  const allSubjectSkills = useMemo(() => {
-    if (!targetSubjectId || targetSubjectId === "QUESTION_BANK") return [];
-    const subjectChapters = allPreviewChapters.filter(
-      (c) => String(c.subjectId) === String(targetSubjectId),
-    );
-    const bySkillId = new Map();
-    subjectChapters.forEach((chap) => {
-      (chap.skills || []).forEach((skill) => {
-        const id = String(skill?.skillId ?? skill?.id ?? "").trim();
-        const name = String(skill?.name ?? skill?.skillName ?? "").trim().toLowerCase();
-        const catalogItem = (id ? skillCatalogMap.get(id) : null) || (name ? skillCatalogMap.get(name) : null);
-        const dedupeKey = id || name;
-        if (dedupeKey && !bySkillId.has(dedupeKey)) {
-          bySkillId.set(dedupeKey, {
-            skillId: skill.skillId || catalogItem?.skillId || "",
-            name: skill.name || catalogItem?.name || "",
-            chapterName: chap.name,
-            chapterId: chap.chapterId,
-            description: skill.description || catalogItem?.description || "",
-          });
-        }
-      });
-    });
-    return [...bySkillId.values()];
-  }, [allPreviewChapters, skillCatalogMap, targetSubjectId]);
+  const sampleQuestionCount = QUESTION_IMPORT_SAMPLE_QUESTION_COUNTS[selectedFormat] || 1;
 
   const parsedDifficultyInfo = useMemo(() => {
     if (!difficultyText.trim()) return null;
@@ -298,8 +278,8 @@ export default function ImportQuestionsModal({
 
   const parsedSkillInfo = useMemo(() => {
     if (!skillText.trim()) return null;
-    return parseSkillArray(skillText, currentChapterSkills.length ? currentChapterSkills : allSubjectSkills);
-  }, [allSubjectSkills, currentChapterSkills, skillText]);
+    return parseSkillArray(skillText, currentChapterSkills);
+  }, [currentChapterSkills, skillText]);
 
   const questionPlaceholder = useMemo(() => {
     if (selectedFormat === "csv") {
@@ -359,17 +339,12 @@ ANSWER: B`;
     return createQuestionImportTemplate(selectedFormat);
   }, [selectedFormat]);
 
-  const difficultyPlaceholder = `1, 1.05, 2, 3, -2, 0.6, -1.8, -0.6
-(hoặc mỗi dòng một số:
-1.05
--0.6
-2.0)`;
+  const difficultyPlaceholder = `${createSampleDifficultiesTxt(sampleQuestionCount)}
+(mỗi giá trị tương ứng một câu hỏi theo thứ tự)`;
 
   const skillPlaceholder = useMemo(() => {
-    const s1 = currentChapterSkills[0]?.name || allSubjectSkills[0]?.name || "Kỹ năng chính 1";
-    const s2 = currentChapterSkills[1]?.name || allSubjectSkills[1]?.name || "Kỹ năng phụ 2";
-    return `${s1}: 1.0\n${s1}: 0.6: primary, ${s2}: 0.4\n(Mỗi dòng tương ứng một câu hỏi theo thứ tự)`;
-  }, [allSubjectSkills, currentChapterSkills]);
+    return `${createSampleSkillsTxt(currentChapterSkills, sampleQuestionCount)}\n(Mỗi dòng tương ứng một câu hỏi theo thứ tự)`;
+  }, [currentChapterSkills, sampleQuestionCount]);
 
   const resolveImportedRow = useCallback((row) => {
     const isBank = targetSubjectId === "QUESTION_BANK";
@@ -707,7 +682,7 @@ ANSWER: B`;
     reader.onload = () => {
       const content = String(reader.result || "");
       setSkillText(content);
-      const parsed = parseSkillArray(content, currentChapterSkills.length ? currentChapterSkills : allSubjectSkills);
+      const parsed = parseSkillArray(content, currentChapterSkills);
       if (parsed.mappings.length > 0) {
         setParseMessage(`Đã đọc file mảng kỹ năng (${parsed.mappings.length} câu).`);
       }
@@ -748,7 +723,6 @@ ANSWER: B`;
         format: selectedFormat,
         subject: selSub,
         chapter: selChap,
-        allSubjectSkills,
         chapterSkills: currentChapterSkills,
       });
     } catch {
@@ -823,7 +797,7 @@ ANSWER: B`;
 
     let skillMappings = [];
     if (skillText.trim()) {
-      const skillResult = parseSkillArray(skillText, currentChapterSkills.length ? currentChapterSkills : allSubjectSkills);
+      const skillResult = parseSkillArray(skillText, currentChapterSkills);
       skillMappings = skillResult.mappings;
       if (skillResult.invalidTokens.length > 0) {
         setFormError(`Phát hiện kỹ năng không hợp lệ: ${skillResult.invalidTokens.join(", ")}`);
@@ -1002,20 +976,32 @@ ANSWER: B`;
             </div>
           </div>
 
-          <div className="question-import-format-selector" role="radiogroup" aria-label="Định dạng câu hỏi">
+          <div className="question-import-format-selector" role="group" aria-label="Định dạng câu hỏi và file mẫu">
             {FORMAT_OPTIONS.map((fmt) => {
               const Icon = fmt.icon;
               const active = selectedFormat === fmt.key;
               return (
-                <button
-                  type="button"
-                  key={fmt.key}
-                  className={active ? "question-import-format-btn active" : "question-import-format-btn"}
-                  onClick={() => setSelectedFormat(fmt.key)}
-                >
-                  <Icon size={18} />
-                  <span>{fmt.label}</span>
-                </button>
+                <div className="question-import-format-option" key={fmt.key}>
+                  <button
+                    type="button"
+                    aria-pressed={active}
+                    className={active ? "question-import-format-btn active" : "question-import-format-btn"}
+                    onClick={() => setSelectedFormat(fmt.key)}
+                  >
+                    <Icon size={18} />
+                    <span>{fmt.label}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="question-import-format-download-btn"
+                    aria-label={`Tải file mẫu ${fmt.label}`}
+                    title={`Tải file mẫu ${fmt.label}`}
+                    onClick={() => downloadQuestionImportTemplate(fmt.key)}
+                  >
+                    <Download size={15} />
+                    <span>Tải mẫu</span>
+                  </button>
+                </div>
               );
             })}
           </div>
@@ -1106,7 +1092,8 @@ ANSWER: B`;
                   type="button"
                   className="add-btn question-import-zip-download-btn"
                   onClick={handleDownloadZip}
-                  disabled={downloadingZip}
+                  disabled={downloadingZip || !currentChapterSkills.length}
+                  title={!currentChapterSkills.length ? "Gắn ít nhất một kỹ năng vào chương để tải bộ mẫu import." : undefined}
                 >
                   <Archive size={16} />
                   {downloadingZip ? "Đang tạo ZIP..." : `Tải bộ file mẫu ${selectedFormat.toUpperCase()} (.zip)`}
@@ -1121,12 +1108,15 @@ ANSWER: B`;
                   <strong>Gói ZIP mẫu bao gồm:</strong>
                   {selectedFormat === "csv" ? (
                     <span>
-                      1. File câu hỏi CSV (câu hỏi, các đáp án, đáp án đúng, giải thích &amp; độ khó) · 2. File mảng kỹ năng mẫu (.txt) · 3. Danh sách Skills của {selectedChapter?.name ? `chương "${selectedChapter.name}"` : `môn "${selectedSubject?.name || "học"}"`} ({currentChapterSkills.length || allSubjectSkills.length} kỹ năng kèm mô tả) · 4. Hướng dẫn chi tiết.
+                      1. File câu hỏi CSV (câu hỏi, các đáp án, đáp án đúng, giải thích &amp; độ khó) · 2. File mảng kỹ năng mẫu (.txt) · 3. Danh sách Skills của {selectedChapter?.name ? `chương "${selectedChapter.name}"` : `môn "${selectedSubject?.name || "học"}"`} ({currentChapterSkills.length} kỹ năng kèm mô tả) · 4. Hướng dẫn chi tiết.
                     </span>
                   ) : (
                     <span>
-                      1. File câu hỏi chuẩn Moodle ({selectedFormat.toUpperCase()}) · 2. File mảng độ khó mẫu (.txt) · 3. File mảng kỹ năng mẫu (.txt) · 4. Danh sách Skills của {selectedChapter?.name ? `chương "${selectedChapter.name}"` : `môn "${selectedSubject?.name || "học"}"`} ({currentChapterSkills.length || allSubjectSkills.length} kỹ năng kèm mô tả) · 5. Hướng dẫn chi tiết.
+                      1. File câu hỏi chuẩn Moodle ({selectedFormat.toUpperCase()}) · 2. File mảng độ khó mẫu (.txt) · 3. File mảng kỹ năng mẫu (.txt) · 4. Danh sách Skills của {selectedChapter?.name ? `chương "${selectedChapter.name}"` : `môn "${selectedSubject?.name || "học"}"`} ({currentChapterSkills.length} kỹ năng kèm mô tả) · 5. Hướng dẫn chi tiết.
                     </span>
+                  )}
+                  {!currentChapterSkills.length && (
+                    <span>Gắn ít nhất một kỹ năng vào chương để tải bộ mẫu có thể import hợp lệ.</span>
                   )}
                 </div>
               </div>
@@ -1213,7 +1203,7 @@ ANSWER: B`;
                     <button
                       type="button"
                       className="adm2-link-arrow sample-btn"
-                      onClick={() => setDifficultyText("1, 1.05, 2, 3, -2, 0.6, -1.8, -0.6")}
+                    onClick={() => setDifficultyText(createSampleDifficultiesTxt(sampleQuestionCount))}
                     >
                       Dán mẫu
                     </button>
@@ -1248,11 +1238,7 @@ ANSWER: B`;
                   <button
                     type="button"
                     className="adm2-link-arrow sample-btn"
-                    onClick={() => {
-                      const s1 = currentChapterSkills[0]?.name || allSubjectSkills[0]?.name || "Kỹ năng chính 1";
-                      const s2 = currentChapterSkills[1]?.name || allSubjectSkills[1]?.name || "Kỹ năng phụ 2";
-                      setSkillText(`${s1}: 1.0\n${s1}: 0.6: primary, ${s2}: 0.4`);
-                    }}
+                    onClick={() => setSkillText(createSampleSkillsTxt(currentChapterSkills, sampleQuestionCount))}
                   >
                     Dán mẫu
                   </button>
@@ -1389,7 +1375,12 @@ ANSWER: B`;
               onClick={handleParse}
               disabled={
                 !isScopeReady ||
-                (activeTab === "text" ? !sourceText.trim() : fileLoading || !sourceText) ||
+                !sourceText.trim() ||
+                (activeTab === "file" && (
+                  fileLoading ||
+                  skillFileLoading ||
+                  (selectedFormat !== "csv" && difficultyFileLoading)
+                )) ||
                 !isImportReferenceDataReady({ loadingChapters })
               }
             >
@@ -1401,6 +1392,12 @@ ANSWER: B`;
               <span className="question-import-scope-warn">
                 <AlertCircle size={15} />
                 Vui lòng chọn môn học và chương ở Bước 2 trước khi phân tích.
+              </span>
+            )}
+            {isScopeReady && activeTab === "file" && !sourceText.trim() && (
+              <span className="question-import-scope-warn">
+                <AlertCircle size={15} />
+                Chọn file câu hỏi ở khung số 1; file kỹ năng chỉ gán kỹ năng cho câu hỏi.
               </span>
             )}
           </div>
